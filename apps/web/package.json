@@ -12,16 +12,20 @@
   },
   "dependencies": {
     "@beresio/db": "workspace:*",
+    "@hookform/resolvers": "^3.9.1",
     "@repo/ui": "workspace:*",
+    "@tanstack/react-form": "^1.28.4",
     "better-auth": "^1.1.20",
     "clsx": "^2.1.1",
-    "drizzle-orm": "^0.39.1",
+    "drizzle-orm": "^0.45.1",
     "framer-motion": "^12.34.5",
     "lucide-react": "^0.436.0",
     "next": "16.1.5",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "tailwind-merge": "^2.5.2"
+    "react-hook-form": "^7.53.2",
+    "tailwind-merge": "^2.5.2",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",

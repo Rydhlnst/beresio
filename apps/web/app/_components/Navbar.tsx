@@ -47,6 +47,7 @@ import Image from "next/image"
 import { Banner } from "./Banner"
 import { useSession } from "@/lib/auth-client"
 import ProfileDropdown from "./ProfileDropdown"
+import { useShowLayout } from "./LayoutProvider"
 
 // ─── TYPES ───────────────────────────────────────────────────────────────────
 
@@ -243,6 +244,9 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 export function Navbar() {
     const { data: session, isPending } = useSession()
+    const showLayout = useShowLayout()
+
+    if (!showLayout) return null
 
     return (
         <header className="sticky top-0 z-50 w-full transition-all duration-300">
@@ -431,7 +435,7 @@ export function Navbar() {
                                         size="lg"
                                         asChild
                                     >
-                                        <Link href="/login">Masuk</Link>
+                                        <Link href="/sign-in">Masuk</Link>
                                     </Button>
 
                                     <div className="mx-1 h-4 w-px bg-border" />
@@ -442,7 +446,7 @@ export function Navbar() {
                                         asChild
                                         className="rounded-2xl"
                                     >
-                                        <Link href="/signup">Daftar Gratis</Link>
+                                        <Link href="/sign-up">Daftar Gratis</Link>
                                     </Button>
                                 </div>
 
@@ -451,7 +455,7 @@ export function Navbar() {
                                     asChild
                                     className="rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 transition-all"
                                 >
-                                    <Link href="/login">Mulai Beres</Link>
+                                    <Link href="/sign-in">Mulai Beres</Link>
                                 </Button>
                             </>
                         )}
@@ -525,10 +529,10 @@ export function Navbar() {
                                         ) : (
                                             <>
                                                 <Button variant="outline" asChild className="w-full rounded-2xl">
-                                                    <Link href="/login">Masuk ke Dashboard</Link>
+                                                    <Link href="/sign-in">Masuk ke Dashboard</Link>
                                                 </Button>
                                                 <Button asChild className="w-full rounded-2xl bg-primary hover:bg-accent hover:text-accent-foreground">
-                                                    <Link href="/signup">Daftar Sekarang</Link>
+                                                    <Link href="/sign-up">Daftar Sekarang</Link>
                                                 </Button>
                                             </>
                                         )}

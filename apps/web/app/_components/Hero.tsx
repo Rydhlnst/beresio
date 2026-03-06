@@ -437,7 +437,7 @@ export function Hero() {
                     {/* CTAs */}
                     <div className="flex flex-wrap items-center gap-4 pt-4">
                         <Button size="lg" className="rounded-2xl px-10 h-14 font-extrabold text-base bg-primary text-primary-foreground hover:scale-105 transition-all shadow-xl shadow-primary/20" asChild>
-                            <Link href="/daftar">
+                            <Link href="/sign-up">
                                 Mulai Gratis Sekarang
                                 <ArrowRight className="ml-2 h-4 w-4" />
                             </Link>

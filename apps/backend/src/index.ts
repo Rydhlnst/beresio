@@ -1,13 +1,15 @@
 import { Hono } from 'hono'
 import { authMiddleware } from './middleware/auth'
-import { drizzle } from 'drizzle-orm/d1'
+import { createDb } from '@beresio/db'
 
 type Bindings = {
-  DB: D1Database
+  DATABASE_URL: string
+  BETTER_AUTH_SECRET: string
+  BETTER_AUTH_URL: string
 }
 
 type Variables = {
-  db: ReturnType<typeof drizzle>
+  db: ReturnType<typeof createDb>
   user: any
   session: any
 }
@@ -15,7 +17,7 @@ type Variables = {
 const app = new Hono<{ Bindings: Bindings, Variables: Variables }>()
 
 app.use('*', async (c, next) => {
-  const db = drizzle(c.env.DB)
+  const db = createDb(c.env.DATABASE_URL)
   c.set('db', db)
   await next()
 })

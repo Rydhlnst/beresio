@@ -115,27 +115,38 @@ function EnterpriseSearchMockup() {
                 </div>
 
                 {/* Bottom App Bar */}
-                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex items-center justify-center gap-2 pb-6 w-full px-6">
-                    <div className="flex items-center gap-1.5 p-1.5 bg-white/80 backdrop-blur-md rounded-2xl border border-border/40 shadow-xl">
-                        <div className="h-10 w-10 bg-muted/20 rounded-xl border border-border/10 flex items-center justify-center p-2">
-                            <SlackIcon className="h-full w-full text-zinc-600" />
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex items-center justify-center pb-6 w-full px-6">
+                    <div className="flex items-center gap-2 p-1.5 bg-white/60 backdrop-blur-xl rounded-3xl border border-white/40 shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
+                        {/* Slack Icon Container */}
+                        <div className="h-11 w-11 bg-white/50 backdrop-blur-sm rounded-2xl border border-border/10 flex items-center justify-center p-2.5 transition-transform hover:scale-110">
+                            <SlackIcon className="h-full w-full text-zinc-700" />
                         </div>
-                        <div className="h-10 w-10 bg-muted/20 rounded-xl border border-border/10 flex items-center justify-center p-2">
+
+                        {/* Notion Icon Container */}
+                        <div className="h-11 w-11 bg-white/50 backdrop-blur-sm rounded-2xl border border-border/10 flex items-center justify-center p-2.5 transition-transform hover:scale-110">
                             <NotionIcon className="h-full w-full" />
                         </div>
+
+                        {/* Center Logo - Beres */}
                         <motion.div
-                            animate={{ y: -8 }}
-                            className="h-14 w-14 bg-white rounded-2xl border border-border flex items-center justify-center p-2.5 shadow-lg"
+                            animate={{ y: -10 }}
+                            className="h-16 w-16 bg-white rounded-[24px] border border-border/50 flex items-center justify-center p-3 shadow-[0_12px_24px_-8px_rgba(238,72,34,0.35)] relative z-10 mx-1"
                         >
                             <BeresLogo className="h-full w-full" />
                         </motion.div>
-                        <div className="h-10 w-10 bg-muted/20 rounded-xl border border-border/10 flex items-center justify-center p-2">
+
+                        {/* Package Icon Container */}
+                        <div className="h-11 w-11 bg-white/50 backdrop-blur-sm rounded-2xl border border-border/10 flex items-center justify-center p-2.5 transition-transform hover:scale-110">
                             <Package className="h-full w-full text-blue-500" />
                         </div>
-                        <div className="h-10 w-10 bg-muted/20 rounded-xl border border-border/10 flex items-center justify-center p-2">
-                            <TrendingUp className="h-full w-full text-emerald-500" />
+
+                        {/* TrendingUp Icon Container */}
+                        <div className="h-11 w-11 bg-white/50 backdrop-blur-sm rounded-2xl border border-border/10 flex items-center justify-center p-2.5 transition-transform hover:scale-110">
+                            <TrendingUp className="h-full w-full text-emerald-500" strokeWidth={2.5} />
                         </div>
-                        <div className="h-10 w-10 bg-muted/10 rounded-xl border border-border/10 flex items-center justify-center p-2 opacity-60">
+
+                        {/* Add Icon Container */}
+                        <div className="h-11 w-11 bg-white/30 rounded-2xl border border-dashed border-border/20 flex items-center justify-center p-2.5 opacity-60">
                             <Plus className="h-5 w-5 text-muted-foreground/60" />
                         </div>
                     </div>

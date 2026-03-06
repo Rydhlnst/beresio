@@ -13,6 +13,7 @@ import {
     Circle
 } from "lucide-react"
 import { cn } from "@repo/ui/lib/utils"
+import { useShowLayout } from "./LayoutProvider"
 
 const footerLinks = [
     {
@@ -62,6 +63,9 @@ const footerLinks = [
 ]
 
 export function Footer() {
+    const showLayout = useShowLayout()
+    if (!showLayout) return null
+
     return (
         <footer className="relative z-10 w-full bg-background border-t border-border/50 pt-16 pb-8">
             <div className="mx-auto max-w-[1400px] px-8">
