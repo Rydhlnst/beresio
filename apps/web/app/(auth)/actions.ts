@@ -1,12 +1,12 @@
 "use server";
 
 import { auth } from "@/lib/auth";
-import { db } from "@beresio/db";
+import { createDbNextjs } from "@beresio/db";
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 
 export async function signInAction(formData: any) {
-    const { email, password } = formData;
+    const { email } = formData;
+    const db = createDbNextjs(process.env.DATABASE_URL!);
 
     try {
         const existingUser = await db.query.user.findFirst({
@@ -16,25 +16,17 @@ export async function signInAction(formData: any) {
         if (!existingUser) {
             return { success: false, error: "Account not found" };
         }
-        const result = await auth(db).api.signInEmail({
-            body: {
-                email,
-                password,
-            },
-            headers: await headers(),
-        });
 
-        if (result.token || result.user) {
-            return { success: true };
-        }
-        return { success: false, error: "Invalid credentials" };
+        return { success: true };
     } catch (error: any) {
-        return { success: false, error: error.message || "An error occurred during sign in" };
+        console.error("Sign in error:", error);
+        return { success: false, error: error.message || "An error occurred during account validation" };
     }
 }
 
 export async function signUpAction(formData: any) {
     const { name, email, password } = formData;
+    const db = createDbNextjs(process.env.DATABASE_URL!);
 
     try {
         const result = await auth(db).api.signUpEmail({
@@ -51,6 +43,7 @@ export async function signUpAction(formData: any) {
         }
         return { success: false, error: "Failed to create account" };
     } catch (error: any) {
+        console.error("Sign up error:", error);
         return { success: false, error: error.message || "An error occurred during sign up" };
     }
 }

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { db, testDbConnection } from "@beresio/db";
+import { createDbNextjs, testDbConnection } from "@beresio/db";
+
+const db = createDbNextjs(process.env.DATABASE_URL!);
 
 export async function GET() {
     const check = await testDbConnection(db);

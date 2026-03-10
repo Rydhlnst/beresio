@@ -13,10 +13,8 @@ export const createDbNextjs = (url: string) => {
     return drizzle(sql, { schema });
 };
 
-const defaultUrl = process.env.DATABASE_URL;
-export const db = defaultUrl ? createDbNextjs(defaultUrl) : null as any;
 
-export const testDbConnection = async (database = db) => {
+export const testDbConnection = async (database: ReturnType<typeof createDbHttp>) => {
     try {
         await database.execute(drizzleSql`SELECT 1`);
         return { success: true };

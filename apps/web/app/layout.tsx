@@ -12,7 +12,7 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "beres.io | Solusi Bisnis Digital Terpadu",
+  title: "Beres | Solusi Bisnis Digital Terpadu",
   description: "Kelola bisnis Anda dengan mudah menggunakan beres.io. Kasir digital, inventori, dan laporan keuangan dalam satu platform.",
 };
 

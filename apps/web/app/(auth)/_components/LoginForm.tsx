@@ -22,10 +22,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GoogleOAuthButton } from "./GoogleOAuthButton";
 import { signInAction } from "../actions";
+import { signIn } from "@/lib/auth-client";
 
 const loginSchema = z.object({
     email: z.string().email("Invalid email address"),
     password: z.string().min(8, "Password must be at least 8 characters"),
+    remember: z.boolean().default(false).optional(),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -40,6 +42,7 @@ export function LoginForm() {
         defaultValues: {
             email: "",
             password: "",
+            remember: false,
         },
     });
 
@@ -47,12 +50,26 @@ export function LoginForm() {
         setIsLoading(true);
 
         try {
-            const result = await signInAction(values);
-            if (result.success) {
+            // First check if the account exists
+            const result = await signInAction({ email: values.email });
+            if (!result.success) {
+                toast.error(result.error || "Account not found");
+                setIsLoading(false);
+                return;
+            }
+
+            // Perform actual sign in using the client SDK to set cookies
+            const { error } = await signIn.email({
+                email: values.email,
+                password: values.password,
+                rememberMe: values.remember,
+            });
+
+            if (error) {
+                toast.error(error.message || "Invalid credentials");
+            } else {
                 router.push("/");
                 router.refresh();
-            } else {
-                toast.error(result.error || "Login failed");
             }
         } catch (err) {
             toast.error("An unexpected error occurred");
@@ -140,16 +157,27 @@ export function LoginForm() {
                         </div>
 
                         <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    type="checkbox"
-                                    id="remember"
-                                    className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
-                                />
-                                <label htmlFor="remember" className="text-sm font-medium text-muted-foreground/80 cursor-pointer">
-                                    Remember for 30 days
-                                </label>
-                            </div>
+                            <FormField
+                                control={form.control}
+                                name="remember"
+                                render={({ field }) => (
+                                    <div className="flex items-center space-x-2">
+                                        <FormControl>
+                                            <input
+                                                type="checkbox"
+                                                id="remember"
+                                                checked={field.value}
+                                                onChange={field.onChange}
+                                                className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
+                                                disabled={isLoading}
+                                            />
+                                        </FormControl>
+                                        <label htmlFor="remember" className="text-sm font-medium text-muted-foreground/80 cursor-pointer">
+                                            Remember for 30 days
+                                        </label>
+                                    </div>
+                                )}
+                            />
                             <Link href="/forgot-password" university-link="true" className="text-sm font-bold text-primary hover:opacity-80 transition-opacity">
                                 Forgot password
                             </Link>

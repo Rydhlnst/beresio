@@ -401,12 +401,7 @@ export function Hero() {
     return (
         <Section id="hero" showDivider={false} className="relative overflow-hidden bg-background pb-32 lg:pb-48">
             {/* ── TOP SECTION: Text ── */}
-            <div className="flex flex-col items-start pt-12 pb-16 relative">
-                {/* Decorative Pattern Background */}
-                <div className="absolute -right-[10%] top-0 h-full w-[60%] pointer-events-none overflow-hidden hidden lg:block">
-                    <RetroGrid className="[mask-image:radial-gradient(400px_circle_at_center,white,transparent)] opacity-40" />
-                </div>
-
+            <div className="flex flex-col items-start  pb-16 relative">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}

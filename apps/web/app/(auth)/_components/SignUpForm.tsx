@@ -21,7 +21,7 @@ import { Loader2, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GoogleOAuthButton } from "./GoogleOAuthButton";
-import { signUpAction } from "../actions";
+import { signUp } from "@/lib/auth-client";
 
 const signUpSchema = z.object({
     name: z.string().min(2, "Name must be at least 2 characters"),
@@ -49,12 +49,17 @@ export function SignUpForm() {
         setIsLoading(true);
 
         try {
-            const result = await signUpAction(values);
-            if (result.success) {
+            const { error } = await signUp.email({
+                email: values.email,
+                password: values.password,
+                name: values.name,
+            });
+
+            if (error) {
+                toast.error(error.message || "Failed to create account");
+            } else {
                 router.push("/");
                 router.refresh();
-            } else {
-                toast.error(result.error || "Failed to create account");
             }
         } catch (err) {
             toast.error("An unexpected error occurred");

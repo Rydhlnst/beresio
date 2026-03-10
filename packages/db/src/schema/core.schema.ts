@@ -3,16 +3,16 @@ import { organization } from "./auth.schema";
 
 export const branches = pgTable("branches", {
     id: uuid("id").primaryKey().defaultRandom(),
-    organizationId: text("organizationId")
+    organizationId: text("organization_id")
         .notNull()
         .references(() => organization.id, { onDelete: 'cascade' }),
     name: varchar("name", { length: 150 }).notNull(),
     code: varchar("code", { length: 10 }).notNull(),
     address: varchar("address", { length: 300 }),
     phone: varchar("phone", { length: 20 }),
-    isActive: boolean("isActive").default(true),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdateFn(() => new Date()),
+    isActive: boolean("is_active").default(true),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdateFn(() => new Date()),
 }, (table) => {
     return {
         idxBranchesOrg: index("idx_branches_org").on(table.organizationId),
@@ -22,18 +22,18 @@ export const branches = pgTable("branches", {
 
 export const customers = pgTable("customers", {
     id: uuid("id").primaryKey().defaultRandom(),
-    organizationId: text("organizationId")
+    organizationId: text("organization_id")
         .notNull()
         .references(() => organization.id, { onDelete: 'cascade' }),
     name: varchar("name", { length: 150 }).notNull(),
     phone: varchar("phone", { length: 20 }).notNull(),
     email: varchar("email", { length: 150 }),
     address: varchar("address", { length: 300 }),
-    loyaltyPoints: integer("loyaltyPoints").default(0),
-    loyaltyTier: varchar("loyaltyTier", { length: 20 }).default('regular'),
-    totalSpentRp: integer("totalSpentRp").default(0),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdateFn(() => new Date()),
+    loyaltyPoints: integer("loyalty_points").default(0),
+    loyaltyTier: varchar("loyalty_tier", { length: 20 }).default('regular'),
+    totalSpentRp: integer("total_spent_rp").default(0),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdateFn(() => new Date()),
 }, (table) => {
     return {
         idxCustomersOrg: index("idx_customers_org").on(table.organizationId),

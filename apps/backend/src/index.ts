@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { authMiddleware } from './middleware/auth'
-import { createDb } from '@beresio/db'
+import { createDbHttp } from '@beresio/db'
 
 type Bindings = {
   DATABASE_URL: string
@@ -17,7 +17,7 @@ type Variables = {
 const app = new Hono<{ Bindings: Bindings, Variables: Variables }>()
 
 app.use('*', async (c, next) => {
-  const db = createDb(c.env.DATABASE_URL)
+  const db = createDbHttp(c.env.DATABASE_URL)
   c.set('db', db)
   await next()
 })

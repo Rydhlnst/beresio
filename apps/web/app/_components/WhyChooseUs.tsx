@@ -117,38 +117,13 @@ function EnterpriseSearchMockup() {
                 {/* Bottom App Bar */}
                 <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex items-center justify-center pb-6 w-full px-6">
                     <div className="flex items-center gap-2 p-1.5 bg-white/60 backdrop-blur-xl rounded-3xl border border-white/40 shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
-                        {/* Slack Icon Container */}
-                        <div className="h-11 w-11 bg-white/50 backdrop-blur-sm rounded-2xl border border-border/10 flex items-center justify-center p-2.5 transition-transform hover:scale-110">
-                            <SlackIcon className="h-full w-full text-zinc-700" />
-                        </div>
-
-                        {/* Notion Icon Container */}
-                        <div className="h-11 w-11 bg-white/50 backdrop-blur-sm rounded-2xl border border-border/10 flex items-center justify-center p-2.5 transition-transform hover:scale-110">
-                            <NotionIcon className="h-full w-full" />
-                        </div>
-
                         {/* Center Logo - Beres */}
                         <motion.div
                             animate={{ y: -10 }}
-                            className="h-16 w-16 bg-white rounded-[24px] border border-border/50 flex items-center justify-center p-3 shadow-[0_12px_24px_-8px_rgba(238,72,34,0.35)] relative z-10 mx-1"
+                            className="h-16 w-16 bg-white rounded-[24px] border border-border/50 flex items-center justify-center p-3 shadow-[0_12px_24px_-8px_rgba(238,72,34,0.35)] relative z-10"
                         >
                             <BeresLogo className="h-full w-full" />
                         </motion.div>
-
-                        {/* Package Icon Container */}
-                        <div className="h-11 w-11 bg-white/50 backdrop-blur-sm rounded-2xl border border-border/10 flex items-center justify-center p-2.5 transition-transform hover:scale-110">
-                            <Package className="h-full w-full text-blue-500" />
-                        </div>
-
-                        {/* TrendingUp Icon Container */}
-                        <div className="h-11 w-11 bg-white/50 backdrop-blur-sm rounded-2xl border border-border/10 flex items-center justify-center p-2.5 transition-transform hover:scale-110">
-                            <TrendingUp className="h-full w-full text-emerald-500" strokeWidth={2.5} />
-                        </div>
-
-                        {/* Add Icon Container */}
-                        <div className="h-11 w-11 bg-white/30 rounded-2xl border border-dashed border-border/20 flex items-center justify-center p-2.5 opacity-60">
-                            <Plus className="h-5 w-5 text-muted-foreground/60" />
-                        </div>
                     </div>
                 </div>
             </motion.div>
