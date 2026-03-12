@@ -21,7 +21,7 @@ import { Loader2, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GoogleOAuthButton } from "./GoogleOAuthButton";
-import { signUp } from "@/lib/auth-client";
+import { authClient, signUp } from "@/lib/auth-client";
 
 const signUpSchema = z.object({
     name: z.string().min(2, "Name must be at least 2 characters"),
@@ -68,8 +68,18 @@ export function SignUpForm() {
         }
     };
 
-    const handleGoogleSignIn = () => {
-        window.location.href = "/api/auth/login/google";
+    const handleGoogleSignIn = async () => {
+        setIsLoading(true);
+        try {
+            await authClient.signIn.social({
+                provider: "google",
+                callbackURL: "/welcome",
+            });
+        } catch (err) {
+            toast.error("Failed to sign in with Google");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (

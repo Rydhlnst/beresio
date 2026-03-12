@@ -1,8 +1,7 @@
 "use client";
 
 import React from "react";
-import { Button } from "@repo/ui";
-import { GoogleIcon } from "./icons/GoogleIcon";
+import { Button, Google } from "@repo/ui";
 import { Loader2 } from "lucide-react";
 
 interface GoogleOAuthButtonProps {
@@ -24,7 +23,7 @@ export function GoogleOAuthButton({ onClick, isLoading, disabled, label = "Googl
             {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-                <GoogleIcon className="h-5 w-5" />
+                <Google className="h-5 w-5" />
             )}
             <span className="text-foreground">{label}</span>
         </Button>

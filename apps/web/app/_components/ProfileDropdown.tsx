@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { cn } from "@repo/ui/lib/utils";
-import { Settings, CreditCard, FileText, LogOut, User, LayoutDashboard, Sparkles, Building, SlidersHorizontal, Building2 } from "lucide-react";
+import { LogOut, User, LayoutDashboard, Building, SlidersHorizontal } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -43,6 +43,11 @@ export default function ProfileDropdown({
     const userSession = session?.user;
 
     const allMenuItems: MenuItem[] = [
+        {
+            label: "Dashboard",
+            href: "/dashboard",
+            icon: <LayoutDashboard className="w-4 h-4" />,
+        },
         // === USER LEVEL ===
         {
             label: "Profile",
@@ -53,20 +58,6 @@ export default function ProfileDropdown({
             label: "Preferences",
             href: "/profile/preferences", // notif, tema, bahasa — bukan "/settings"
             icon: <SlidersHorizontal className="w-4 h-4" />,
-        },
-
-        // === ORG LEVEL (conditional: Owner/Admin only) ===
-        {
-            label: "Subscription",
-            href: "/org/:slug/settings/subscription",
-            icon: <CreditCard className="w-4 h-4" />,
-            roles: ["OWNER"],          // hidden untuk cashier, driver, dll
-        },
-        {
-            label: "Organization Settings",
-            href: "/org/:slug/settings",
-            icon: <Building2 className="w-4 h-4" />,
-            roles: ["OWNER", "ADMIN"],
         },
 
         {

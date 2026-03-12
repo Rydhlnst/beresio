@@ -22,7 +22,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GoogleOAuthButton } from "./GoogleOAuthButton";
 import { signInAction } from "../actions";
-import { signIn } from "@/lib/auth-client";
+import { authClient, signIn } from "@/lib/auth-client";
 
 const loginSchema = z.object({
     email: z.string().email("Invalid email address"),
@@ -78,8 +78,18 @@ export function LoginForm() {
         }
     };
 
-    const handleGoogleSignIn = () => {
-        window.location.href = "/api/auth/login/google";
+    const handleGoogleSignIn = async () => {
+        setIsLoading(true);
+        try {
+            await authClient.signIn.social({
+                provider: "google",
+                callbackURL: "/",
+            });
+        } catch (err) {
+            toast.error("Failed to sign in with Google");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
