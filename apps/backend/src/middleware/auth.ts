@@ -1,10 +1,11 @@
 import { createMiddleware } from "hono/factory";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { organization } from "better-auth/plugins";
 import * as schema from "@beresio/db";
 
 export const authMiddleware = createMiddleware(async (c, next) => {
-    const db = c.get('db' as any); // Assuming db is injected into context
+    const db = c.get('db' as any); 
 
     const auth = betterAuth({
         database: drizzleAdapter(db, {
@@ -14,10 +15,39 @@ export const authMiddleware = createMiddleware(async (c, next) => {
                 session: schema.session,
                 account: schema.account,
                 verification: schema.verification,
+                organization: schema.organization,
+                member: schema.member,
+                invitation: schema.invitation,
+                team: schema.team,
+                teamMember: schema.teamMember,
             }
         }),
         secret: c.env.BETTER_AUTH_SECRET,
         baseURL: c.env.BETTER_AUTH_URL,
+        plugins: [
+            organization({
+                schema: {
+                    organization: {
+                        modelName: "organization",
+                    },
+                    member: {
+                        modelName: "member",
+                    },
+                    invitation: {
+                        modelName: "invitation",
+                    },
+            team: {
+                modelName: "team",
+            },
+            teamMember: {
+                modelName: "teamMember",
+            },
+        },
+                teams: {
+                    enabled: true
+                }
+            })
+        ]
     });
 
 

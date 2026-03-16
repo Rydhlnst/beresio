@@ -298,35 +298,36 @@ export function WhyChooseUs() {
             title: "Cari Semuanya Dalam Sekali Klik.",
             description: "Akses data transaksi, stok, pelanggan, dan laporan dari seluruh ekosistem bisnis Anda dalam satu bar pencarian cerdas.",
             mockup: <EnterpriseSearchMockup />,
-            className: "md:col-span-6 min-h-[500px]"
+            // Full row on md+, one col on mobile
+            className: "col-span-1 md:col-span-6 min-h-[clamp(320px,40vw,520px)]"
         },
         {
             tag: "Keuangan",
             title: "Arus Kas Terkoordinasi",
             description: "Analisis keuangan otomatis yang memberikan gambaran jernih tentang profitabilitas bisnis Anda.",
             mockup: <FinanceMockup />,
-            className: "md:col-span-3 min-h-[400px]"
+            className: "col-span-1 md:col-span-3 min-h-[clamp(260px,32vw,420px)]"
         },
         {
             tag: "Inventori",
             title: "Manajemen Stok Proaktif",
             description: "Pantau ketersediaan barang di berbagai gudang dan cabang dengan sistem peringatan stok rendah.",
             mockup: <InventoryMockup />,
-            className: "md:col-span-3 min-h-[400px]"
+            className: "col-span-1 md:col-span-3 min-h-[clamp(260px,32vw,420px)]"
         },
         {
             tag: "SDM",
             title: "Kolaborasi Tim Terpadu",
             description: "Kelola hak akses dan performa karyawan secara efisien dalam satu dashboard terpusat.",
             mockup: <UsersMockup />,
-            className: "md:col-span-4 min-h-[400px]"
+            className: "col-span-1 md:col-span-4 min-h-[clamp(260px,32vw,420px)]"
         },
         {
             tag: "Kasir",
             title: "Admin & Resi Digital",
             description: "Proses transaksi cepat dengan integrasi pembayaran lengkap dan pengiriman struk otomatis.",
             mockup: <InvoicesMockup />,
-            className: "md:col-span-2 min-h-[400px]"
+            className: "col-span-1 md:col-span-2 min-h-[clamp(260px,32vw,420px)]"
         }
     ]
 
@@ -337,7 +338,7 @@ export function WhyChooseUs() {
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
 
             {/* Header */}
-            <div className="max-w-3xl mb-16 text-left relative z-10">
+            <div className="max-w-3xl mb-[clamp(2rem,5vw,4rem)] text-left relative z-10">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
@@ -346,7 +347,7 @@ export function WhyChooseUs() {
                     className="flex flex-col gap-6"
                 >
                     <Text variant="overline">Key Performance Grid</Text>
-                    <Heading as="h3">
+                    <Heading as="h3" className="text-[clamp(1.75rem,4vw,3rem)] tracking-tight leading-[1.15]">
                         Satu Platform. <br />
                         <span className="text-muted-foreground tracking-tight">Semua Urusan Jadi Beres.</span>
                     </Heading>
@@ -357,7 +358,7 @@ export function WhyChooseUs() {
             </div>
 
             {/* Bento Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-6 mb-24">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-6 mb-[clamp(4rem,6vw,6rem)]">
                 {cards.map((card, index) => (
                     <motion.div
                         key={card.title}
@@ -370,9 +371,9 @@ export function WhyChooseUs() {
                             card.className
                         )}
                     >
-                        <div className="text-left pt-12 px-10 mb-8 flex flex-col items-start gap-4">
+                        <div className="text-left pt-[clamp(1.5rem,4vw,3rem)] px-[clamp(1.25rem,4vw,2.5rem)] mb-8 flex flex-col items-start gap-4">
                             <Text variant="overline" className="tracking-[0.2em]">{card.tag}</Text>
-                            <Heading as="h4" className="text-3xl tracking-tight font-black leading-[1.1]">
+                            <Heading as="h4" className="text-[clamp(1.25rem,2.5vw,1.875rem)] tracking-tight font-black leading-[1.1]">
                                 {card.title}
                             </Heading>
                             <Text variant="muted" className="text-[15px] max-w-[400px]">
@@ -390,9 +391,9 @@ export function WhyChooseUs() {
 
             <SectionCTA
                 title="Siap Tumbuh Lebih Terorganisir?"
-                description="Coba gratis selama 14 hari tanpa biaya setup. Bergabunglah dengan ratusan pengusaha yang sudah mengotomatisasi operasional mereka hari ini."
-                primaryLabel="Coba Gratis Sekarang"
-                primaryHref="/daftar"
+                description="Daftar wishlist sekarang dan amankan slot VIP Anda. Bergabunglah dengan ratusan pengusaha yang siap mengotomatisasi operasional mereka."
+                primaryLabel="Ingatkan Saya Saat Launching"
+                primaryHref="/wishlist"
                 secondaryLabel="Lihat Jadwal Demo"
                 secondaryHref="/demo"
             />

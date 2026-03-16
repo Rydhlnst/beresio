@@ -8,6 +8,7 @@ export const user = pgTable("user", {
     image: text("image"),
     createdAt: timestamp("created_at").notNull(),
     updatedAt: timestamp("updated_at").notNull(),
+    activeOrganizationId: text("active_organization_id"),
 });
 
 export const session = pgTable("session", {
@@ -21,6 +22,7 @@ export const session = pgTable("session", {
     userId: text("user_id")
         .notNull()
         .references(() => user.id),
+    activeOrganizationId: text("active_organization_id"),
 });
 
 export const account = pgTable("account", {
@@ -71,9 +73,25 @@ export const member = pgTable("member", {
     createdAt: timestamp("created_at").notNull()
 });
 
+export const team = pgTable("team", {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    organizationId: text("organization_id").notNull().references(() => organization.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").notNull(),
+    updatedAt: timestamp("updated_at"),
+});
+
+export const teamMember = pgTable("team_member", {
+    id: text("id").primaryKey(),
+    teamId: text("team_id").notNull().references(() => team.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").notNull(),
+});
+
 export const invitation = pgTable("invitation", {
     id: text("id").primaryKey(),
     organizationId: text("organization_id").notNull().references(() => organization.id, { onDelete: "cascade" }),
+    teamId: text("team_id").references(() => team.id, { onDelete: "set null" }),
     email: text("email").notNull(),
     role: text("role"),
     status: text("status").notNull(),

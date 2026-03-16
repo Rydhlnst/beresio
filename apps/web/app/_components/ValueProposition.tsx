@@ -119,14 +119,15 @@ function ValueCarousel() {
                             animate={{ opacity: 1, scale: 1, x: 0 }}
                             exit={{ opacity: 0, scale: 0.98, x: -10 }}
                             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                            className="w-full aspect-square md:aspect-video lg:aspect-square bg-muted/20 rounded-[32px] border border-border/40 flex flex-col items-center justify-center p-8 md:p-12"
+                            /* fluid height instead of brittle aspect ratio swaps */
+                            className="w-full min-h-[clamp(280px,38vw,520px)] bg-muted/20 rounded-[32px] border border-border/40 flex flex-col items-center justify-center p-8 md:p-12"
                         >
                             <div className="h-16 w-16 rounded-xl bg-background border border-border/40 flex items-center justify-center mb-10 shadow-sm">
                                 <Icon className="h-8 w-8 text-primary" />
                             </div>
 
                             <div className="flex flex-col items-center mb-10">
-                                <span className="text-6xl font-bold tracking-tighter text-foreground leading-none">
+                                <span className="text-[clamp(2.5rem,6vw,3.75rem)] font-bold tracking-tighter text-foreground leading-none">
                                     {activeFeature.stats}
                                 </span>
                                 <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mt-3">
@@ -172,7 +173,7 @@ function ValueCarousel() {
                             transition={{ duration: 0.4 }}
                             className="space-y-6"
                         >
-                            <Heading as="h3" className="text-4xl lg:text-5xl font-black tracking-tight leading-[1.1]">
+                            <Heading as="h3" className="text-[clamp(1.75rem,4vw,3.25rem)] font-black tracking-tight leading-[1.1]">
                                 {activeFeature.title}
                             </Heading>
                             <Text variant="muted" className="text-[15px]">
@@ -226,10 +227,10 @@ function ComparisonSection() {
     ]
 
     return (
-        <div className="mt-32 lg:mt-48">
+        <div className="mt-[clamp(4rem,8vw,12rem)]">
             <div className="max-w-2xl mb-12">
                 <SectionLabel>EFEKTIVITAS OPERASIONAL</SectionLabel>
-                <Heading as="h4" className="text-2xl lg:text-3xl tracking-tight leading-tight">
+                <Heading as="h4" className="text-[clamp(1.25rem,3vw,2rem)] tracking-tight leading-tight">
                     Transformasi Bisnis Kamu <br /> Bersama Platform Beres.
                 </Heading>
             </div>
@@ -239,17 +240,17 @@ function ComparisonSection() {
                     <table className="w-full border-collapse">
                         <thead>
                             <tr className="border-b border-border/30 bg-muted/20">
-                                <th className="py-6 px-8 text-left text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">Item Pekerjaan</th>
-                                <th className="py-6 px-8 text-left text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 italic">Tanpa Beres</th>
-                                <th className="py-6 px-8 text-left text-[10px] font-bold uppercase tracking-widest text-primary">Bersama Beres</th>
+                                <th className="py-6 px-[clamp(1rem,3vw,2rem)] text-left text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">Item Pekerjaan</th>
+                                <th className="py-6 px-[clamp(1rem,3vw,2rem)] text-left text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 italic">Tanpa Beres</th>
+                                <th className="py-6 px-[clamp(1rem,3vw,2rem)] text-left text-[10px] font-bold uppercase tracking-widest text-primary">Bersama Beres</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border/20">
                             {data.map((row, i) => (
                                 <tr key={i} className="hover:bg-muted/20 transition-colors group">
-                                    <td className="py-5 px-8 text-sm font-semibold text-foreground/80">{row.label}</td>
-                                    <td className="py-5 px-8 text-sm text-muted-foreground/50 line-through decoration-muted-foreground/30">{row.before}</td>
-                                    <td className="py-5 px-8 text-sm font-bold text-foreground">
+                                    <td className="py-5 px-[clamp(1rem,3vw,2rem)] text-sm font-semibold text-foreground/80">{row.label}</td>
+                                    <td className="py-5 px-[clamp(1rem,3vw,2rem)] text-sm text-muted-foreground/50 line-through decoration-muted-foreground/30">{row.before}</td>
+                                    <td className="py-5 px-[clamp(1rem,3vw,2rem)] text-sm font-bold text-foreground">
                                         <div className="flex items-center gap-3">
                                             <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
                                                 <Check className="h-3 w-3 text-primary" />
@@ -273,7 +274,7 @@ export function ValueProposition() {
     return (
         <Section id="value-proposition">
             {/* Header */}
-            <div className="max-w-4xl mb-20 lg:mb-32">
+            <div className="max-w-4xl mb-[clamp(3rem,6vw,8rem)]">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
@@ -281,7 +282,7 @@ export function ValueProposition() {
                     transition={{ duration: 0.5 }}
                 >
                     <SectionLabel>BEYOND JUST AN APP</SectionLabel>
-                    <Heading as="h2" className="text-4xl lg:text-5xl mb-8 tracking-tighter leading-tight max-w-3xl">
+                    <Heading as="h2" className="text-[clamp(1.75rem,4.5vw,3.25rem)] mb-8 tracking-tighter leading-tight max-w-3xl">
                         Beres Bukan Sekadar Aplikasi — <br />
                         <span className="text-primary">Ini Adalah Cara Bisnis Kamu Tumbuh.</span>
                     </Heading>
@@ -300,8 +301,8 @@ export function ValueProposition() {
             <SectionCTA
                 title="Saatnya Berhenti Sibuk Mengurus, Mulai Bebas Memimpin."
                 description="Otomatisasi operasional Anda hari ini dan amankan keunggulan kompetitif. Bergabunglah dengan ratusan pengusaha modern yang memilih cara pintar."
-                primaryLabel="Mulai Tumbuh Sekarang"
-                primaryHref="/daftar"
+                primaryLabel="Dapatkan Akses Awal"
+                primaryHref="/wishlist"
                 secondaryLabel="Pelajari Fitur"
                 secondaryHref="#features"
             />

@@ -55,7 +55,7 @@ export function SavingsCalculator() {
     }
 
     return (
-        <Section id="calculator" className="relative overflow-hidden bg-background py-24">
+        <Section id="calculator" className="relative overflow-hidden bg-background">
             {/* Background decorative elements matching WhyChooseUs */}
             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-border/60 to-transparent" />
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
@@ -127,7 +127,7 @@ export function SavingsCalculator() {
                 </div>
 
                 {/* Bottom Result Banner (Notion Style with project colors) */}
-                <div className="bg-muted/20 border border-border/40 rounded-[32px] p-6 md:p-8 lg:p-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-12 items-start lg:items-center">
+                <div className="bg-muted/20 border border-border/40 rounded-[32px] p-[clamp(1.5rem,4vw,2.5rem)] grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8 xl:gap-12 items-start xl:items-center">
                     {/* Team Size */}
                     <div className="space-y-4 sm:col-span-2 lg:col-span-1 border-b sm:border-b-0 sm:border-r border-border/20 md:border-border/40 pb-6 sm:pb-0 sm:pr-8 lg:border-r-0 lg:pr-0">
                         <label className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-primary">Team Size</label>
@@ -158,7 +158,7 @@ export function SavingsCalculator() {
                     {/* Monthly Savings */}
                     <div className="space-y-4 border-b border-border/20 md:border-border/40 pb-6 sm:pb-0 sm:border-b-0">
                         <label className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-primary">Monthly Savings</label>
-                        <div className="text-2xl sm:text-3xl md:text-2xl lg:text-3xl xl:text-4xl font-black tracking-tighter text-foreground tabular-nums break-words">
+                        <div className="text-[clamp(1.5rem,4vw,2.5rem)] font-black tracking-tighter text-foreground tabular-nums break-words">
                             {formatCurrency(monthlySavings)}
                         </div>
                     </div>
@@ -166,7 +166,7 @@ export function SavingsCalculator() {
                     {/* Annual Savings */}
                     <div className="space-y-4">
                         <label className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-primary">Annual Savings</label>
-                        <div className="text-3xl sm:text-4xl md:text-3xl lg:text-4xl xl:text-5xl font-black tracking-tighter text-primary drop-shadow-sm tabular-nums break-words">
+                        <div className="text-[clamp(2rem,5vw,3.5rem)] font-black tracking-tighter text-primary drop-shadow-sm tabular-nums break-words">
                             {formatCurrency(monthlySavings * 12)}
                         </div>
                     </div>
@@ -175,8 +175,8 @@ export function SavingsCalculator() {
 
             <div className="mt-16 flex flex-col items-center gap-6">
                 <Button size="lg" className="rounded-2xl px-14 h-16 font-extrabold text-lg bg-primary text-primary-foreground hover:scale-105 hover:shadow-2xl hover:shadow-primary/20 transition-all duration-300" asChild>
-                    <a href="/daftar">
-                        Coba Beres.io Sekarang
+                    <a href="/wishlist">
+                        Amankan Posisi Wishlist Anda
                         <ArrowRight className="ml-3 h-5 w-5" />
                     </a>
                 </Button>

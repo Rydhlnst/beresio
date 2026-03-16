@@ -1,0 +1,215 @@
+﻿app/(dashboard)/_actions/org-actions.ts(34,33): error TS18048: 'activeOrg' is possibly 'undefined'.
+app/(dashboard)/_actions/org-actions.ts(35,17): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Object literal may only specify known properties, and 'name' does not exist in type '{ data: { name?: string | undefined; slug?: string | undefined; logo?: string | undefined; metadata?: Record<string, any> | undefined; } & Partial<FieldAttributeToObject<RemoveFieldsWithInputFalse<{ businessType: { type: "string"; required: true; }; subscriptionPlan: { ...; }; logoUrl: { ...; }; }>>>; organizationId...'.
+app/(dashboard)/_actions/outlet-actions.ts(34,26): error TS2554: Expected 1 arguments, but got 0.
+app/(dashboard)/_actions/outlet-actions.ts(39,33): error TS18048: 'activeOrg' is possibly 'undefined'.
+app/(dashboard)/_actions/outlet-actions.ts(75,26): error TS2554: Expected 1 arguments, but got 0.
+app/(dashboard)/_actions/outlet-actions.ts(80,73): error TS18048: 'activeOrg' is possibly 'undefined'.
+app/(dashboard)/_actions/staff-actions.ts(31,24): error TS2339: Property 'inviteMember' does not exist on type 'InferAPI<{ readonly ok: StrictEndpoint<"/ok", { method: "GET"; metadata: { openapi: { description: string; responses: { "200": { description: string; content: { "application/json": { schema: { type: "object"; properties: { ok: { type: string; description: string; }; }; required: string[]; }; }; }; }; }; }; scope: "s...'.
+app/(dashboard)/_actions/staff-actions.ts(34,33): error TS18048: 'activeOrg' is possibly 'undefined'.
+app/(dashboard)/_actions/staff-actions.ts(71,33): error TS18048: 'activeOrg' is possibly 'undefined'.
+app/(dashboard)/layout.tsx(34,43): error TS18048: 'activeOrg' is possibly 'undefined'.
+app/(dashboard)/outlets/[id]/page.tsx(11,24): error TS2307: Cannot find module 'date-fns' or its corresponding type declarations.
+app/(dashboard)/outlets/[id]/page.tsx(42,22): error TS2554: Expected 1 arguments, but got 0.
+app/(dashboard)/outlets/[id]/page.tsx(47,69): error TS18048: 'activeOrg' is possibly 'undefined'.
+app/(dashboard)/outlets/[id]/page.tsx(78,33): error TS18048: 'outlet' is possibly 'undefined'.
+app/(dashboard)/outlets/[id]/page.tsx(79,22): error TS18048: 'outlet' is possibly 'undefined'.
+app/(dashboard)/outlets/[id]/page.tsx(88,62): error TS18048: 'outlet' is possibly 'undefined'.
+app/(dashboard)/outlets/[id]/page.tsx(90,40): error TS18048: 'outlet' is possibly 'undefined'.
+app/(dashboard)/outlets/[id]/page.tsx(98,83): error TS18048: 'outlet' is possibly 'undefined'.
+app/(dashboard)/outlets/[id]/page.tsx(105,83): error TS18048: 'outlet' is possibly 'undefined'.
+app/(dashboard)/outlets/[id]/page.tsx(110,71): error TS18048: 'outlet' is possibly 'undefined'.
+app/(dashboard)/outlets/_components/add-outlet-sheet.tsx(27,30): error TS2307: Cannot find module '../_actions/outlet-actions' or its corresponding type declarations.
+app/(dashboard)/outlets/_components/add-outlet-sheet.tsx(86,18): error TS2322: Type '{ children: Element; watch: UseFormWatch<{ name: string; code: string; phone: string; address?: string | undefined; }>; getValues: UseFormGetValues<{ name: string; code: string; phone: string; address?: string | undefined; }>; ... 13 more ...; subscribe: UseFormSubscribe<...>; }' is not assignable to type 'UseFormReturn<{ name: string; code: string; phone: string; address?: string | undefined; }, any, { name: string; code: string; phone: string; address?: string | undefined; }>'.
+  The types of 'control._setFieldArray' are incompatible between these types.
+    Type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.3/node_modules/react-hook-form/dist/types/form").BatchFieldArrayUpdate' is not assignable to type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.0/node_modules/react-hook-form/dist/types/form").BatchFieldArrayUpdate'.
+      Types of parameters 'updatedFieldArrayValues' and 'updatedFieldArrayValues' are incompatible.
+        Type 'Partial<FieldArray<TFieldValues, TFieldArrayName>>[] | undefined' is not assignable to type 'Partial<FieldArray<TFieldValues, ArrayPath<TFieldValues>>>[] | undefined'.
+          Type 'Partial<FieldArray<TFieldValues, TFieldArrayName>>[]' is not assignable to type 'Partial<FieldArray<TFieldValues, ArrayPath<TFieldValues>>>[]'.
+            Type 'Partial<FieldArray<TFieldValues, TFieldArrayName>>' is not assignable to type 'Partial<FieldArray<TFieldValues, ArrayPath<TFieldValues>>>'.
+              Type 'keyof FieldArray<TFieldValues, ArrayPath<TFieldValues>>' is not assignable to type 'keyof FieldArray<TFieldValues, TFieldArrayName>'.
+                Type 'string | number | symbol' is not assignable to type 'keyof FieldArray<TFieldValues, TFieldArrayName>'.
+                  Type 'string' is not assignable to type 'keyof FieldArray<TFieldValues, TFieldArrayName>'.
+                    Type 'string' is not assignable to type 'never'.
+                      Type 'keyof FieldArray<TFieldValues, ArrayPath<TFieldValues>>' is not assignable to type 'never'.
+                        Type 'string | number | symbol' is not assignable to type 'never'.
+                          Type 'string' is not assignable to type 'never'.
+app/(dashboard)/outlets/_components/add-outlet-sheet.tsx(89,29): error TS2322: Type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.3/node_modules/react-hook-form/dist/types/form").Control<{ name: string; code: string; phone: string; address?: string | undefined; }, any, { name: string; code: string; phone: string; address?: string | undefined; }>' is not assignable to type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.0/node_modules/react-hook-form/dist/types/form").Control<{ name: string; code: string; phone: string; address?: string | undefined; }, any, { name: string; code: string; phone: string; address?: string | undefined; }>'.
+  Types of property '_setFieldArray' are incompatible.
+    Type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.3/node_modules/react-hook-form/dist/types/form").BatchFieldArrayUpdate' is not assignable to type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.0/node_modules/react-hook-form/dist/types/form").BatchFieldArrayUpdate'.
+      Types of parameters 'updatedFieldArrayValues' and 'updatedFieldArrayValues' are incompatible.
+        Type 'Partial<FieldArray<TFieldValues, TFieldArrayName>>[] | undefined' is not assignable to type 'Partial<FieldArray<TFieldValues, ArrayPath<TFieldValues>>>[] | undefined'.
+          Type 'Partial<FieldArray<TFieldValues, TFieldArrayName>>[]' is not assignable to type 'Partial<FieldArray<TFieldValues, ArrayPath<TFieldValues>>>[]'.
+            Type 'Partial<FieldArray<TFieldValues, TFieldArrayName>>' is not assignable to type 'Partial<FieldArray<TFieldValues, ArrayPath<TFieldValues>>>'.
+              Type 'keyof FieldArray<TFieldValues, ArrayPath<TFieldValues>>' is not assignable to type 'keyof FieldArray<TFieldValues, TFieldArrayName>'.
+                Type 'string | number | symbol' is not assignable to type 'keyof FieldArray<TFieldValues, TFieldArrayName>'.
+                  Type 'string' is not assignable to type 'keyof FieldArray<TFieldValues, TFieldArrayName>'.
+                    Type 'string' is not assignable to type 'never'.
+                      Type 'keyof FieldArray<TFieldValues, ArrayPath<TFieldValues>>' is not assignable to type 'never'.
+                        Type 'string | number | symbol' is not assignable to type 'never'.
+                          Type 'string' is not assignable to type 'never'.
+app/(dashboard)/outlets/_components/add-outlet-sheet.tsx(103,29): error TS2322: Type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.3/node_modules/react-hook-form/dist/types/form").Control<{ name: string; code: string; phone: string; address?: string | undefined; }, any, { name: string; code: string; phone: string; address?: string | undefined; }>' is not assignable to type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.0/node_modules/react-hook-form/dist/types/form").Control<{ name: string; code: string; phone: string; address?: string | undefined; }, any, { name: string; code: string; phone: string; address?: string | undefined; }>'.
+  Types of property '_setFieldArray' are incompatible.
+    Type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.3/node_modules/react-hook-form/dist/types/form").BatchFieldArrayUpdate' is not assignable to type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.0/node_modules/react-hook-form/dist/types/form").BatchFieldArrayUpdate'.
+      Types of parameters 'updatedFieldArrayValues' and 'updatedFieldArrayValues' are incompatible.
+        Type 'Partial<FieldArray<TFieldValues, TFieldArrayName>>[] | undefined' is not assignable to type 'Partial<FieldArray<TFieldValues, ArrayPath<TFieldValues>>>[] | undefined'.
+          Type 'Partial<FieldArray<TFieldValues, TFieldArrayName>>[]' is not assignable to type 'Partial<FieldArray<TFieldValues, ArrayPath<TFieldValues>>>[]'.
+            Type 'Partial<FieldArray<TFieldValues, TFieldArrayName>>' is not assignable to type 'Partial<FieldArray<TFieldValues, ArrayPath<TFieldValues>>>'.
+              Type 'keyof FieldArray<TFieldValues, ArrayPath<TFieldValues>>' is not assignable to type 'keyof FieldArray<TFieldValues, TFieldArrayName>'.
+                Type 'string | number | symbol' is not assignable to type 'keyof FieldArray<TFieldValues, TFieldArrayName>'.
+                  Type 'string' is not assignable to type 'keyof FieldArray<TFieldValues, TFieldArrayName>'.
+                    Type 'string' is not assignable to type 'never'.
+                      Type 'keyof FieldArray<TFieldValues, ArrayPath<TFieldValues>>' is not assignable to type 'never'.
+                        Type 'string | number | symbol' is not assignable to type 'never'.
+                          Type 'string' is not assignable to type 'never'.
+app/(dashboard)/outlets/_components/add-outlet-sheet.tsx(117,29): error TS2322: Type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.3/node_modules/react-hook-form/dist/types/form").Control<{ name: string; code: string; phone: string; address?: string | undefined; }, any, { name: string; code: string; phone: string; address?: string | undefined; }>' is not assignable to type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.0/node_modules/react-hook-form/dist/types/form").Control<{ name: string; code: string; phone: string; address?: string | undefined; }, any, { name: string; code: string; phone: string; address?: string | undefined; }>'.
+  Types of property '_setFieldArray' are incompatible.
+    Type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.3/node_modules/react-hook-form/dist/types/form").BatchFieldArrayUpdate' is not assignable to type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.0/node_modules/react-hook-form/dist/types/form").BatchFieldArrayUpdate'.
+      Types of parameters 'updatedFieldArrayValues' and 'updatedFieldArrayValues' are incompatible.
+        Type 'Partial<FieldArray<TFieldValues, TFieldArrayName>>[] | undefined' is not assignable to type 'Partial<FieldArray<TFieldValues, ArrayPath<TFieldValues>>>[] | undefined'.
+          Type 'Partial<FieldArray<TFieldValues, TFieldArrayName>>[]' is not assignable to type 'Partial<FieldArray<TFieldValues, ArrayPath<TFieldValues>>>[]'.
+            Type 'Partial<FieldArray<TFieldValues, TFieldArrayName>>' is not assignable to type 'Partial<FieldArray<TFieldValues, ArrayPath<TFieldValues>>>'.
+              Type 'keyof FieldArray<TFieldValues, ArrayPath<TFieldValues>>' is not assignable to type 'keyof FieldArray<TFieldValues, TFieldArrayName>'.
+                Type 'string | number | symbol' is not assignable to type 'keyof FieldArray<TFieldValues, TFieldArrayName>'.
+                  Type 'string' is not assignable to type 'keyof FieldArray<TFieldValues, TFieldArrayName>'.
+                    Type 'string' is not assignable to type 'never'.
+                      Type 'keyof FieldArray<TFieldValues, ArrayPath<TFieldValues>>' is not assignable to type 'never'.
+                        Type 'string | number | symbol' is not assignable to type 'never'.
+                          Type 'string' is not assignable to type 'never'.
+app/(dashboard)/outlets/_components/add-outlet-sheet.tsx(131,29): error TS2322: Type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.3/node_modules/react-hook-form/dist/types/form").Control<{ name: string; code: string; phone: string; address?: string | undefined; }, any, { name: string; code: string; phone: string; address?: string | undefined; }>' is not assignable to type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.0/node_modules/react-hook-form/dist/types/form").Control<{ name: string; code: string; phone: string; address?: string | undefined; }, any, { name: string; code: string; phone: string; address?: string | undefined; }>'.
+  Types of property '_setFieldArray' are incompatible.
+    Type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.3/node_modules/react-hook-form/dist/types/form").BatchFieldArrayUpdate' is not assignable to type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.0/node_modules/react-hook-form/dist/types/form").BatchFieldArrayUpdate'.
+      Types of parameters 'updatedFieldArrayValues' and 'updatedFieldArrayValues' are incompatible.
+        Type 'Partial<FieldArray<TFieldValues, TFieldArrayName>>[] | undefined' is not assignable to type 'Partial<FieldArray<TFieldValues, ArrayPath<TFieldValues>>>[] | undefined'.
+          Type 'Partial<FieldArray<TFieldValues, TFieldArrayName>>[]' is not assignable to type 'Partial<FieldArray<TFieldValues, ArrayPath<TFieldValues>>>[]'.
+            Type 'Partial<FieldArray<TFieldValues, TFieldArrayName>>' is not assignable to type 'Partial<FieldArray<TFieldValues, ArrayPath<TFieldValues>>>'.
+              Type 'keyof FieldArray<TFieldValues, ArrayPath<TFieldValues>>' is not assignable to type 'keyof FieldArray<TFieldValues, TFieldArrayName>'.
+                Type 'string | number | symbol' is not assignable to type 'keyof FieldArray<TFieldValues, TFieldArrayName>'.
+                  Type 'string' is not assignable to type 'keyof FieldArray<TFieldValues, TFieldArrayName>'.
+                    Type 'string' is not assignable to type 'never'.
+                      Type 'keyof FieldArray<TFieldValues, ArrayPath<TFieldValues>>' is not assignable to type 'never'.
+                        Type 'string | number | symbol' is not assignable to type 'never'.
+                          Type 'string' is not assignable to type 'never'.
+app/(dashboard)/outlets/_components/outlet-list.tsx(4,24): error TS2307: Cannot find module 'date-fns' or its corresponding type declarations.
+app/(dashboard)/outlets/_components/outlet-list.tsx(15,36): error TS2307: Cannot find module '../_actions/outlet-actions' or its corresponding type declarations.
+app/(dashboard)/outlets/page.tsx(33,22): error TS2554: Expected 1 arguments, but got 0.
+app/(dashboard)/outlets/page.tsx(39,44): error TS18048: 'activeOrg' is possibly 'undefined'.
+app/(dashboard)/page.tsx(39,47): error TS18048: 'activeOrg' is possibly 'undefined'.
+app/(dashboard)/page.tsx(40,51): error TS18048: 'activeOrg' is possibly 'undefined'.
+app/(dashboard)/page.tsx(41,44): error TS18048: 'activeOrg' is possibly 'undefined'.
+app/(dashboard)/reports/_components/report-table.tsx(12,32): error TS2307: Cannot find module '../../../lib/format' or its corresponding type declarations.
+app/(dashboard)/reports/_components/revenue-bar-chart.tsx(15,32): error TS2307: Cannot find module '../../../lib/format' or its corresponding type declarations.
+app/(dashboard)/reports/page.tsx(34,22): error TS2554: Expected 1 arguments, but got 0.
+app/(dashboard)/reports/page.tsx(40,44): error TS18048: 'activeOrg' is possibly 'undefined'.
+app/(dashboard)/settings/page.tsx(21,36): error TS2307: Cannot find module '../../_actions/org-actions' or its corresponding type declarations.
+app/(dashboard)/settings/page.tsx(80,18): error TS2322: Type '{ children: Element; watch: UseFormWatch<{ name: string; slug: string; }>; getValues: UseFormGetValues<{ name: string; slug: string; }>; getFieldState: UseFormGetFieldState<...>; ... 12 more ...; subscribe: UseFormSubscribe<...>; }' is not assignable to type 'UseFormReturn<{ name: string; slug: string; }, any, { name: string; slug: string; }>'.
+  The types of 'control._setFieldArray' are incompatible between these types.
+    Type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.3/node_modules/react-hook-form/dist/types/form").BatchFieldArrayUpdate' is not assignable to type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.0/node_modules/react-hook-form/dist/types/form").BatchFieldArrayUpdate'.
+      Types of parameters 'updatedFieldArrayValues' and 'updatedFieldArrayValues' are incompatible.
+        Type 'Partial<FieldArray<TFieldValues, TFieldArrayName>>[] | undefined' is not assignable to type 'Partial<FieldArray<TFieldValues, ArrayPath<TFieldValues>>>[] | undefined'.
+          Type 'Partial<FieldArray<TFieldValues, TFieldArrayName>>[]' is not assignable to type 'Partial<FieldArray<TFieldValues, ArrayPath<TFieldValues>>>[]'.
+            Type 'Partial<FieldArray<TFieldValues, TFieldArrayName>>' is not assignable to type 'Partial<FieldArray<TFieldValues, ArrayPath<TFieldValues>>>'.
+              Type 'keyof FieldArray<TFieldValues, ArrayPath<TFieldValues>>' is not assignable to type 'keyof FieldArray<TFieldValues, TFieldArrayName>'.
+                Type 'string | number | symbol' is not assignable to type 'keyof FieldArray<TFieldValues, TFieldArrayName>'.
+                  Type 'string' is not assignable to type 'keyof FieldArray<TFieldValues, TFieldArrayName>'.
+                    Type 'string' is not assignable to type 'never'.
+                      Type 'keyof FieldArray<TFieldValues, ArrayPath<TFieldValues>>' is not assignable to type 'never'.
+                        Type 'string | number | symbol' is not assignable to type 'never'.
+                          Type 'string' is not assignable to type 'never'.
+app/(dashboard)/settings/page.tsx(83,29): error TS2322: Type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.3/node_modules/react-hook-form/dist/types/form").Control<{ name: string; slug: string; }, any, { name: string; slug: string; }>' is not assignable to type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.0/node_modules/react-hook-form/dist/types/form").Control<{ name: string; slug: string; }, any, { name: string; slug: string; }>'.
+  Types of property '_setFieldArray' are incompatible.
+    Type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.3/node_modules/react-hook-form/dist/types/form").BatchFieldArrayUpdate' is not assignable to type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.0/node_modules/react-hook-form/dist/types/form").BatchFieldArrayUpdate'.
+      Types of parameters 'updatedFieldArrayValues' and 'updatedFieldArrayValues' are incompatible.
+        Type 'Partial<FieldArray<TFieldValues, TFieldArrayName>>[] | undefined' is not assignable to type 'Partial<FieldArray<TFieldValues, ArrayPath<TFieldValues>>>[] | undefined'.
+          Type 'Partial<FieldArray<TFieldValues, TFieldArrayName>>[]' is not assignable to type 'Partial<FieldArray<TFieldValues, ArrayPath<TFieldValues>>>[]'.
+            Type 'Partial<FieldArray<TFieldValues, TFieldArrayName>>' is not assignable to type 'Partial<FieldArray<TFieldValues, ArrayPath<TFieldValues>>>'.
+              Type 'keyof FieldArray<TFieldValues, ArrayPath<TFieldValues>>' is not assignable to type 'keyof FieldArray<TFieldValues, TFieldArrayName>'.
+                Type 'string | number | symbol' is not assignable to type 'keyof FieldArray<TFieldValues, TFieldArrayName>'.
+                  Type 'string' is not assignable to type 'keyof FieldArray<TFieldValues, TFieldArrayName>'.
+                    Type 'string' is not assignable to type 'never'.
+                      Type 'keyof FieldArray<TFieldValues, ArrayPath<TFieldValues>>' is not assignable to type 'never'.
+                        Type 'string | number | symbol' is not assignable to type 'never'.
+                          Type 'string' is not assignable to type 'never'.
+app/(dashboard)/settings/page.tsx(100,29): error TS2322: Type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.3/node_modules/react-hook-form/dist/types/form").Control<{ name: string; slug: string; }, any, { name: string; slug: string; }>' is not assignable to type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.0/node_modules/react-hook-form/dist/types/form").Control<{ name: string; slug: string; }, any, { name: string; slug: string; }>'.
+  Types of property '_setFieldArray' are incompatible.
+    Type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.3/node_modules/react-hook-form/dist/types/form").BatchFieldArrayUpdate' is not assignable to type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.0/node_modules/react-hook-form/dist/types/form").BatchFieldArrayUpdate'.
+      Types of parameters 'updatedFieldArrayValues' and 'updatedFieldArrayValues' are incompatible.
+        Type 'Partial<FieldArray<TFieldValues, TFieldArrayName>>[] | undefined' is not assignable to type 'Partial<FieldArray<TFieldValues, ArrayPath<TFieldValues>>>[] | undefined'.
+          Type 'Partial<FieldArray<TFieldValues, TFieldArrayName>>[]' is not assignable to type 'Partial<FieldArray<TFieldValues, ArrayPath<TFieldValues>>>[]'.
+            Type 'Partial<FieldArray<TFieldValues, TFieldArrayName>>' is not assignable to type 'Partial<FieldArray<TFieldValues, ArrayPath<TFieldValues>>>'.
+              Type 'keyof FieldArray<TFieldValues, ArrayPath<TFieldValues>>' is not assignable to type 'keyof FieldArray<TFieldValues, TFieldArrayName>'.
+                Type 'string | number | symbol' is not assignable to type 'keyof FieldArray<TFieldValues, TFieldArrayName>'.
+                  Type 'string' is not assignable to type 'keyof FieldArray<TFieldValues, TFieldArrayName>'.
+                    Type 'string' is not assignable to type 'never'.
+                      Type 'keyof FieldArray<TFieldValues, ArrayPath<TFieldValues>>' is not assignable to type 'never'.
+                        Type 'string | number | symbol' is not assignable to type 'never'.
+                          Type 'string' is not assignable to type 'never'.
+app/(dashboard)/staff/_components/invite-staff-sheet.tsx(34,29): error TS2307: Cannot find module '../_actions/staff-actions' or its corresponding type declarations.
+app/(dashboard)/staff/_components/invite-staff-sheet.tsx(89,18): error TS2322: Type '{ children: Element; watch: UseFormWatch<{ email: string; role: "member" | "admin"; }>; getValues: UseFormGetValues<{ email: string; role: "member" | "admin"; }>; ... 13 more ...; subscribe: UseFormSubscribe<...>; }' is not assignable to type 'UseFormReturn<{ email: string; role: "member" | "admin"; }, any, { email: string; role: "member" | "admin"; }>'.
+  The types of 'control._setFieldArray' are incompatible between these types.
+    Type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.3/node_modules/react-hook-form/dist/types/form").BatchFieldArrayUpdate' is not assignable to type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.0/node_modules/react-hook-form/dist/types/form").BatchFieldArrayUpdate'.
+      Types of parameters 'updatedFieldArrayValues' and 'updatedFieldArrayValues' are incompatible.
+        Type 'Partial<FieldArray<TFieldValues, TFieldArrayName>>[] | undefined' is not assignable to type 'Partial<FieldArray<TFieldValues, ArrayPath<TFieldValues>>>[] | undefined'.
+          Type 'Partial<FieldArray<TFieldValues, TFieldArrayName>>[]' is not assignable to type 'Partial<FieldArray<TFieldValues, ArrayPath<TFieldValues>>>[]'.
+            Type 'Partial<FieldArray<TFieldValues, TFieldArrayName>>' is not assignable to type 'Partial<FieldArray<TFieldValues, ArrayPath<TFieldValues>>>'.
+              Type 'keyof FieldArray<TFieldValues, ArrayPath<TFieldValues>>' is not assignable to type 'keyof FieldArray<TFieldValues, TFieldArrayName>'.
+                Type 'string | number | symbol' is not assignable to type 'keyof FieldArray<TFieldValues, TFieldArrayName>'.
+                  Type 'string' is not assignable to type 'keyof FieldArray<TFieldValues, TFieldArrayName>'.
+                    Type 'string' is not assignable to type 'never'.
+                      Type 'keyof FieldArray<TFieldValues, ArrayPath<TFieldValues>>' is not assignable to type 'never'.
+                        Type 'string | number | symbol' is not assignable to type 'never'.
+                          Type 'string' is not assignable to type 'never'.
+app/(dashboard)/staff/_components/invite-staff-sheet.tsx(92,29): error TS2322: Type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.3/node_modules/react-hook-form/dist/types/form").Control<{ email: string; role: "member" | "admin"; }, any, { email: string; role: "member" | "admin"; }>' is not assignable to type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.0/node_modules/react-hook-form/dist/types/form").Control<{ email: string; role: "member" | "admin"; }, any, { email: string; role: "member" | "admin"; }>'.
+  Types of property '_setFieldArray' are incompatible.
+    Type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.3/node_modules/react-hook-form/dist/types/form").BatchFieldArrayUpdate' is not assignable to type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.0/node_modules/react-hook-form/dist/types/form").BatchFieldArrayUpdate'.
+      Types of parameters 'updatedFieldArrayValues' and 'updatedFieldArrayValues' are incompatible.
+        Type 'Partial<FieldArray<TFieldValues, TFieldArrayName>>[] | undefined' is not assignable to type 'Partial<FieldArray<TFieldValues, ArrayPath<TFieldValues>>>[] | undefined'.
+          Type 'Partial<FieldArray<TFieldValues, TFieldArrayName>>[]' is not assignable to type 'Partial<FieldArray<TFieldValues, ArrayPath<TFieldValues>>>[]'.
+            Type 'Partial<FieldArray<TFieldValues, TFieldArrayName>>' is not assignable to type 'Partial<FieldArray<TFieldValues, ArrayPath<TFieldValues>>>'.
+              Type 'keyof FieldArray<TFieldValues, ArrayPath<TFieldValues>>' is not assignable to type 'keyof FieldArray<TFieldValues, TFieldArrayName>'.
+                Type 'string | number | symbol' is not assignable to type 'keyof FieldArray<TFieldValues, TFieldArrayName>'.
+                  Type 'string' is not assignable to type 'keyof FieldArray<TFieldValues, TFieldArrayName>'.
+                    Type 'string' is not assignable to type 'never'.
+                      Type 'keyof FieldArray<TFieldValues, ArrayPath<TFieldValues>>' is not assignable to type 'never'.
+                        Type 'string | number | symbol' is not assignable to type 'never'.
+                          Type 'string' is not assignable to type 'never'.
+app/(dashboard)/staff/_components/invite-staff-sheet.tsx(106,29): error TS2322: Type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.3/node_modules/react-hook-form/dist/types/form").Control<{ email: string; role: "member" | "admin"; }, any, { email: string; role: "member" | "admin"; }>' is not assignable to type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.0/node_modules/react-hook-form/dist/types/form").Control<{ email: string; role: "member" | "admin"; }, any, { email: string; role: "member" | "admin"; }>'.
+  Types of property '_setFieldArray' are incompatible.
+    Type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.3/node_modules/react-hook-form/dist/types/form").BatchFieldArrayUpdate' is not assignable to type 'import("D:/Projects/beresio/node_modules/.pnpm/react-hook-form@7.71.2_react@19.2.0/node_modules/react-hook-form/dist/types/form").BatchFieldArrayUpdate'.
+      Types of parameters 'updatedFieldArrayValues' and 'updatedFieldArrayValues' are incompatible.
+        Type 'Partial<FieldArray<TFieldValues, TFieldArrayName>>[] | undefined' is not assignable to type 'Partial<FieldArray<TFieldValues, ArrayPath<TFieldValues>>>[] | undefined'.
+          Type 'Partial<FieldArray<TFieldValues, TFieldArrayName>>[]' is not assignable to type 'Partial<FieldArray<TFieldValues, ArrayPath<TFieldValues>>>[]'.
+            Type 'Partial<FieldArray<TFieldValues, TFieldArrayName>>' is not assignable to type 'Partial<FieldArray<TFieldValues, ArrayPath<TFieldValues>>>'.
+              Type 'keyof FieldArray<TFieldValues, ArrayPath<TFieldValues>>' is not assignable to type 'keyof FieldArray<TFieldValues, TFieldArrayName>'.
+                Type 'string | number | symbol' is not assignable to type 'keyof FieldArray<TFieldValues, TFieldArrayName>'.
+                  Type 'string' is not assignable to type 'keyof FieldArray<TFieldValues, TFieldArrayName>'.
+                    Type 'string' is not assignable to type 'never'.
+                      Type 'keyof FieldArray<TFieldValues, ArrayPath<TFieldValues>>' is not assignable to type 'never'.
+                        Type 'string | number | symbol' is not assignable to type 'never'.
+                          Type 'string' is not assignable to type 'never'.
+app/(dashboard)/staff/_components/staff-table.tsx(4,24): error TS2307: Cannot find module 'date-fns' or its corresponding type declarations.
+app/(dashboard)/staff/_components/staff-table.tsx(26,29): error TS2307: Cannot find module '../_actions/staff-actions' or its corresponding type declarations.
+app/(dashboard)/staff/page.tsx(33,22): error TS2554: Expected 1 arguments, but got 0.
+app/(dashboard)/staff/page.tsx(48,42): error TS18048: 'activeOrg' is possibly 'undefined'.
+app/(dashboard)/staff/page.tsx(58,35): error TS2339: Property 'createdAt' does not exist on type 'PgTableWithColumns<{ name: "invitation"; schema: undefined; columns: { id: PgColumn<{ name: "id"; tableName: "invitation"; dataType: "string"; columnType: "PgText"; data: string; driverParam: string; notNull: true; hasDefault: false; ... 6 more ...; generated: undefined; }, {}, {}>; ... 5 more ...; inviterId: PgColu...'.
+app/(dashboard)/staff/page.tsx(61,46): error TS18048: 'activeOrg' is possibly 'undefined'.
+app/(dashboard)/staff/page.tsx(62,34): error TS2339: Property 'createdAt' does not exist on type 'PgTableWithColumns<{ name: "invitation"; schema: undefined; columns: { id: PgColumn<{ name: "id"; tableName: "invitation"; dataType: "string"; columnType: "PgText"; data: string; driverParam: string; notNull: true; hasDefault: false; ... 6 more ...; generated: undefined; }, {}, {}>; ... 5 more ...; inviterId: PgColu...'.
+lib/dashboard-queries.ts(1,10): error TS2305: Module '"@beresio/db"' has no exported member 'db'.
+tailwind.config.ts(11,15): error TS2322: Type 'Config' is not assignable to type 'UserConfig'.
+  Types of property 'presets' are incompatible.
+    Type 'Partial<Config>[] | undefined' is not assignable to type 'UserConfig[] | undefined'.
+      Type 'Partial<Config>[]' is not assignable to type 'UserConfig[]'.
+        Type 'Partial<Config>' is not assignable to type 'UserConfig'.
+          Types of property 'plugins' are incompatible.
+            Type '(PluginCreator | { handler: PluginCreator; config?: Partial<Config> | undefined; } | { (options: any): { handler: PluginCreator; config?: Partial<...> | undefined; }; __isOptionsFunction: true; } | undefined)[] | undefined' is not assignable to type 'Plugin[] | undefined'.
+              Type '(PluginCreator | { handler: PluginCreator; config?: Partial<Config> | undefined; } | { (options: any): { handler: PluginCreator; config?: Partial<...> | undefined; }; __isOptionsFunction: true; } | undefined)[]' is not assignable to type 'Plugin[]'.
+                Type 'PluginCreator | { handler: PluginCreator; config?: Partial<Config> | undefined; } | { (options: any): { handler: PluginCreator; config?: Partial<...> | undefined; }; __isOptionsFunction: true; } | undefined' is not assignable to type 'Plugin'.
+                  Type 'undefined' is not assignable to type 'Plugin'.
+../../packages/ui/src/avatar.tsx(6,20): error TS2307: Cannot find module 'src/lib/utils' or its corresponding type declarations.
+../../packages/ui/src/select.tsx(7,20): error TS2307: Cannot find module 'src/lib/utils' or its corresponding type declarations.
+../../packages/ui/src/skeleton.tsx(1,20): error TS2307: Cannot find module 'src/lib/utils' or its corresponding type declarations.
+../../packages/ui/src/table.tsx(3,20): error TS2307: Cannot find module 'src/lib/utils' or its corresponding type declarations.
+undefined
+D:\Projects\beresio\apps\app:
+ΓÇëERR_PNPM_RECURSIVE_EXEC_FIRST_FAILΓÇë Command failed with exit code 2: tsc --noEmit

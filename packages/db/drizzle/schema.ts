@@ -83,6 +83,38 @@ export const member = pgTable("member", {
 		}).onDelete("cascade"),
 ]);
 
+export const team = pgTable("team", {
+	id: text().primaryKey().notNull(),
+	name: text().notNull(),
+	organizationId: text().notNull(),
+	createdAt: timestamp({ mode: 'string' }).notNull(),
+	updatedAt: timestamp({ mode: 'string' }),
+}, (table) => [
+	foreignKey({
+			columns: [table.organizationId],
+			foreignColumns: [organization.id],
+			name: "team_organizationId_organization_id_fk"
+		}).onDelete("cascade"),
+]);
+
+export const teamMember = pgTable("team_member", {
+	id: text().primaryKey().notNull(),
+	teamId: text().notNull(),
+	userId: text().notNull(),
+	createdAt: timestamp({ mode: 'string' }).notNull(),
+}, (table) => [
+	foreignKey({
+			columns: [table.teamId],
+			foreignColumns: [team.id],
+			name: "team_member_teamId_team_id_fk"
+		}).onDelete("cascade"),
+	foreignKey({
+			columns: [table.userId],
+			foreignColumns: [user.id],
+			name: "team_member_userId_user_id_fk"
+		}).onDelete("cascade"),
+]);
+
 export const branches = pgTable("branches", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
 	organizationId: text().notNull(),
@@ -142,6 +174,7 @@ export const organization = pgTable("organization", {
 export const invitation = pgTable("invitation", {
 	id: text().primaryKey().notNull(),
 	organizationId: text().notNull(),
+	teamId: text(),
 	email: text().notNull(),
 	role: text(),
 	status: text().notNull(),
@@ -153,6 +186,11 @@ export const invitation = pgTable("invitation", {
 			foreignColumns: [organization.id],
 			name: "invitation_organizationId_organization_id_fk"
 		}).onDelete("cascade"),
+	foreignKey({
+			columns: [table.teamId],
+			foreignColumns: [team.id],
+			name: "invitation_teamId_team_id_fk"
+		}).onDelete("set null"),
 	foreignKey({
 			columns: [table.inviterId],
 			foreignColumns: [user.id],

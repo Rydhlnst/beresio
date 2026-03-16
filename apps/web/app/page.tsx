@@ -1,20 +1,25 @@
-import Image, { type ImageProps } from "next/image";
-import { Button } from "@repo/ui/button";
-import styles from "./page.module.css";
 import { Hero } from "./_components/Hero";
-import { WhyChooseUs } from "./_components/WhyChooseUs";
-import { ValueProposition } from "./_components/ValueProposition";
-import { SavingsCalculator } from "./_components/SavingsCalculator";
 import { FAQ } from "./_components/FAQ";
+import { WhyChooseUs } from "./_components/WhyChooseUs";
+import { ValueProposition, SavingsCalculator } from "./_components/LazySections";
 
-export default function Home() {
-  return (
-    <>
-      <Hero />
-      <ValueProposition />
-      <WhyChooseUs />
-      <SavingsCalculator />
-      <FAQ />
-    </>
-  );
+/**
+ * Landing Page (Server Component).
+ * - Hero: RSC wrapper, inner dashboard lazy-loaded via "use client" Hero.tsx
+ * - ValueProposition: lazy-loaded via LazySections (Client Component, ssr:false)
+ * - WhyChooseUs: bento grid
+ * - SavingsCalculator: lazy-loaded via LazySections (Client Component, ssr:false)
+ * - FAQ: interactive accordion, synchronous
+ */
+
+export default function Page() {
+    return (
+        <>
+            <Hero />
+            <ValueProposition />
+            <WhyChooseUs />
+            <SavingsCalculator />
+            <FAQ />
+        </>
+    );
 }

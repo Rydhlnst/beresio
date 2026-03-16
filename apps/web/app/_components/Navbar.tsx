@@ -446,7 +446,7 @@ export function Navbar() {
                                         asChild
                                         className="rounded-2xl"
                                     >
-                                        <Link href="/sign-up">Daftar Gratis</Link>
+                                        <Link href="/wishlist">Join Wishlist</Link>
                                     </Button>
                                 </div>
 
@@ -455,7 +455,7 @@ export function Navbar() {
                                     asChild
                                     className="rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 transition-all"
                                 >
-                                    <Link href="/sign-in">Mulai Beres</Link>
+                                    <Link href="/wishlist">Gabung Antrean</Link>
                                 </Button>
                             </>
                         )}
@@ -532,7 +532,7 @@ export function Navbar() {
                                                     <Link href="/sign-in">Masuk ke Dashboard</Link>
                                                 </Button>
                                                 <Button asChild className="w-full rounded-2xl bg-primary hover:bg-accent hover:text-accent-foreground">
-                                                    <Link href="/sign-up">Daftar Sekarang</Link>
+                                                    <Link href="/wishlist">Gabung Wishlist</Link>
                                                 </Button>
                                             </>
                                         )}

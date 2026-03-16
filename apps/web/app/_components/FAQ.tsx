@@ -42,19 +42,19 @@ const FAQS = [
         category: "Harga & Paket",
         question: "Berapa harga Beres?",
         answer:
-            "Starter Rp 299.000/bulan (1 cabang, 5 pengguna), Professional Rp 799.000/bulan (5 cabang, 20 pengguna + sistem pengiriman), Enterprise Rp 1.999.000/bulan (cabang & pengguna tak terbatas). Harga per organisasi, bukan per lokasi.",
+            "Harga resmi akan diumumkan saat peluncuran. Namun, kami berkomitmen untuk memberikan solusi ERP yang jauh lebih terjangkau dibanding kompetitor. Gabung wishlist sekarang untuk mendapatkan penawaran eksklusif Early Bird!",
     },
     {
         category: "Harga & Paket",
         question: "Apakah ada free trial?",
         answer:
-            "Ya, 14 hari gratis tanpa kartu kredit. Kamu mendapat akses penuh ke fitur Professional, termasuk 2 cabang, 5 pengguna, dan data sampel.",
+            "Tentu! Saat peluncuran nanti, Anda akan mendapatkan 14 hari akses gratis untuk mencoba seluruh fitur Professional tanpa perlu memasukkan informasi kartu kredit.",
     },
     {
         category: "Harga & Paket",
-        question: "Mengapa harga per organisasi, bukan per lokasi?",
+        question: "Mengapa menggunakan model harga per organisasi?",
         answer:
-            "Supaya kamu tidak kena biaya tambahan saat membuka cabang baru. Berbeda dengan Moka yang mengenakan Rp 299.000 per lokasi — dengan Beres Professional, 5 cabang hanya Rp 799.000/bulan.",
+            "Kami ingin mendukung pertumbuhan UMKM tanpa beban biaya tambahan per cabang. Dengan model ini, Anda bebas berekspansi tanpa khawatir biaya langganan membengkak seiring bertambahnya lokasi bisnis Anda.",
     },
     // Pengiriman & Fulfillment
     {
@@ -90,7 +90,7 @@ export function FAQ() {
     const [activeCategory, setActiveCategory] = useState("Tentang Beres");
 
     return (
-        <Section id="faq" className="py-32 bg-white">
+        <Section id="faq" className="bg-white">
             {/* Decorative top right SVGs */}
             <div className="absolute top-10 right-10 md:right-32 hidden md:block">
                 <div className="relative">
@@ -126,7 +126,7 @@ export function FAQ() {
                 >
                     Solusi ERP Terintegrasi
                 </Badge>
-                <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-neutral-900 mt-6">
+                <h2 className="text-[clamp(1.75rem,5vw,3.25rem)] font-bold tracking-tight text-neutral-900 mt-6">
                     Pertanyaan Populer
                 </h2>
                 <p className="text-neutral-600 max-w-2xl text-lg mt-4">
@@ -134,7 +134,7 @@ export function FAQ() {
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-12 lg:gap-24 relative z-10">
+            <div className="grid grid-cols-1 lg:grid-cols-[min(260px,22%)_1fr] gap-8 lg:gap-16 relative z-10">
                 {/* Categories Sidebar */}
                 <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-primary mb-6">
@@ -162,9 +162,17 @@ export function FAQ() {
                 </div>
 
                 {/* Accordions */}
-                <div className="space-y-4 lg:w-[800px] max-w-full">
-                    <Accordion type="single" collapsible className="w-full space-y-4" defaultValue="item-0">
-                        {FAQS.map((faq, index) => (
+                <div className="space-y-4 w-full">
+                    <Accordion
+                        key={activeCategory}
+                        type="single"
+                        collapsible
+                        className="w-full space-y-4"
+                        defaultValue="item-0"
+                    >
+                        {FAQS
+                            .filter((faq) => faq.category === activeCategory)
+                            .map((faq, index) => (
                             <AccordionItem
                                 key={index}
                                 value={`item-${index}`}

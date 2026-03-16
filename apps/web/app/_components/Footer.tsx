@@ -106,8 +106,8 @@ export function Footer() {
 
                         {/* System Status Indication */}
                         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-border bg-muted/30">
-                            <Circle className="h-2 w-2 fill-emerald-500 text-emerald-500 animate-pulse" />
-                            <span className="text-[11px] font-medium text-foreground/80">All systems operational</span>
+                            <Circle className="h-2 w-2 fill-amber-500 text-amber-500 animate-pulse" />
+                            <span className="text-[11px] font-medium text-foreground/80">Launch mode: Coming Soon</span>
                         </div>
                     </div>
 

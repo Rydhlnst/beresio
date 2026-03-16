@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { authMiddleware } from './middleware/auth'
 import { createDbHttp } from '@beresio/db'
+import { dashboardRouter } from './routes/dashboard'
 
 type Bindings = {
   DATABASE_URL: string
@@ -9,7 +10,7 @@ type Bindings = {
 }
 
 type Variables = {
-  db: ReturnType<typeof createDb>
+  db: ReturnType<typeof createDbHttp>
   user: any
   session: any
 }
@@ -30,5 +31,10 @@ app.get('/me', authMiddleware, (c) => {
   const user = c.get('user')
   return c.json({ user })
 })
+
+// Mount dashboard API routes
+const routes = app.route('/api/dashboard', dashboardRouter)
+
+export type AppType = typeof routes
 
 export default app
