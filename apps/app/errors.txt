@@ -1,0 +1,18 @@
+components/dashboard/layout/org-switcher.tsx(44,18): error TS18048: 'activeOrg' is possibly 'undefined'.
+components/dashboard/layout/org-switcher.tsx(48,20): error TS18048: 'activeOrg' is possibly 'undefined'.
+components/dashboard/layout/org-switcher.tsx(50,53): error TS18048: 'activeOrg' is possibly 'undefined'.
+../../packages/ui/src/button.tsx(5,20): error TS2307: Cannot find module 'src/lib/utils' or its corresponding type declarations.
+../../packages/ui/src/input.tsx(3,20): error TS2307: Cannot find module 'src/lib/utils' or its corresponding type declarations.
+../../packages/ui/src/separator.tsx(6,20): error TS2307: Cannot find module 'src/lib/utils' or its corresponding type declarations.
+../../packages/ui/src/sheet.tsx(8,20): error TS2307: Cannot find module 'src/lib/utils' or its corresponding type declarations.
+../../packages/ui/src/sidebar.tsx(8,29): error TS2307: Cannot find module 'src/hooks/use-mobile' or its corresponding type declarations.
+../../packages/ui/src/sidebar.tsx(9,20): error TS2307: Cannot find module 'src/lib/utils' or its corresponding type declarations.
+../../packages/ui/src/sidebar.tsx(10,24): error TS2307: Cannot find module 'src/button' or its corresponding type declarations.
+../../packages/ui/src/sidebar.tsx(11,23): error TS2307: Cannot find module 'src/input' or its corresponding type declarations.
+../../packages/ui/src/sidebar.tsx(12,27): error TS2307: Cannot find module 'src/separator' or its corresponding type declarations.
+../../packages/ui/src/sidebar.tsx(19,8): error TS2307: Cannot find module 'src/sheet' or its corresponding type declarations.
+../../packages/ui/src/sidebar.tsx(20,26): error TS2307: Cannot find module 'src/skeleton' or its corresponding type declarations.
+../../packages/ui/src/sidebar.tsx(26,8): error TS2307: Cannot find module 'src/tooltip' or its corresponding type declarations.
+../../packages/ui/src/sidebar.tsx(285,17): error TS7006: Parameter 'event' implicitly has an 'any' type.
+../../packages/ui/src/skeleton.tsx(1,20): error TS2307: Cannot find module 'src/lib/utils' or its corresponding type declarations.
+../../packages/ui/src/tooltip.tsx(6,20): error TS2307: Cannot find module 'src/lib/utils' or its corresponding type declarations.
