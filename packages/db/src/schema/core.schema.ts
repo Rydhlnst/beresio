@@ -1,5 +1,5 @@
-import { pgTable, text, timestamp, boolean, uuid, varchar, integer, index } from "drizzle-orm/pg-core";
-import { organization } from "./auth.schema";
+import { pgTable, text, timestamp, boolean, uuid, varchar, integer, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { organization, member } from "./auth.schema";
 
 export const branches = pgTable("branches", {
     id: uuid("id").primaryKey().defaultRandom(),
@@ -38,5 +38,28 @@ export const customers = pgTable("customers", {
     return {
         idxCustomersOrg: index("idx_customers_org").on(table.organizationId),
         idxCustomersPhone: index("idx_customers_phone").on(table.organizationId, table.phone),
+    }
+});
+
+export const branchMembers = pgTable("branch_members", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: text("organization_id")
+        .notNull()
+        .references(() => organization.id, { onDelete: 'cascade' }),
+    memberId: text("member_id")
+        .notNull()
+        .references(() => member.id, { onDelete: 'cascade' }),
+    branchId: uuid("branch_id")
+        .notNull()
+        .references(() => branches.id, { onDelete: 'cascade' }),
+    isPrimary: boolean("is_primary").default(false),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => {
+    return {
+        idxBranchMembersOrg: index("idx_branch_members_org").on(table.organizationId),
+        idxBranchMembersMember: index("idx_branch_members_member").on(table.memberId),
+        idxBranchMembersBranch: index("idx_branch_members_branch").on(table.branchId),
+        idxBranchMembersOrgBranch: index("idx_branch_members_org_branch").on(table.organizationId, table.branchId),
+        uqBranchMembersMemberBranch: uniqueIndex("uq_branch_members_member_branch").on(table.memberId, table.branchId),
     }
 });

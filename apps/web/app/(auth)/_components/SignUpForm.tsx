@@ -85,7 +85,7 @@ export function SignUpForm() {
     return (
         <div className="w-full space-y-8">
             <div className="space-y-4">
-                <Heading as="h1" className="text-4xl font-bold tracking-tight text-foreground leading-[1.2]">
+                <Heading as="h1" className="text-balance !text-xl sm:!text-2xl font-semibold tracking-tight text-foreground !leading-snug">
                     Create Account
                 </Heading>
                 <Text className="text-muted-foreground font-medium text-base">

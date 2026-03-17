@@ -7,9 +7,8 @@ export default function AuthLayout({
     children: React.ReactNode;
 }) {
     return (
-        <div className="h-screen flex flex-col bg-background font-sans selection:bg-primary/30 relative overflow-hidden">
-            {/* Simple Header - Absolute to not affect centering */}
-            <header className="absolute top-0 left-0 right-0 w-full px-8 py-8 flex items-center justify-between z-20">
+        <div className="min-h-screen flex flex-col bg-background font-sans selection:bg-primary/30 relative overflow-hidden">
+            <header className="w-full h-16 md:h-20 px-8 flex items-center justify-between">
                 <div className="w-full max-w-[440px] md:max-w-none mx-auto flex items-center justify-between">
                     <Link href="/" className="transition-transform hover:scale-105">
                         <Image
@@ -38,8 +37,7 @@ export default function AuthLayout({
                 </div>
             </header>
 
-            {/* Main Form Area: Perfectly Centered */}
-            <main className="flex-1 flex items-center justify-center p-6 relative z-10 w-full h-full">
+            <main className="min-h-[calc(100svh-4rem)] md:min-h-[calc(100svh-5rem)] flex items-center justify-center px-6 py-10 w-full">
                 <div className="w-full max-w-[440px] flex flex-col items-center">
                     {children}
                 </div>

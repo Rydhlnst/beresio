@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, uuid, varchar, index, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
     id: text("id").primaryKey(),
@@ -65,11 +65,50 @@ export const organization = pgTable("organization", {
     logoUrl: text("logo_url")
 });
 
+export const roles = pgTable("roles", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: text("organization_id")
+        .notNull()
+        .references(() => organization.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 100 }).notNull(),
+    slug: varchar("slug", { length: 50 }).notNull(),
+    description: text("description"),
+    isSystem: boolean("is_system").default(false),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdateFn(() => new Date()),
+}, (table) => {
+    return {
+        idxRolesOrg: index("idx_roles_org").on(table.organizationId),
+        uqRolesOrgSlug: uniqueIndex("uq_roles_org_slug").on(table.organizationId, table.slug),
+    };
+});
+
+export const rolePermissions = pgTable("role_permissions", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: text("organization_id")
+        .notNull()
+        .references(() => organization.id, { onDelete: "cascade" }),
+    roleId: uuid("role_id")
+        .notNull()
+        .references(() => roles.id, { onDelete: "cascade" }),
+    permission: text("permission").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => {
+    return {
+        idxRolePermissionsOrg: index("idx_role_permissions_org").on(table.organizationId),
+        idxRolePermissionsRole: index("idx_role_permissions_role").on(table.roleId),
+        uqRolePermissionsRolePerm: uniqueIndex("uq_role_permissions_role_perm").on(table.roleId, table.permission),
+    };
+});
+
 export const member = pgTable("member", {
     id: text("id").primaryKey(),
     organizationId: text("organization_id").notNull().references(() => organization.id, { onDelete: "cascade" }),
     userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
     role: text("role").notNull(),
+    roleId: uuid("role_id").references(() => roles.id, { onDelete: "set null" }),
+    status: text("status").notNull().default("active"),
+    deactivatedAt: timestamp("deactivated_at"),
     createdAt: timestamp("created_at").notNull()
 });
 
@@ -94,7 +133,11 @@ export const invitation = pgTable("invitation", {
     teamId: text("team_id").references(() => team.id, { onDelete: "set null" }),
     email: text("email").notNull(),
     role: text("role"),
+    roleId: uuid("role_id").references(() => roles.id, { onDelete: "set null" }),
+    branchId: uuid("branch_id"),
     status: text("status").notNull(),
+    sentAt: timestamp("sent_at").defaultNow().notNull(),
     expiresAt: timestamp("expires_at").notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdateFn(() => new Date()),
     inviterId: text("inviter_id").notNull().references(() => user.id, { onDelete: "cascade" })
 });
