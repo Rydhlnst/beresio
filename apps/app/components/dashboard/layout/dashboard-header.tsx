@@ -7,9 +7,12 @@ import {
   Bell,
   CreditCard,
   LogOut,
+  Moon,
   Search,
   Sparkles,
+  Sun,
 } from "lucide-react"
+import { useTheme } from "next-themes"
 
 import { SidebarTrigger } from "@repo/ui/sidebar"
 import { Input } from "@repo/ui/input"
@@ -38,6 +41,8 @@ type DashboardHeaderProps = {
 
 function HeaderUserMenu({ user }: DashboardHeaderProps["user"]) {
   const { push } = useTransitionRouter()
+  const { theme, resolvedTheme, setTheme } = useTheme()
+  const isDark = theme === "dark" || (theme === "system" && resolvedTheme === "dark")
   const initials = user.name
     .split(" ")
     .map((n) => n[0])
@@ -48,6 +53,10 @@ function HeaderUserMenu({ user }: DashboardHeaderProps["user"]) {
   const handleSignOut = async () => {
     await authClient.signOut()
     push("/login")
+  }
+
+  const handleToggleTheme = () => {
+    setTheme(isDark ? "light" : "dark")
   }
 
   return (
@@ -98,6 +107,16 @@ function HeaderUserMenu({ user }: DashboardHeaderProps["user"]) {
             Notifikasi
           </DropdownMenuItem>
         </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleToggleTheme} className="justify-between">
+          <span className="flex items-center gap-2">
+            {isDark ? <Moon /> : <Sun />}
+            Mode Gelap
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {isDark ? "On" : "Off"}
+          </span>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={handleSignOut}

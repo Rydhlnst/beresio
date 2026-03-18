@@ -18,8 +18,8 @@ branchesRouter.get('/', authMiddleware, async (c) => {
         const revenueSub = db
             .select({
                 branchId: payments.branchId,
-                revenue: sql<number>`COALESCE(SUM(${payments.amount}), 0)`,
-                orders: sql<number>`COUNT(${payments.id})`,
+                revenue: sql<number>`COALESCE(SUM(${payments.amount}), 0)`.as('revenue'),
+                orders: sql<number>`COUNT(${payments.id})`.as('orders'),
             })
             .from(payments)
             .where(and(eq(payments.organizationId, orgId), eq(payments.status, 'SUCCESS')))
@@ -29,7 +29,7 @@ branchesRouter.get('/', authMiddleware, async (c) => {
         const staffSub = db
             .select({
                 branchId: branchMembers.branchId,
-                staffCount: sql<number>`COUNT(DISTINCT ${branchMembers.memberId})`,
+                staffCount: sql<number>`COUNT(DISTINCT ${branchMembers.memberId})`.as('staff_count'),
             })
             .from(branchMembers)
             .where(eq(branchMembers.organizationId, orgId))

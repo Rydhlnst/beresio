@@ -18,24 +18,24 @@ export function BrowserMockup({
 }: BrowserMockupProps) {
     return (
         <div className={cn(
-            "overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl shadow-gray-200/80",
+            "overflow-hidden rounded-2xl border border-border/60 bg-card shadow-2xl shadow-muted/30",
             className
         )}>
             {/* Browser bar */}
-            <div className="flex items-center gap-3 border-b border-gray-100 bg-gray-50/80 px-4 py-3">
+            <div className="flex items-center gap-3 border-b border-border/60 bg-muted/40 px-4 py-3">
                 <div className="flex gap-1.5">
-                    <div className="h-3 w-3 rounded-full bg-red-400/70" />
+                    <div className="h-3 w-3 rounded-full bg-destructive/70" />
                     <div className="h-3 w-3 rounded-full bg-amber-400/70" />
                     <div className="h-3 w-3 rounded-full bg-primary/70" />
                 </div>
-                <div className="flex h-6 flex-1 items-center gap-2 rounded-md bg-white border border-gray-200 px-3">
-                    <Wifi className="h-3 w-3 text-gray-300" />
-                    <span className="text-[11px] text-gray-400">{url}</span>
+                <div className="flex h-6 flex-1 items-center gap-2 rounded-md bg-background border border-border/60 px-3">
+                    <Wifi className="h-3 w-3 text-muted-foreground/60" />
+                    <span className="text-[11px] text-muted-foreground">{url}</span>
                 </div>
             </div>
 
             {/* Content area */}
-            <div className={cn("relative bg-white", innerClassName)}>
+            <div className={cn("relative bg-background", innerClassName)}>
                 {children}
             </div>
         </div>

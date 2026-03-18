@@ -55,7 +55,7 @@ function EnterpriseSearchMockup() {
                 initial={{ y: 40, opacity: 0 }}
                 whileInView={{ y: 0, opacity: 1 }}
                 transition={{ duration: 0.6, delay: 0.2 }}
-                className="w-[90%] bg-white rounded-t-2xl shadow-2xl p-6 pb-20 relative overflow-hidden flex flex-col gap-6"
+                className="w-[90%] bg-background rounded-t-2xl shadow-2xl p-6 pb-20 relative overflow-hidden flex flex-col gap-6"
             >
                 {/* Search Badge */}
                 <div className="absolute top-4 right-4 bg-muted/30 text-[9px] font-bold px-3 py-1 rounded-full text-foreground/60 backdrop-blur-sm">
@@ -116,11 +116,11 @@ function EnterpriseSearchMockup() {
 
                 {/* Bottom App Bar */}
                 <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex items-center justify-center pb-6 w-full px-6">
-                    <div className="flex items-center gap-2 p-1.5 bg-white/60 backdrop-blur-xl rounded-3xl border border-white/40 shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
+                    <div className="flex items-center gap-2 p-1.5 bg-background/60 backdrop-blur-xl rounded-3xl border border-border/60 shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
                         {/* Center Logo - Beres */}
                         <motion.div
                             animate={{ y: -10 }}
-                            className="h-16 w-16 bg-white rounded-[24px] border border-border/50 flex items-center justify-center p-3 shadow-[0_12px_24px_-8px_rgba(238,72,34,0.35)] relative z-10"
+                            className="h-16 w-16 bg-background rounded-[24px] border border-border/60 flex items-center justify-center p-3 shadow-[0_12px_24px_-8px_rgba(238,72,34,0.35)] relative z-10"
                         >
                             <BeresLogo className="h-full w-full" />
                         </motion.div>
@@ -332,7 +332,7 @@ export function WhyChooseUs() {
     ]
 
     return (
-        <Section id="features" className="relative overflow-hidden bg-muted/5">
+        <Section id="features" className="relative overflow-hidden bg-background">
             {/* Background elements */}
             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
@@ -367,7 +367,7 @@ export function WhyChooseUs() {
                         viewport={{ once: true }}
                         transition={{ duration: 0.5, delay: index * 0.1 }}
                         className={cn(
-                            "group bg-white rounded-[40px] border border-border/40 flex flex-col hover:shadow-3xl hover:shadow-primary/5 transition-all duration-500 overflow-hidden",
+                            "group bg-card rounded-[40px] border border-border/60 flex flex-col hover:shadow-3xl hover:shadow-primary/5 transition-all duration-500 overflow-hidden",
                             card.className
                         )}
                     >

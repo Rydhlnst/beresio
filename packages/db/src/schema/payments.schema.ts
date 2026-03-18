@@ -2,6 +2,7 @@ import { pgTable, text, timestamp, uuid, integer, index } from "drizzle-orm/pg-c
 import { organization } from "./auth.schema";
 import { branches } from "./core.schema";
 import { customers } from "./core.schema";
+import { orders } from "./orders.schema";
 
 export const payments = pgTable("payments", {
     id: uuid("id").primaryKey().defaultRandom(),
@@ -13,6 +14,8 @@ export const payments = pgTable("payments", {
         .references(() => branches.id, { onDelete: "cascade" }),
     customerId: uuid("customer_id")
         .references(() => customers.id, { onDelete: "set null" }),
+    orderId: uuid("order_id")
+        .references(() => orders.id, { onDelete: "set null" }),
     amount: integer("amount").notNull(), // in smallest currency unit (e.g. IDR)
     status: text("status").notNull().default("PENDING"), // PENDING | SUCCESS | FAILED | REFUNDED
     reference: text("reference").unique(),
@@ -25,5 +28,6 @@ export const payments = pgTable("payments", {
         idxPaymentsOrgStatus: index("idx_payments_org_status").on(table.organizationId, table.status),
         idxPaymentsOrgCreated: index("idx_payments_org_created").on(table.organizationId, table.createdAt),
         idxPaymentsBranch: index("idx_payments_branch").on(table.branchId),
+        idxPaymentsOrder: index("idx_payments_order").on(table.orderId),
     };
 });

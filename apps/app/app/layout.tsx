@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@repo/ui/sonner";
 import { PageProgressBar, PageProgressProvider } from "@/components/shared/page-progress";
+import { ThemeProvider } from "./_components/theme-provider";
 
 const jakarta = Plus_Jakarta_Sans({
     subsets: ["latin"],
@@ -33,13 +34,21 @@ export default function RootLayout({
     return (
         <html lang="id" suppressHydrationWarning>
             <body className={`${jakarta.variable} font-sans antialiased bg-background text-foreground relative overflow-x-hidden`}>
-                <PageProgressProvider>
-                    <PageProgressBar />
-                    <main className="min-h-screen w-full bg-background relative z-10 flex flex-col">
-                        {children}
-                    </main>
-                    <Toaster richColors position="top-right" />
-                </PageProgressProvider>
+                <ThemeProvider
+                    attribute="class"
+                    defaultTheme="system"
+                    enableSystem
+                    enableColorScheme
+                    disableTransitionOnChange
+                >
+                    <PageProgressProvider>
+                        <PageProgressBar />
+                        <main className="min-h-screen w-full bg-background relative z-10 flex flex-col">
+                            {children}
+                        </main>
+                        <Toaster richColors position="top-right" />
+                    </PageProgressProvider>
+                </ThemeProvider>
             </body>
         </html>
     );

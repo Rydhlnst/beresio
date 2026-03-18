@@ -20,8 +20,46 @@ const SECTIONS = [
     "Notifikasi",
 ];
 
-export function SettingsPageClient() {
+type SettingsPageClientProps = {
+    organization: {
+        id: string;
+        name: string;
+        slug?: string | null;
+        businessType?: string | null;
+        subscriptionPlan?: string | null;
+        logoUrl?: string | null;
+        metadata?: unknown;
+    } | null;
+    billing: {
+        plan?: string | null;
+        usage?: {
+            branches?: { current: number; limit: number | null };
+            members?: { current: number; limit: number | null };
+        };
+    } | null;
+};
+
+function getMetadataValue(metadata: unknown, key: string): string | null {
+    if (!metadata || typeof metadata !== "object") return null;
+    const value = (metadata as Record<string, unknown>)[key];
+    if (typeof value === "string") return value;
+    return null;
+}
+
+export function SettingsPageClient({ organization, billing }: SettingsPageClientProps) {
     const [activeSection, setActiveSection] = useState(SECTIONS[0]);
+    const orgName = organization?.name ?? "";
+    const orgSlug = organization?.slug ?? "";
+    const orgTimezone = getMetadataValue(organization?.metadata, "timezone") ?? "";
+    const orgCurrency = getMetadataValue(organization?.metadata, "currency") ?? "";
+    const currencyDefault = orgCurrency || undefined;
+
+    const plan = billing?.plan ?? null;
+    const planName = plan ? `${plan.charAt(0).toUpperCase()}${plan.slice(1)} Plan` : "Plan belum tersedia";
+    const branchUsage = billing?.usage?.branches;
+    const memberUsage = billing?.usage?.members;
+    const branchLimit = branchUsage?.limit === null ? "∞" : (branchUsage?.limit ?? "—");
+    const memberLimit = memberUsage?.limit === null ? "∞" : (memberUsage?.limit ?? "—");
 
     return (
         <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
@@ -56,10 +94,10 @@ export function SettingsPageClient() {
                 {activeSection === "Organisasi" && (
                     <div className="rounded-xl border border-border/60 bg-card p-6 space-y-4">
                         <div className="grid gap-4 sm:grid-cols-2">
-                            <Input placeholder="Nama organisasi" defaultValue="Beres Laundry" />
-                            <Input placeholder="Slug" defaultValue="beres-laundry" />
-                            <Input placeholder="Timezone" defaultValue="Asia/Jakarta" />
-                            <Select defaultValue="idr">
+                            <Input placeholder="Nama organisasi" defaultValue={orgName} />
+                            <Input placeholder="Slug" defaultValue={orgSlug} />
+                            <Input placeholder="Timezone" defaultValue={orgTimezone} />
+                            <Select defaultValue={currencyDefault}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Mata uang" />
                                 </SelectTrigger>
@@ -78,18 +116,22 @@ export function SettingsPageClient() {
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm font-semibold text-foreground">Plan Aktif</p>
-                                <p className="text-xs text-muted-foreground mt-1">Starter Plan</p>
+                                <p className="text-xs text-muted-foreground mt-1">{planName}</p>
                             </div>
                             <Button variant="outline" className="h-9 text-xs font-semibold">Upgrade</Button>
                         </div>
                         <div className="grid gap-4 sm:grid-cols-2">
                             <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
                                 <p className="text-xs text-muted-foreground">Cabang</p>
-                                <p className="text-lg font-semibold text-foreground">1 / 3</p>
+                                <p className="text-lg font-semibold text-foreground">
+                                    {branchUsage?.current ?? "—"} / {branchLimit}
+                                </p>
                             </div>
                             <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
                                 <p className="text-xs text-muted-foreground">Anggota</p>
-                                <p className="text-lg font-semibold text-foreground">4 / 10</p>
+                                <p className="text-lg font-semibold text-foreground">
+                                    {memberUsage?.current ?? "—"} / {memberLimit}
+                                </p>
                             </div>
                         </div>
                     </div>

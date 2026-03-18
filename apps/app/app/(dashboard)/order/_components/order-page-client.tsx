@@ -20,6 +20,14 @@ import {
     TableRow,
 } from "@repo/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@repo/ui/tabs";
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetFooter,
+    SheetHeader,
+    SheetTitle,
+} from "@repo/ui/sheet";
 import { CardEmptyState } from "@/components/dashboard/shared/card-empty-state";
 import { useTransitionRouter } from "@/hooks/use-transition-router";
 import { cn } from "@/lib/utils";
@@ -33,14 +41,15 @@ import {
     User,
     XCircle,
 } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { id } from "date-fns/locale";
+import { useForm } from "@tanstack/react-form";
+import { z } from "zod";
+import { createOrderAction, updateOrderAction, updateOrderItemsAction } from "../_actions/orders";
+import { updateCustomerAction } from "../_actions/customers";
 
-type OrderStatus = "Pending" | "Proses" | "Selesai" | "Batal";
-
-type OrderItem = {
-    name: string;
-    qty: number;
-    price: number;
-};
+type OrderStatus = "pending" | "processing" | "completed" | "cancelled";
+type OrderType = "pickup" | "delivery" | "walk_in";
 
 type OrderTimeline = {
     label: string;
@@ -48,99 +57,124 @@ type OrderTimeline = {
     status: "done" | "active" | "upcoming";
 };
 
-type OrderRecord = {
+type OrderSummary = {
     id: string;
-    branch: string;
-    customer: string;
+    orderNumber: string;
+    branch: { id: string; name: string } | null;
+    customer: { id: string; name: string } | null;
     status: OrderStatus;
-    total: number;
-    time: string;
-    type: "Pickup" | "Delivery" | "Walk-in";
-    items: OrderItem[];
-    timeline: OrderTimeline[];
-    payment: {
-        method: string;
-        status: string;
-    };
+    totalAmount: number;
+    createdAt: string;
+    type: OrderType;
+    paymentStatus: string;
+    paymentMethod: string | null;
 };
 
-const ORDERS: OrderRecord[] = [
-    {
-        id: "ORD-1021",
-        branch: "Beres Laundry Sudirman",
-        customer: "Rina Anjani",
-        status: "Pending",
-        total: 82000,
-        time: "10:24",
-        type: "Pickup",
-        items: [
-            { name: "Cuci Kering", qty: 2, price: 25000 },
-            { name: "Setrika", qty: 1, price: 32000 },
-        ],
-        timeline: [
-            { label: "Order dibuat", time: "10:12", status: "done" },
-            { label: "Menunggu konfirmasi", time: "10:24", status: "active" },
-            { label: "Diproses", time: "-", status: "upcoming" },
-            { label: "Selesai", time: "-", status: "upcoming" },
-        ],
-        payment: { method: "QRIS", status: "Menunggu" },
-    },
-    {
-        id: "ORD-1020",
-        branch: "Beres Laundry Kemang",
-        customer: "Bagas Pratama",
-        status: "Proses",
-        total: 54000,
-        time: "09:52",
-        type: "Walk-in",
-        items: [
-            { name: "Cuci Basah", qty: 3, price: 18000 },
-        ],
-        timeline: [
-            { label: "Order dibuat", time: "09:30", status: "done" },
-            { label: "Diproses", time: "09:52", status: "active" },
-            { label: "Selesai", time: "-", status: "upcoming" },
-        ],
-        payment: { method: "Tunai", status: "Lunas" },
-    },
-    {
-        id: "ORD-1019",
-        branch: "Beres Laundry Depok",
-        customer: "Shinta Lestari",
-        status: "Selesai",
-        total: 120000,
-        time: "Kemarin",
-        type: "Delivery",
-        items: [
-            { name: "Dry Clean", qty: 4, price: 30000 },
-        ],
-        timeline: [
-            { label: "Order dibuat", time: "Kemarin", status: "done" },
-            { label: "Diproses", time: "Kemarin", status: "done" },
-            { label: "Selesai", time: "Kemarin", status: "done" },
-        ],
-        payment: { method: "Transfer", status: "Lunas" },
-    },
-    {
-        id: "ORD-1018",
-        branch: "Beres Laundry Sudirman",
-        customer: "Dimas Hendra",
-        status: "Batal",
-        total: 32000,
-        time: "Kemarin",
-        type: "Pickup",
-        items: [
-            { name: "Cuci Kering", qty: 1, price: 32000 },
-        ],
-        timeline: [
-            { label: "Order dibuat", time: "Kemarin", status: "done" },
-            { label: "Dibatalkan", time: "Kemarin", status: "active" },
-        ],
-        payment: { method: "QRIS", status: "Refund" },
-    },
+type OrderDetail = {
+    id: string;
+    orderNumber: string;
+    status: OrderStatus;
+    type: OrderType;
+    totalAmount: number;
+    paymentStatus: string;
+    paymentMethod: string | null;
+    createdAt: string;
+    branch: { id: string; name: string } | null;
+    customer: { id: string; name: string } | null;
+    items: Array<{
+        id: string;
+        name: string;
+        quantity: number;
+        unitPrice: number;
+        totalPrice: number;
+    }>;
+    events: Array<{
+        id: string;
+        status: OrderStatus;
+        note: string | null;
+        actorId: string | null;
+        createdAt: string;
+    }>;
+};
+
+type BranchOption = { id: string; name: string };
+type CustomerOption = {
+    id: string;
+    name: string;
+    phone?: string | null;
+    email?: string | null;
+    address?: string | null;
+};
+
+type OrderFilters = {
+    status: string;
+    branchId: string;
+    type: string;
+    q: string;
+    dateFrom: string;
+    dateTo: string;
+};
+
+type OrderPageClientProps = {
+    orders: OrderSummary[];
+    branches: BranchOption[];
+    customers: CustomerOption[];
+    selectedOrderId: string | null;
+    selectedOrder: OrderDetail | null;
+    filters: OrderFilters;
+};
+
+const STATUS_TABS: Array<{ label: string; value: string }> = [
+    { label: "Semua", value: "all" },
+    { label: "Pending", value: "pending" },
+    { label: "Proses", value: "processing" },
+    { label: "Selesai", value: "completed" },
+    { label: "Batal", value: "cancelled" },
 ];
 
-const STATUS_TABS: Array<"Semua" | OrderStatus> = ["Semua", "Pending", "Proses", "Selesai", "Batal"];
+const TYPE_OPTIONS: Array<{ label: string; value: string }> = [
+    { label: "Semua tipe", value: "all" },
+    { label: "Pickup", value: "pickup" },
+    { label: "Delivery", value: "delivery" },
+    { label: "Walk-in", value: "walk_in" },
+];
+
+const ORDER_STATUS_OPTIONS: Array<{ label: string; value: OrderStatus }> = [
+    { label: "Pending", value: "pending" },
+    { label: "Proses", value: "processing" },
+    { label: "Selesai", value: "completed" },
+    { label: "Batal", value: "cancelled" },
+];
+
+const PAYMENT_STATUS_OPTIONS: Array<{ label: string; value: string }> = [
+    { label: "Pending", value: "pending" },
+    { label: "Lunas", value: "paid" },
+    { label: "Refund", value: "refunded" },
+    { label: "Gagal", value: "failed" },
+];
+
+const orderItemSchema = z.object({
+    name: z.string().min(1, "Nama item wajib diisi"),
+    quantity: z.number().int().positive("Qty harus lebih dari 0"),
+    unitPrice: z.number().min(0, "Harga tidak boleh negatif"),
+});
+
+const orderCreateSchema = z.object({
+    branchId: z.string().min(1, "Cabang wajib dipilih"),
+    customerId: z.string().optional().nullable(),
+    type: z.enum(["pickup", "delivery", "walk_in"]),
+    paymentStatus: z.enum(["pending", "paid", "refunded", "failed"]).default("pending"),
+    paymentMethod: z.string().optional().nullable(),
+    notes: z.string().optional().nullable(),
+    items: z.array(orderItemSchema).min(1, "Minimal 1 item"),
+});
+
+const customerUpdateSchema = z.object({
+    name: z.string().min(1, "Nama wajib diisi"),
+    phone: z.string().min(1, "Telepon wajib diisi"),
+    email: z.string().email("Email tidak valid").optional().nullable(),
+    address: z.string().optional().nullable(),
+});
 
 function formatCurrency(value: number) {
     return new Intl.NumberFormat("id-ID", {
@@ -151,9 +185,9 @@ function formatCurrency(value: number) {
 }
 
 function statusBadge(status: OrderStatus) {
-    if (status === "Selesai") return "bg-emerald-50 text-emerald-700 border-emerald-200";
-    if (status === "Proses") return "bg-amber-50 text-amber-700 border-amber-200";
-    if (status === "Batal") return "bg-rose-50 text-rose-700 border-rose-200";
+    if (status === "completed") return "bg-emerald-50 text-emerald-700 border-emerald-200";
+    if (status === "processing") return "bg-amber-50 text-amber-700 border-amber-200";
+    if (status === "cancelled") return "bg-rose-50 text-rose-700 border-rose-200";
     return "bg-muted/50 text-muted-foreground border-border";
 }
 
@@ -163,11 +197,53 @@ function timelineIcon(status: OrderTimeline["status"]) {
     return XCircle;
 }
 
-export function OrderPageClient() {
-    const { refresh } = useTransitionRouter();
-    const [activeStatus, setActiveStatus] = useState<(typeof STATUS_TABS)[number]>("Semua");
-    const [selectedId, setSelectedId] = useState<string | null>(ORDERS[0]?.id ?? null);
-    const [searchQuery, setSearchQuery] = useState("");
+function statusLabel(status: OrderStatus) {
+    if (status === "completed") return "Selesai";
+    if (status === "processing") return "Diproses";
+    if (status === "cancelled") return "Dibatalkan";
+    return "Menunggu konfirmasi";
+}
+
+function typeLabel(type: OrderType) {
+    if (type === "delivery") return "Delivery";
+    if (type === "pickup") return "Pickup";
+    return "Walk-in";
+}
+
+function paymentStatusLabel(status: string) {
+    if (status === "paid") return "Lunas";
+    if (status === "refunded") return "Refund";
+    if (status === "failed") return "Gagal";
+    return "Menunggu";
+}
+
+export function OrderPageClient({
+    orders,
+    branches,
+    customers,
+    selectedOrderId,
+    selectedOrder,
+    filters,
+}: OrderPageClientProps) {
+    const { refresh, replace } = useTransitionRouter();
+    const [searchQuery, setSearchQuery] = useState(filters.q);
+    const [activeStatus, setActiveStatus] = useState(filters.status || "all");
+    const [createOpen, setCreateOpen] = useState(false);
+    const [createError, setCreateError] = useState<string | null>(null);
+    const [createPending, setCreatePending] = useState(false);
+    const [updateStatus, setUpdateStatus] = useState<OrderStatus>("pending");
+    const [updatePaymentStatus, setUpdatePaymentStatus] = useState("pending");
+    const [updatePaymentMethod, setUpdatePaymentMethod] = useState<string>("");
+    const [updateCustomerId, setUpdateCustomerId] = useState<string>("none");
+    const [updatePending, setUpdatePending] = useState(false);
+    const [updateError, setUpdateError] = useState<string | null>(null);
+    const [editItemsOpen, setEditItemsOpen] = useState(false);
+    const [editItems, setEditItems] = useState<Array<{ name: string; quantity: number; unitPrice: number }>>([]);
+    const [editItemsPending, setEditItemsPending] = useState(false);
+    const [editItemsError, setEditItemsError] = useState<string | null>(null);
+    const [customerOpen, setCustomerOpen] = useState(false);
+    const [customerPending, setCustomerPending] = useState(false);
+    const [customerError, setCustomerError] = useState<string | null>(null);
 
     useEffect(() => {
         const interval = window.setInterval(() => {
@@ -176,77 +252,327 @@ export function OrderPageClient() {
         return () => window.clearInterval(interval);
     }, [refresh]);
 
-    const filteredOrders = useMemo(() => {
-        const statusFiltered = activeStatus === "Semua"
-            ? ORDERS
-            : ORDERS.filter((order) => order.status === activeStatus);
+    useEffect(() => {
+        setSearchQuery(filters.q);
+        setActiveStatus(filters.status || "all");
+    }, [filters.q, filters.status]);
 
-        const query = searchQuery.trim().toLowerCase();
-        if (!query) return statusFiltered;
+    useEffect(() => {
+        if (!selectedOrder) return;
+        setUpdateStatus(selectedOrder.status);
+        setUpdatePaymentStatus(selectedOrder.paymentStatus ?? "pending");
+        setUpdatePaymentMethod(selectedOrder.paymentMethod ?? "");
+        setUpdateCustomerId(selectedOrder.customer?.id ?? "none");
+        setUpdateError(null);
+        setEditItems(selectedOrder.items.map((item) => ({
+            name: item.name,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+        })));
+        setEditItemsError(null);
+    }, [selectedOrder]);
 
-        return statusFiltered.filter((order) => (
-            order.id.toLowerCase().includes(query) ||
-            order.customer.toLowerCase().includes(query) ||
-            order.branch.toLowerCase().includes(query) ||
-            order.status.toLowerCase().includes(query)
-        ));
-    }, [activeStatus, searchQuery]);
+    const selectedCustomer = useMemo(() => {
+        if (!updateCustomerId || updateCustomerId === "none") return null;
+        return customers.find((customer) => customer.id === updateCustomerId) ?? null;
+    }, [customers, updateCustomerId]);
 
-    const selectedOrder = filteredOrders.find((order) => order.id === selectedId) ?? null;
+    useEffect(() => {
+        const handle = window.setTimeout(() => {
+            const params = new URLSearchParams();
+            if (activeStatus !== "all") params.set("status", activeStatus);
+            if (filters.branchId) params.set("branchId", filters.branchId);
+            if (filters.type) params.set("type", filters.type);
+            if (searchQuery.trim()) params.set("q", searchQuery.trim());
+            if (filters.dateFrom) params.set("dateFrom", filters.dateFrom);
+            if (filters.dateTo) params.set("dateTo", filters.dateTo);
+            if (selectedOrderId) params.set("orderId", selectedOrderId);
+            replace(`/order?${params.toString()}`);
+        }, 350);
+
+        return () => window.clearTimeout(handle);
+    }, [activeStatus, filters.branchId, filters.type, filters.dateFrom, filters.dateTo, searchQuery, selectedOrderId, replace]);
+
+    const timeline = useMemo<OrderTimeline[]>(() => {
+        if (!selectedOrder || selectedOrder.events.length === 0) return [];
+        const sorted = [...selectedOrder.events].sort((a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+        const isFinal = selectedOrder.status === "completed" || selectedOrder.status === "cancelled";
+        return sorted.map((event, idx) => ({
+            label: statusLabel(event.status),
+            time: formatDistanceToNow(new Date(event.createdAt), { addSuffix: true, locale: id }),
+            status: isFinal ? "done" : idx === sorted.length - 1 ? "active" : "done",
+        }));
+    }, [selectedOrder]);
+
+    const createForm = useForm({
+        defaultValues: {
+            branchId: filters.branchId || "",
+            customerId: "none",
+            type: "walk_in" as OrderType,
+            paymentStatus: "pending",
+            paymentMethod: "",
+            notes: "",
+            items: [{ name: "", quantity: 1, unitPrice: 0 }],
+        },
+        onSubmit: async ({ value }) => {
+            const parsed = orderCreateSchema.safeParse({
+                ...value,
+                customerId: value.customerId && value.customerId !== "none" ? value.customerId : null,
+                paymentMethod: value.paymentMethod?.trim() || null,
+                notes: value.notes?.trim() || null,
+            });
+
+            if (!parsed.success) {
+                const message = parsed.error.issues[0]?.message ?? "Form tidak valid.";
+                setCreateError(message);
+                return;
+            }
+
+            setCreatePending(true);
+            setCreateError(null);
+            const result = await createOrderAction(parsed.data);
+            setCreatePending(false);
+
+            if (!result.ok) {
+                setCreateError("Gagal membuat order. Coba lagi.");
+                return;
+            }
+
+            setCreateOpen(false);
+            refresh();
+
+            if (result.data?.id) {
+                const params = new URLSearchParams();
+                if (filters.status) params.set("status", filters.status);
+                if (filters.branchId) params.set("branchId", filters.branchId);
+                if (filters.type) params.set("type", filters.type);
+                if (filters.q) params.set("q", filters.q);
+                if (filters.dateFrom) params.set("dateFrom", filters.dateFrom);
+                if (filters.dateTo) params.set("dateTo", filters.dateTo);
+                params.set("orderId", result.data.id);
+                replace(`/order?${params.toString()}`);
+            }
+        },
+    });
+
+    const customerForm = useForm({
+        defaultValues: {
+            name: selectedCustomer?.name ?? "",
+            phone: selectedCustomer?.phone ?? "",
+            email: selectedCustomer?.email ?? "",
+            address: selectedCustomer?.address ?? "",
+        },
+        onSubmit: async ({ value }) => {
+            if (!selectedCustomer) return;
+            const parsed = customerUpdateSchema.safeParse({
+                ...value,
+                email: value.email?.trim() || null,
+                address: value.address?.trim() || null,
+            });
+            if (!parsed.success) {
+                const message = parsed.error.issues[0]?.message ?? "Form tidak valid.";
+                setCustomerError(message);
+                return;
+            }
+
+            setCustomerPending(true);
+            setCustomerError(null);
+            const result = await updateCustomerAction(selectedCustomer.id, parsed.data);
+            setCustomerPending(false);
+
+            if (!result.ok) {
+                setCustomerError("Gagal memperbarui customer. Coba lagi.");
+                return;
+            }
+
+            setCustomerOpen(false);
+            refresh();
+        },
+    });
+
+    useEffect(() => {
+        if (!selectedCustomer) return;
+        customerForm.reset({
+            name: selectedCustomer.name ?? "",
+            phone: selectedCustomer.phone ?? "",
+            email: selectedCustomer.email ?? "",
+            address: selectedCustomer.address ?? "",
+        });
+        setCustomerError(null);
+    }, [selectedCustomer, customerForm]);
+
+    const handleUpdate = async () => {
+        if (!selectedOrder) return;
+        setUpdatePending(true);
+        setUpdateError(null);
+        const result = await updateOrderAction(selectedOrder.id, {
+            status: updateStatus,
+            paymentStatus: updatePaymentStatus as any,
+            paymentMethod: updatePaymentMethod.trim() || null,
+            customerId: updateCustomerId === "none" ? null : updateCustomerId,
+            eventNote: "Status diubah via dashboard",
+        });
+        setUpdatePending(false);
+
+        if (!result.ok) {
+            setUpdateError("Gagal memperbarui order. Coba lagi.");
+            return;
+        }
+
+        refresh();
+    };
+
+    const handleUpdateItems = async () => {
+        if (!selectedOrder) return;
+        setEditItemsPending(true);
+        setEditItemsError(null);
+
+        const normalized = editItems.map((item) => ({
+            name: item.name.trim(),
+            quantity: Number(item.quantity),
+            unitPrice: Number(item.unitPrice),
+        }));
+
+        if (normalized.some((item) => !item.name || item.quantity <= 0 || item.unitPrice < 0)) {
+            setEditItemsError("Item tidak valid. Periksa nama, qty, dan harga.");
+            setEditItemsPending(false);
+            return;
+        }
+
+        const result = await updateOrderItemsAction(selectedOrder.id, normalized);
+        setEditItemsPending(false);
+
+        if (!result.ok) {
+            setEditItemsError("Gagal memperbarui item. Coba lagi.");
+            return;
+        }
+
+        setEditItemsOpen(false);
+        refresh();
+    };
 
     return (
+        <>
         <div className="space-y-6">
-            <div>
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <h1 className="text-2xl font-semibold text-foreground">Order</h1>
-                <p className="text-sm text-muted-foreground mt-2">
-                    Pantau semua order lintas cabang dan identifikasi bottleneck.
-                </p>
+                <Button className="h-9 text-xs font-semibold" onClick={() => setCreateOpen(true)}>
+                    Tambah Order
+                </Button>
             </div>
+            <p className="text-sm text-muted-foreground">
+                Pantau semua order lintas cabang dan identifikasi bottleneck.
+            </p>
 
             <div className="flex flex-col gap-4">
-                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-                    <Select defaultValue="all-branch">
+                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
+                    <Select
+                        value={filters.branchId || "all"}
+                        onValueChange={(value) => {
+                            const params = new URLSearchParams();
+                            if (filters.status) params.set("status", filters.status);
+                            if (value !== "all") params.set("branchId", value);
+                            if (filters.type) params.set("type", filters.type);
+                            if (filters.q) params.set("q", filters.q);
+                            if (filters.dateFrom) params.set("dateFrom", filters.dateFrom);
+                            if (filters.dateTo) params.set("dateTo", filters.dateTo);
+                            if (selectedOrderId) params.set("orderId", selectedOrderId);
+                            replace(`/order?${params.toString()}`);
+                        }}
+                    >
                         <SelectTrigger>
                             <SelectValue placeholder="Semua cabang" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all-branch">Semua cabang</SelectItem>
-                            <SelectItem value="sudirman">Sudirman</SelectItem>
-                            <SelectItem value="kemang">Kemang</SelectItem>
-                            <SelectItem value="depok">Depok</SelectItem>
+                            <SelectItem value="all">Semua cabang</SelectItem>
+                            {branches.map((branch) => (
+                                <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
-                    <Select defaultValue="all-status">
+                    <Select
+                        value={filters.status || "all"}
+                        onValueChange={(value) => {
+                            setActiveStatus(value);
+                        }}
+                    >
                         <SelectTrigger>
                             <SelectValue placeholder="Semua status" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all-status">Semua status</SelectItem>
-                            <SelectItem value="pending">Pending</SelectItem>
-                            <SelectItem value="proses">Proses</SelectItem>
-                            <SelectItem value="selesai">Selesai</SelectItem>
-                            <SelectItem value="batal">Batal</SelectItem>
+                            {STATUS_TABS.map((status) => (
+                                <SelectItem key={status.value} value={status.value}>
+                                    {status.label}
+                                </SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
-                    <Select defaultValue="all-type">
+                    <Select
+                        value={filters.type || "all"}
+                        onValueChange={(value) => {
+                            const params = new URLSearchParams();
+                            if (filters.status) params.set("status", filters.status);
+                            if (filters.branchId) params.set("branchId", filters.branchId);
+                            if (value !== "all") params.set("type", value);
+                            if (filters.q) params.set("q", filters.q);
+                            if (filters.dateFrom) params.set("dateFrom", filters.dateFrom);
+                            if (filters.dateTo) params.set("dateTo", filters.dateTo);
+                            if (selectedOrderId) params.set("orderId", selectedOrderId);
+                            replace(`/order?${params.toString()}`);
+                        }}
+                    >
                         <SelectTrigger>
                             <SelectValue placeholder="Semua tipe" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all-type">Semua tipe</SelectItem>
-                            <SelectItem value="pickup">Pickup</SelectItem>
-                            <SelectItem value="delivery">Delivery</SelectItem>
-                            <SelectItem value="walkin">Walk-in</SelectItem>
+                            {TYPE_OPTIONS.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                </SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
-                    <Input type="date" />
+                    <Input
+                        type="date"
+                        value={filters.dateFrom}
+                        onChange={(event) => {
+                            const value = event.target.value;
+                            const params = new URLSearchParams();
+                            if (filters.status) params.set("status", filters.status);
+                            if (filters.branchId) params.set("branchId", filters.branchId);
+                            if (filters.type) params.set("type", filters.type);
+                            if (filters.q) params.set("q", filters.q);
+                            if (value) params.set("dateFrom", value);
+                            if (filters.dateTo) params.set("dateTo", filters.dateTo);
+                            if (selectedOrderId) params.set("orderId", selectedOrderId);
+                            replace(`/order?${params.toString()}`);
+                        }}
+                    />
+                    <Input
+                        type="date"
+                        value={filters.dateTo}
+                        onChange={(event) => {
+                            const value = event.target.value;
+                            const params = new URLSearchParams();
+                            if (filters.status) params.set("status", filters.status);
+                            if (filters.branchId) params.set("branchId", filters.branchId);
+                            if (filters.type) params.set("type", filters.type);
+                            if (filters.q) params.set("q", filters.q);
+                            if (filters.dateFrom) params.set("dateFrom", filters.dateFrom);
+                            if (value) params.set("dateTo", value);
+                            if (selectedOrderId) params.set("orderId", selectedOrderId);
+                            replace(`/order?${params.toString()}`);
+                        }}
+                    />
                 </div>
 
-                <Tabs value={activeStatus} onValueChange={(value) => setActiveStatus(value as typeof activeStatus)}>
+                <Tabs value={activeStatus} onValueChange={(value) => setActiveStatus(value)}>
                     <TabsList className="w-full justify-start gap-1 bg-muted/40">
                         {STATUS_TABS.map((status) => (
-                            <TabsTrigger key={status} value={status} className="text-xs">
-                                {status}
+                            <TabsTrigger key={status.value} value={status.value} className="text-xs">
+                                {status.label}
                             </TabsTrigger>
                         ))}
                     </TabsList>
@@ -259,7 +585,7 @@ export function OrderPageClient() {
                         <div>
                             <h2 className="text-sm font-semibold text-foreground">Daftar Order</h2>
                             <p className="text-xs text-muted-foreground mt-1">
-                                Total {filteredOrders.length} order aktif.
+                                Total {orders.length} order aktif.
                             </p>
                         </div>
                         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
@@ -268,7 +594,7 @@ export function OrderPageClient() {
                                 <Input
                                     value={searchQuery}
                                     onChange={(event) => setSearchQuery(event.target.value)}
-                                    placeholder="Cari order, customer, cabang..."
+                                    placeholder="Cari nomor order..."
                                     className="h-9 pl-9"
                                 />
                             </div>
@@ -278,44 +604,56 @@ export function OrderPageClient() {
                         </div>
                     </div>
                     <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>No. Order</TableHead>
-                                <TableHead>Cabang</TableHead>
-                                <TableHead>Customer</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Total</TableHead>
-                                <TableHead>Waktu</TableHead>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>No. Order</TableHead>
+                            <TableHead>Cabang</TableHead>
+                            <TableHead>Customer</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Total</TableHead>
+                            <TableHead>Waktu</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {orders.map((order) => (
+                            <TableRow
+                                key={order.id}
+                                data-state={order.id === selectedOrderId ? "selected" : undefined}
+                                className="cursor-pointer"
+                                onClick={() => {
+                                    const params = new URLSearchParams();
+                                    if (filters.status) params.set("status", filters.status);
+                                    if (filters.branchId) params.set("branchId", filters.branchId);
+                                    if (filters.type) params.set("type", filters.type);
+                                    if (filters.q) params.set("q", filters.q);
+                                    if (filters.dateFrom) params.set("dateFrom", filters.dateFrom);
+                                    if (filters.dateTo) params.set("dateTo", filters.dateTo);
+                                    params.set("orderId", order.id);
+                                    replace(`/order?${params.toString()}`);
+                                }}
+                            >
+                                <TableCell className="font-semibold">{order.orderNumber}</TableCell>
+                                <TableCell>{order.branch?.name ?? "-"}</TableCell>
+                                <TableCell>{order.customer?.name ?? "-"}</TableCell>
+                                <TableCell>
+                                    <Badge
+                                        variant="outline"
+                                        className={cn("border text-[11px] font-semibold", statusBadge(order.status))}
+                                    >
+                                        {statusLabel(order.status)}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell className="font-semibold">{formatCurrency(order.totalAmount)}</TableCell>
+                                <TableCell className="text-muted-foreground text-xs">
+                                    {formatDistanceToNow(new Date(order.createdAt), { addSuffix: true, locale: id })}
+                                </TableCell>
                             </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {filteredOrders.map((order) => (
-                                <TableRow
-                                    key={order.id}
-                                    data-state={order.id === selectedId ? "selected" : undefined}
-                                    className="cursor-pointer"
-                                    onClick={() => setSelectedId(order.id)}
-                                >
-                                    <TableCell className="font-semibold">{order.id}</TableCell>
-                                    <TableCell>{order.branch}</TableCell>
-                                    <TableCell>{order.customer}</TableCell>
-                                    <TableCell>
-                                        <Badge
-                                            variant="outline"
-                                            className={cn("border text-[11px] font-semibold", statusBadge(order.status))}
-                                        >
-                                            {order.status}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="font-semibold">{formatCurrency(order.total)}</TableCell>
-                                    <TableCell className="text-muted-foreground text-xs">{order.time}</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
 
-                <div className="rounded-xl border border-border/60 bg-card">
+            <div className="rounded-xl border border-border/60 bg-card">
                     <div className="flex items-center justify-between px-5 py-4 border-b border-border/40">
                         <div>
                             <h2 className="text-sm font-semibold text-foreground">Detail Order</h2>
@@ -325,7 +663,7 @@ export function OrderPageClient() {
                         </div>
                         {selectedOrder ? (
                             <Badge variant="outline" className={cn("border text-[11px] font-semibold", statusBadge(selectedOrder.status))}>
-                                {selectedOrder.status}
+                                {statusLabel(selectedOrder.status)}
                             </Badge>
                         ) : null}
                     </div>
@@ -339,35 +677,111 @@ export function OrderPageClient() {
                         </div>
                     ) : (
                         <div className="p-6 space-y-6">
+                            <div className="rounded-lg border border-border/60 bg-muted/30 p-4 space-y-3">
+                                <p className="text-xs font-semibold text-muted-foreground uppercase">Update Status</p>
+                                <div className="grid gap-3 sm:grid-cols-4">
+                                    <Select value={updateStatus} onValueChange={(value) => setUpdateStatus(value as OrderStatus)}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Status" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {ORDER_STATUS_OPTIONS.map((option) => (
+                                                <SelectItem key={option.value} value={option.value}>
+                                                    {option.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <Select value={updatePaymentStatus} onValueChange={(value) => setUpdatePaymentStatus(value)}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Pembayaran" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {PAYMENT_STATUS_OPTIONS.map((option) => (
+                                                <SelectItem key={option.value} value={option.value}>
+                                                    {option.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <Input
+                                        placeholder="Metode pembayaran"
+                                        value={updatePaymentMethod}
+                                        onChange={(event) => setUpdatePaymentMethod(event.target.value)}
+                                    />
+                                    <Select value={updateCustomerId} onValueChange={(value) => setUpdateCustomerId(value)}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Customer" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">Tanpa customer</SelectItem>
+                                            {customers.map((customer) => (
+                                                <SelectItem key={customer.id} value={customer.id}>
+                                                    {customer.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                {updateError ? (
+                                    <p className="text-xs text-rose-600 font-semibold">{updateError}</p>
+                                ) : null}
+                                <Button
+                                    className="h-9 text-xs font-semibold"
+                                    onClick={handleUpdate}
+                                    disabled={updatePending}
+                                >
+                                    {updatePending ? "Menyimpan..." : "Simpan Update"}
+                                </Button>
+                            </div>
                             <div className="grid gap-4 sm:grid-cols-2">
-                                <div className="rounded-lg border border-border/60 bg-muted/30 p-4 space-y-1">
+                                <div className="rounded-lg border border-border/60 bg-muted/30 p-4 space-y-2">
                                     <p className="text-xs font-semibold text-muted-foreground uppercase">Customer</p>
                                     <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                                         <User className="h-4 w-4 text-muted-foreground" />
-                                        {selectedOrder.customer}
+                                        {selectedOrder.customer?.name ?? "Tanpa customer"}
                                     </div>
-                                    <p className="text-xs text-muted-foreground">{selectedOrder.type}</p>
+                                    <p className="text-xs text-muted-foreground">{typeLabel(selectedOrder.type)}</p>
+                                    <Button
+                                        variant="outline"
+                                        className="h-8 text-xs font-semibold"
+                                        onClick={() => setCustomerOpen(true)}
+                                        disabled={!selectedOrder.customer?.id}
+                                    >
+                                        Detail Customer
+                                    </Button>
                                 </div>
                                 <div className="rounded-lg border border-border/60 bg-muted/30 p-4 space-y-1">
                                     <p className="text-xs font-semibold text-muted-foreground uppercase">Cabang</p>
                                     <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                                         <MapPin className="h-4 w-4 text-muted-foreground" />
-                                        {selectedOrder.branch}
+                                        {selectedOrder.branch?.name ?? "Tanpa cabang"}
                                     </div>
-                                    <p className="text-xs text-muted-foreground">{selectedOrder.time}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        {formatDistanceToNow(new Date(selectedOrder.createdAt), { addSuffix: true, locale: id })}
+                                    </p>
                                 </div>
                             </div>
 
-                            <div className="space-y-3">
+                            <div className="flex items-center justify-between">
                                 <p className="text-xs font-semibold text-muted-foreground uppercase">Item Order</p>
+                                <Button
+                                    variant="outline"
+                                    className="h-8 text-xs font-semibold"
+                                    onClick={() => setEditItemsOpen(true)}
+                                >
+                                    Edit Item
+                                </Button>
+                            </div>
+                            <div className="space-y-3">
                                 <div className="space-y-2">
                                     {selectedOrder.items.map((item) => (
                                         <div key={item.name} className="flex items-center justify-between text-sm">
                                             <div>
                                                 <p className="font-semibold text-foreground">{item.name}</p>
-                                                <p className="text-xs text-muted-foreground">{item.qty} item</p>
+                                                <p className="text-xs text-muted-foreground">{item.quantity} item</p>
                                             </div>
-                                            <p className="font-semibold text-foreground">{formatCurrency(item.price)}</p>
+                                            <p className="font-semibold text-foreground">{formatCurrency(item.totalPrice)}</p>
                                         </div>
                                     ))}
                                 </div>
@@ -376,7 +790,10 @@ export function OrderPageClient() {
                             <div className="space-y-3">
                                 <p className="text-xs font-semibold text-muted-foreground uppercase">Timeline Status</p>
                                 <div className="space-y-3">
-                                    {selectedOrder.timeline.map((step) => {
+                                    {timeline.length === 0 ? (
+                                        <p className="text-xs text-muted-foreground">Belum ada aktivitas.</p>
+                                    ) : (
+                                        timeline.map((step) => {
                                         const Icon = timelineIcon(step.status);
                                         return (
                                             <div key={step.label} className="flex items-center gap-3 text-sm">
@@ -397,19 +814,22 @@ export function OrderPageClient() {
                                                 <span className="text-xs text-muted-foreground">{step.time}</span>
                                             </div>
                                         );
-                                    })}
+                                    })
+                                    )}
                                 </div>
                             </div>
 
                             <div className="rounded-lg border border-border/60 bg-muted/30 p-4 flex items-center justify-between">
                                 <div>
                                     <p className="text-xs font-semibold text-muted-foreground uppercase">Pembayaran</p>
-                                    <p className="text-sm font-semibold text-foreground mt-1">{selectedOrder.payment.method}</p>
-                                    <p className="text-xs text-muted-foreground">{selectedOrder.payment.status}</p>
+                                    <p className="text-sm font-semibold text-foreground mt-1">
+                                        {selectedOrder.paymentMethod ?? "Belum dipilih"}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">{paymentStatusLabel(selectedOrder.paymentStatus)}</p>
                                 </div>
                                 <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                                     <CreditCard className="h-4 w-4 text-muted-foreground" />
-                                    {formatCurrency(selectedOrder.total)}
+                                    {formatCurrency(selectedOrder.totalAmount)}
                                 </div>
                             </div>
                         </div>
@@ -417,5 +837,391 @@ export function OrderPageClient() {
                 </div>
             </div>
         </div>
+
+        <Sheet open={createOpen} onOpenChange={(open) => {
+            setCreateOpen(open);
+            if (!open) setCreateError(null);
+        }}>
+            <SheetContent>
+                <SheetHeader>
+                    <SheetTitle>Buat Order Baru</SheetTitle>
+                    <SheetDescription>
+                        Isi data order untuk mulai proses laundry.
+                    </SheetDescription>
+                </SheetHeader>
+                <form
+                    className="mt-6 space-y-4"
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        createForm.handleSubmit();
+                    }}
+                >
+                    <createForm.Field name="branchId">
+                        {(field) => (
+                        <div className="space-y-1">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase">Cabang</p>
+                            <Select value={field.state.value} onValueChange={field.handleChange}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Pilih cabang" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {branches.map((branch) => (
+                                        <SelectItem key={branch.id} value={branch.id}>
+                                            {branch.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        )}
+                    </createForm.Field>
+
+                    <createForm.Field name="customerId">
+                        {(field) => (
+                        <div className="space-y-1">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase">Customer</p>
+                            <Select
+                                value={field.state.value ?? "none"}
+                                onValueChange={(value) => field.handleChange(value === "none" ? null : value)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Pilih customer (opsional)" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="none">Tanpa customer</SelectItem>
+                                    {customers.map((customer) => (
+                                        <SelectItem key={customer.id} value={customer.id}>
+                                            {customer.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        )}
+                    </createForm.Field>
+
+                    <createForm.Field name="type">
+                        {(field) => (
+                        <div className="space-y-1">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase">Tipe Order</p>
+                            <Select value={field.state.value} onValueChange={field.handleChange}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Pilih tipe" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {TYPE_OPTIONS.filter((option) => option.value !== "all").map((option) => (
+                                        <SelectItem key={option.value} value={option.value}>
+                                            {option.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        )}
+                    </createForm.Field>
+
+                    <createForm.Field name="paymentStatus">
+                        {(field) => (
+                        <div className="space-y-1">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase">Status Pembayaran</p>
+                            <Select value={field.state.value} onValueChange={field.handleChange}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Status pembayaran" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {PAYMENT_STATUS_OPTIONS.map((option) => (
+                                        <SelectItem key={option.value} value={option.value}>
+                                            {option.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        )}
+                    </createForm.Field>
+
+                    <createForm.Field name="paymentMethod">
+                        {(field) => (
+                        <div className="space-y-1">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase">Metode Pembayaran</p>
+                            <Input
+                                value={field.state.value}
+                                onChange={(event) => field.handleChange(event.target.value)}
+                                placeholder="QRIS / Cash / Transfer"
+                            />
+                        </div>
+                        )}
+                    </createForm.Field>
+
+                    <createForm.Field name="notes">
+                        {(field) => (
+                        <div className="space-y-1">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase">Catatan</p>
+                            <Input
+                                value={field.state.value}
+                                onChange={(event) => field.handleChange(event.target.value)}
+                                placeholder="Catatan tambahan (opsional)"
+                            />
+                        </div>
+                        )}
+                    </createForm.Field>
+
+                    <createForm.Field name="items">
+                        {(field) => (
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <p className="text-xs font-semibold text-muted-foreground uppercase">Item Order</p>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="h-7 text-xs font-semibold"
+                                    onClick={() => {
+                                        field.handleChange([
+                                            ...field.state.value,
+                                            { name: "", quantity: 1, unitPrice: 0 },
+                                        ]);
+                                    }}
+                                >
+                                    Tambah Item
+                                </Button>
+                            </div>
+                            <div className="space-y-3">
+                                {field.state.value.map((item, idx) => (
+                                    <div key={idx} className="rounded-lg border border-border/60 bg-muted/30 p-3 space-y-2">
+                                        <Input
+                                            placeholder="Nama layanan"
+                                            value={item.name}
+                                            onChange={(event) => {
+                                                const next = [...field.state.value];
+                                                next[idx] = { ...next[idx], name: event.target.value };
+                                                field.handleChange(next);
+                                            }}
+                                        />
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <Input
+                                                type="number"
+                                                min={1}
+                                                placeholder="Qty"
+                                                value={item.quantity}
+                                                onChange={(event) => {
+                                                    const next = [...field.state.value];
+                                                    next[idx] = { ...next[idx], quantity: Number(event.target.value) };
+                                                    field.handleChange(next);
+                                                }}
+                                            />
+                                            <Input
+                                                type="number"
+                                                min={0}
+                                                placeholder="Harga"
+                                                value={item.unitPrice}
+                                                onChange={(event) => {
+                                                    const next = [...field.state.value];
+                                                    next[idx] = { ...next[idx], unitPrice: Number(event.target.value) };
+                                                    field.handleChange(next);
+                                                }}
+                                            />
+                                        </div>
+                                        {field.state.value.length > 1 ? (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                className="h-7 text-xs font-semibold text-rose-600"
+                                                onClick={() => {
+                                                    const next = field.state.value.filter((_, i) => i !== idx);
+                                                    field.handleChange(next);
+                                                }}
+                                            >
+                                                Hapus Item
+                                            </Button>
+                                        ) : null}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        )}
+                    </createForm.Field>
+
+                    {createError ? (
+                        <p className="text-xs text-rose-600 font-semibold">{createError}</p>
+                    ) : null}
+                </form>
+                <SheetFooter className="mt-6">
+                    <Button
+                        className="w-full h-9 text-xs font-semibold"
+                        onClick={() => createForm.handleSubmit()}
+                        disabled={createPending}
+                    >
+                        {createPending ? "Menyimpan..." : "Buat Order"}
+                    </Button>
+                </SheetFooter>
+            </SheetContent>
+        </Sheet>
+        <Sheet open={editItemsOpen} onOpenChange={(open) => {
+            setEditItemsOpen(open);
+            if (!open) setEditItemsError(null);
+        }}>
+            <SheetContent>
+                <SheetHeader>
+                    <SheetTitle>Edit Item Order</SheetTitle>
+                    <SheetDescription>
+                        Perbarui daftar item dan jumlah.
+                    </SheetDescription>
+                </SheetHeader>
+                <div className="mt-6 space-y-4">
+                    {editItems.map((item, idx) => (
+                        <div key={idx} className="rounded-lg border border-border/60 bg-muted/30 p-3 space-y-2">
+                            <Input
+                                placeholder="Nama layanan"
+                                value={item.name}
+                                onChange={(event) => {
+                                    const next = [...editItems];
+                                    next[idx] = { ...next[idx], name: event.target.value };
+                                    setEditItems(next);
+                                }}
+                            />
+                            <div className="grid grid-cols-2 gap-2">
+                                <Input
+                                    type="number"
+                                    min={1}
+                                    placeholder="Qty"
+                                    value={item.quantity}
+                                    onChange={(event) => {
+                                        const next = [...editItems];
+                                        next[idx] = { ...next[idx], quantity: Number(event.target.value) };
+                                        setEditItems(next);
+                                    }}
+                                />
+                                <Input
+                                    type="number"
+                                    min={0}
+                                    placeholder="Harga"
+                                    value={item.unitPrice}
+                                    onChange={(event) => {
+                                        const next = [...editItems];
+                                        next[idx] = { ...next[idx], unitPrice: Number(event.target.value) };
+                                        setEditItems(next);
+                                    }}
+                                />
+                            </div>
+                            {editItems.length > 1 ? (
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    className="h-7 text-xs font-semibold text-rose-600"
+                                    onClick={() => {
+                                        const next = editItems.filter((_, i) => i !== idx);
+                                        setEditItems(next);
+                                    }}
+                                >
+                                    Hapus Item
+                                </Button>
+                            ) : null}
+                        </div>
+                    ))}
+                    <Button
+                        type="button"
+                        variant="outline"
+                        className="h-8 text-xs font-semibold w-full"
+                        onClick={() => setEditItems([...editItems, { name: "", quantity: 1, unitPrice: 0 }])}
+                    >
+                        Tambah Item
+                    </Button>
+                    {editItemsError ? (
+                        <p className="text-xs text-rose-600 font-semibold">{editItemsError}</p>
+                    ) : null}
+                </div>
+                <SheetFooter className="mt-6">
+                    <Button
+                        className="w-full h-9 text-xs font-semibold"
+                        onClick={handleUpdateItems}
+                        disabled={editItemsPending}
+                    >
+                        {editItemsPending ? "Menyimpan..." : "Simpan Item"}
+                    </Button>
+                </SheetFooter>
+            </SheetContent>
+        </Sheet>
+        <Sheet open={customerOpen} onOpenChange={(open) => {
+            setCustomerOpen(open);
+            if (!open) setCustomerError(null);
+        }}>
+            <SheetContent>
+                <SheetHeader>
+                    <SheetTitle>Detail Customer</SheetTitle>
+                    <SheetDescription>
+                        Perbarui informasi customer untuk monitoring CRM.
+                    </SheetDescription>
+                </SheetHeader>
+                <form
+                    className="mt-6 space-y-4"
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        customerForm.handleSubmit();
+                    }}
+                >
+                    <customerForm.Field name="name">
+                        {(field) => (
+                        <div className="space-y-1">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase">Nama</p>
+                            <Input
+                                value={field.state.value}
+                                onChange={(event) => field.handleChange(event.target.value)}
+                                placeholder="Nama customer"
+                            />
+                        </div>
+                        )}
+                    </customerForm.Field>
+                    <customerForm.Field name="phone">
+                        {(field) => (
+                        <div className="space-y-1">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase">Telepon</p>
+                            <Input
+                                value={field.state.value}
+                                onChange={(event) => field.handleChange(event.target.value)}
+                                placeholder="Nomor telepon"
+                            />
+                        </div>
+                        )}
+                    </customerForm.Field>
+                    <customerForm.Field name="email">
+                        {(field) => (
+                        <div className="space-y-1">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase">Email</p>
+                            <Input
+                                value={field.state.value}
+                                onChange={(event) => field.handleChange(event.target.value)}
+                                placeholder="Email"
+                            />
+                        </div>
+                        )}
+                    </customerForm.Field>
+                    <customerForm.Field name="address">
+                        {(field) => (
+                        <div className="space-y-1">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase">Alamat</p>
+                            <Input
+                                value={field.state.value}
+                                onChange={(event) => field.handleChange(event.target.value)}
+                                placeholder="Alamat"
+                            />
+                        </div>
+                        )}
+                    </customerForm.Field>
+                    {customerError ? (
+                        <p className="text-xs text-rose-600 font-semibold">{customerError}</p>
+                    ) : null}
+                </form>
+                <SheetFooter className="mt-6">
+                    <Button
+                        className="w-full h-9 text-xs font-semibold"
+                        onClick={() => customerForm.handleSubmit()}
+                        disabled={customerPending}
+                    >
+                        {customerPending ? "Menyimpan..." : "Simpan Customer"}
+                    </Button>
+                </SheetFooter>
+            </SheetContent>
+        </Sheet>
+        </>
     );
 }

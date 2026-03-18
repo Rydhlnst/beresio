@@ -1,17 +1,21 @@
 "use client"
 
-import { usePathname } from "next/navigation"
 import React from "react"
+import { usePathname } from "next/navigation"
+import { ThemeProvider } from "./theme-provider"
 
 export function LayoutProvider({ children }: { children: React.ReactNode }) {
-    const pathname = usePathname()
-    const isAuthPage = pathname?.startsWith("/sign-in") || pathname?.startsWith("/sign-up")
-
-    if (isAuthPage) {
-        return <>{children}</>
-    }
-
-    return <>{children}</>
+    return (
+        <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            enableColorScheme
+            disableTransitionOnChange
+        >
+            {children}
+        </ThemeProvider>
+    )
 }
 
 // Helper to check if we should show nav/footer
