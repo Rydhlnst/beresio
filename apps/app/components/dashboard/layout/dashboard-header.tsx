@@ -29,6 +29,7 @@ import {
 } from "@repo/ui/dropdown-menu"
 import { authClient } from "@/lib/auth-client"
 import { useTransitionRouter } from "@/hooks/use-transition-router"
+import { NotificationDropdown } from "./notification-dropdown"
 
 type DashboardHeaderProps = {
   organizationName?: string | null
@@ -87,7 +88,7 @@ function HeaderUserMenu({ user }: DashboardHeaderProps["user"]) {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem>
+          <DropdownMenuItem onClick={() => push("/settings/billing")}>
             <Sparkles />
             Upgrade ke Pro
           </DropdownMenuItem>
@@ -102,7 +103,7 @@ function HeaderUserMenu({ user }: DashboardHeaderProps["user"]) {
             <CreditCard />
             Billing
           </DropdownMenuItem>
-          <DropdownMenuItem>
+          <DropdownMenuItem onClick={() => push("/settings/notifications")}>
             <Bell />
             Notifikasi
           </DropdownMenuItem>
@@ -132,7 +133,7 @@ function HeaderUserMenu({ user }: DashboardHeaderProps["user"]) {
 
 export function DashboardHeader({ organizationName, user }: DashboardHeaderProps) {
   return (
-    <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-4 border-b border-border/60 bg-card/80 px-4 backdrop-blur-sm">
+    <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-4 border-b border-border bg-card px-4">
       <div className="flex items-center gap-2">
         <SidebarTrigger className="-ml-1" />
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -152,9 +153,7 @@ export function DashboardHeader({ organizationName, user }: DashboardHeaderProps
             className="h-9 pl-9"
           />
         </div>
-        <Button variant="ghost" size="icon" className="h-9 w-9">
-          <Bell className="size-4" />
-        </Button>
+        <NotificationDropdown />
         <HeaderUserMenu user={user} />
       </div>
     </header>

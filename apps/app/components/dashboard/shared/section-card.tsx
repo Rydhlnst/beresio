@@ -11,24 +11,23 @@ interface SectionCardProps {
 export function SectionCard({ title, description, actions, children, className }: SectionCardProps) {
     return (
         <div className={cn(
-            "flex h-full flex-col rounded-xl border border-border/60 bg-card overflow-hidden",
-            "[--card-h:360px] [--card-header-h:56px] min-h-[var(--card-h)] max-h-[var(--card-h)]",
+            "flex flex-col rounded-lg border bg-card overflow-hidden h-full",
             className
         )}>
             {(title || actions) && (
-                <div className="flex items-center justify-between gap-4 px-6 py-4 border-b border-border/40 min-h-[var(--card-header-h)] max-h-[var(--card-header-h)]">
-                    <div>
+                <div className="flex items-center justify-between gap-4 px-4 h-14 border-b shrink-0">
+                    <div className="min-w-0">
                         {title && (
-                            <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+                            <h3 className="text-sm font-medium text-foreground truncate">{title}</h3>
                         )}
                         {description && (
-                            <p className="text-xs text-muted-foreground mt-2">{description}</p>
+                            <p className="text-xs text-muted-foreground truncate">{description}</p>
                         )}
                     </div>
                     {actions && <div className="flex-shrink-0">{actions}</div>}
                 </div>
             )}
-            <div className="flex-1 min-h-0 p-6 flex flex-col">
+            <div className="flex-1 p-4 min-h-0 overflow-hidden">
                 {children}
             </div>
         </div>

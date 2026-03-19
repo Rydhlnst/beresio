@@ -16,7 +16,7 @@ export async function ActivityFeedCard() {
     if (!res.ok) {
         console.error("Failed to fetch activities:", await res.text());
         return (
-            <SectionCard title="Aktivitas Real-time">
+            <SectionCard title="Aktivitas Real-time" className="h-full">
                 <ErrorToast
                     id="dashboard-activity-error"
                     title="Gagal memuat aktivitas"

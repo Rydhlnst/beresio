@@ -96,7 +96,7 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => push("/settings/billing")}>
                 <Sparkles />
                 Upgrade ke Pro
               </DropdownMenuItem>
@@ -111,7 +111,7 @@ export function NavUser({
                 <CreditCard />
                 Billing
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => push("/settings/notifications")}>
                 <Bell />
                 Notifikasi
               </DropdownMenuItem>

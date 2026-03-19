@@ -4,3 +4,6 @@ export * from './payments.schema';
 export * from './activity_logs.schema';
 export * from './orders.schema';
 export * from './crm.schema';
+export * from './inventory.schema';
+export * from './highlights.schema';
+export * from './pickup.schema';

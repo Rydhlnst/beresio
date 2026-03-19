@@ -9,6 +9,11 @@ import { branchesRouter } from './branches'
 import { organizationRouter } from './organization'
 import { ordersRouter } from './orders'
 import { customersRouter } from './customers'
+import { inventoryRouter } from './inventory'
+import { reportsRouter } from './reports'
+import { pickupRouter } from './pickup'
+import { highlightsRouter } from './highlights'
+import { settingsRouter } from './settings'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
 type Variables = { db: any; user: any; session: any }
@@ -25,3 +30,8 @@ dashboardRouter.route('/branches', branchesRouter)
 dashboardRouter.route('/organization', organizationRouter)
 dashboardRouter.route('/orders', ordersRouter)
 dashboardRouter.route('/customers', customersRouter)
+dashboardRouter.route('/inventory', inventoryRouter)
+dashboardRouter.route('/reports', reportsRouter)
+dashboardRouter.route('/pickup', pickupRouter)
+dashboardRouter.route('/highlights', highlightsRouter)
+dashboardRouter.route('/settings', settingsRouter)

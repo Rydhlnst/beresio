@@ -20,14 +20,14 @@ const COLORS = [
 
 export function RevenueBranchClient({ data }: { data: any[] }) {
     return (
-        <SectionCard title="Revenue per Cabang">
+        <SectionCard title="Revenue per Cabang" className="h-full">
             {data.length === 0 ? (
                 <CardEmptyState
                     icon={BarChart2}
                     title="Belum ada transaksi di periode ini"
                 />
             ) : (
-                <div className="flex-1 min-h-[240px]">
+                <div className="h-full min-h-[200px]">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart
                             data={data}

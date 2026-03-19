@@ -28,7 +28,7 @@ export async function KPIStrip() {
                     title="Gagal memuat KPI"
                     description="Coba muat ulang halaman atau periksa koneksi."
                     action={<ErrorRetryAction />}
-                    className="h-full rounded-xl border border-border/60 bg-card"
+                    className="h-full rounded-lg border bg-card"
                 />
             </>
         );
@@ -83,7 +83,7 @@ export async function KPIStrip() {
     ];
 
     return (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2 lg:grid-rows-2 lg:h-full">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2 lg:grid-rows-2 h-full">
             {cards.map((card) => (
                 <KPICard
                     key={card.label}

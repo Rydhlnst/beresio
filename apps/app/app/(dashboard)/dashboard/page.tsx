@@ -21,12 +21,12 @@ function DashboardGreeting({ name }: { name: string }) {
     const greeting = hour < 12 ? "Selamat pagi" : hour < 18 ? "Selamat siang" : "Selamat malam";
 
     return (
-        <div className="flex items-end justify-between mb-6 gap-4">
+        <div className="flex items-end justify-between mb-4 gap-4">
             <div>
-                <h1 className="text-2xl font-semibold text-foreground tracking-tight">
+                <h1 className="text-xl font-semibold text-foreground tracking-tight">
                     {greeting}, {name.split(" ")[0]}
                 </h1>
-                <p className="text-sm text-muted-foreground mt-2">
+                <p className="text-sm text-muted-foreground mt-1">
                     Ini ringkasan bisnis kamu hari ini.
                 </p>
             </div>
@@ -47,18 +47,18 @@ export default async function DashboardPage() {
     const activeOrganizationId = (session as any)?.activeOrganizationId ?? null;
 
     return (
-        <div className="space-y-6 max-w-7xl mx-auto">
+        <div className="space-y-4">
             <DashboardGreeting name={userName} />
-            <div className="grid gap-6 lg:grid-cols-3 lg:items-stretch">
-                <div className="min-w-0 lg:col-span-2 [--card-h:360px] min-h-[var(--card-h)] max-h-[var(--card-h)]">
+            <div className="grid gap-4 lg:grid-cols-3 lg:items-stretch">
+                <div className="min-w-0 lg:col-span-2 h-full">
                     <KPIStrip />
                 </div>
                 <div className="h-full">
                     <DashboardHighlightCard />
                 </div>
             </div>
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-stretch">
-                <div className="grid gap-6 lg:col-span-2 lg:auto-rows-fr">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:items-stretch">
+                <div className="grid gap-4 lg:col-span-2 lg:auto-rows-fr">
                     <div className="h-full">
                         <RevenueTrendChart />
                     </div>
@@ -69,7 +69,7 @@ export default async function DashboardPage() {
                         <ActivityFeedCard />
                     </div>
                 </div>
-                <div className="grid gap-6 lg:auto-rows-fr">
+                <div className="grid gap-4 lg:auto-rows-fr">
                     <div className="h-full">
                         <OperationsStatusCard organizationId={activeOrganizationId} />
                     </div>

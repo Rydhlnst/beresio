@@ -104,3 +104,116 @@ billingRouter.get('/status', authMiddleware, async (c) => {
         return errors.internal(c, err.message)
     }
 })
+
+// POST /api/dashboard/billing/upgrade
+billingRouter.post('/upgrade', authMiddleware, async (c) => {
+    try {
+        const db = c.get('db')
+        let orgId: string
+        try {
+            orgId = await getOrgId(c)
+        } catch {
+            return errors.unauthorized(c, 'No organization context')
+        }
+
+        const body = await c.req.json().catch(() => null)
+        const plan = body?.plan
+        if (!plan || !PLAN_LIMITS[plan]) return errors.badRequest(c, 'Invalid plan')
+
+        const updated = await db
+            .update(organization)
+            .set({ subscriptionPlan: plan })
+            .where(eq(organization.id, orgId))
+            .returning()
+
+        if (updated.length === 0) return errors.notFound(c, 'Organization not found')
+
+        return ok(c, {
+            plan,
+            limits: PLAN_LIMITS[plan],
+        })
+    } catch (err: any) {
+        console.error('[billing/upgrade]', err)
+        return errors.internal(c, err.message)
+    }
+})
+
+// GET /api/dashboard/billing/invoices
+billingRouter.get('/invoices', authMiddleware, async (c) => {
+    try {
+        const db = c.get('db')
+        let orgId: string
+        try {
+            orgId = await getOrgId(c)
+        } catch {
+            return errors.unauthorized(c, 'No organization context')
+        }
+
+        const limit = Math.min(Number(c.req.query('limit') ?? 20), 100)
+
+        const rows = await db
+            .select({
+                id: payments.id,
+                amount: payments.amount,
+                status: payments.status,
+                reference: payments.reference,
+                createdAt: payments.createdAt,
+            })
+            .from(payments)
+            .where(eq(payments.organizationId, orgId))
+            .orderBy(desc(payments.createdAt))
+            .limit(limit)
+
+        return ok(c, rows.map((row: any) => ({
+            id: row.id,
+            amount: Number(row.amount ?? 0),
+            status: row.status,
+            reference: row.reference,
+            createdAt: row.createdAt,
+        })))
+    } catch (err: any) {
+        console.error('[billing/invoices]', err)
+        return errors.internal(c, err.message)
+    }
+})
+
+// GET /api/dashboard/billing/invoices/:id/download
+billingRouter.get('/invoices/:id/download', authMiddleware, async (c) => {
+    try {
+        const db = c.get('db')
+        let orgId: string
+        try {
+            orgId = await getOrgId(c)
+        } catch {
+            return errors.unauthorized(c, 'No organization context')
+        }
+
+        const invoiceId = c.req.param('id')
+        const [row] = await db
+            .select({
+                id: payments.id,
+                amount: payments.amount,
+                status: payments.status,
+                reference: payments.reference,
+                createdAt: payments.createdAt,
+            })
+            .from(payments)
+            .where(and(eq(payments.id, invoiceId), eq(payments.organizationId, orgId)))
+            .limit(1)
+
+        if (!row) return errors.notFound(c, 'Invoice not found')
+
+        return ok(c, {
+            id: row.id,
+            amount: Number(row.amount ?? 0),
+            status: row.status,
+            reference: row.reference,
+            createdAt: row.createdAt,
+            downloadUrl: null,
+            message: 'Invoice download belum tersedia.',
+        })
+    } catch (err: any) {
+        console.error('[billing/invoices/download]', err)
+        return errors.internal(c, err.message)
+    }
+})

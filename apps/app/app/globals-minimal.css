@@ -1,0 +1,314 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ========================================
+   BERES.IO MINIMALIST DESIGN
+   Notion-Inspired Clean Aesthetic
+   ======================================== */
+
+@layer base {
+  :root {
+    /* ========================================
+       1. COLORS - Notion Style
+       ======================================== */
+    
+    /* Primary - Desaturated Coral */
+    --primary: 4 60% 55%;           /* #d15b52 - muted coral */
+    --primary-foreground: 0 0% 100%;
+    
+    /* Surfaces - Warm Grays */
+    --background: 0 0% 100%;        /* Pure white */
+    --background-secondary: 40 8% 96%;   /* #f7f6f3 - Notion page bg */
+    --background-tertiary: 40 6% 94%;    /* #f0efed - hover states */
+    
+    --foreground: 40 8% 20%;        /* #37352f - Notion text */
+    
+    /* Cards */
+    --card: 0 0% 100%;
+    --card-foreground: 40 8% 20%;
+    
+    /* Popover */
+    --popover: 0 0% 100%;
+    --popover-foreground: 40 8% 20%;
+    
+    /* Secondary */
+    --secondary: 40 8% 96%;
+    --secondary-foreground: 40 8% 20%;
+    
+    /* Muted */
+    --muted: 40 8% 96%;
+    --muted-foreground: 0 0% 42%;   /* #6b6b6b */
+    
+    /* Accent */
+    --accent: 4 60% 55%;
+    --accent-foreground: 0 0% 100%;
+    
+    /* Destructive - Muted red */
+    --destructive: 0 60% 55%;
+    --destructive-foreground: 0 0% 100%;
+    
+    /* Borders - Subtle warm gray */
+    --border: 40 6% 88%;            /* #e3e2e0 */
+    --border-light: 40 6% 91%;      /* #ebeae8 */
+    --border-strong: 40 5% 75%;     /* #bfbdb8 */
+    
+    --input: 40 6% 88%;
+    --ring: 4 60% 55%;
+    --ring-offset: 0 0% 100%;
+
+    /* ========================================
+       2. SEMANTIC COLORS
+       ======================================== */
+    --success: 142 40% 45%;
+    --success-bg: 142 30% 95%;
+    --success-text: 142 50% 25%;
+    
+    --warning: 38 80% 50%;
+    --warning-bg: 38 50% 95%;
+    --warning-text: 38 70% 30%;
+    
+    --error: 0 60% 55%;
+    --error-bg: 0 40% 95%;
+    --error-text: 0 60% 35%;
+    
+    --info: 217 60% 55%;
+    --info-bg: 217 40% 95%;
+    --info-text: 217 60% 35%;
+
+    /* ========================================
+       3. SIDEBAR - Minimal
+       ======================================== */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 40 8% 20%;
+    --sidebar-primary: 4 60% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 40 8% 96%;
+    --sidebar-accent-foreground: 40 8% 20%;
+    --sidebar-border: 40 6% 88%;
+    --sidebar-ring: 4 60% 55%;
+
+    /* ========================================
+       4. BORDER RADIUS - Keep Existing
+       ======================================== */
+    --radius: 0.5rem;
+    /* Keep all existing radius values */
+
+    /* ========================================
+       5. SHADOWS - Minimal (Almost Flat)
+       ======================================== */
+    --shadow-none: 0 0 #0000;
+    --shadow-xs: 0 0.5px 2px rgba(0, 0, 0, 0.04);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.05);
+    --shadow-lg: 0 4px 6px rgba(0, 0, 0, 0.05);
+    
+    /* Focus ring only */
+    --shadow-focus: 0 0 0 2px hsl(var(--primary) / 0.15);
+  }
+
+  /* ========================================
+     DARK MODE - Notion Dark
+     ======================================== */
+  .dark {
+    --background: 0 0% 10%;         /* #191919 */
+    --background-secondary: 0 0% 12.5%;  /* #202020 */
+    --background-tertiary: 0 0% 18%;     /* #2f2f2f */
+    
+    --foreground: 0 0% 100%;
+    
+    --card: 0 0% 12.5%;
+    --card-foreground: 0 0% 100%;
+    
+    --popover: 0 0% 12.5%;
+    --popover-foreground: 0 0% 100%;
+    
+    --primary: 4 70% 60%;           /* Slightly brighter in dark */
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 0 0% 18%;
+    --secondary-foreground: 0 0% 100%;
+    
+    --muted: 0 0% 18%;
+    --muted-foreground: 0 0% 60%;
+    
+    --accent: 4 70% 60%;
+    --accent-foreground: 0 0% 100%;
+    
+    --destructive: 0 60% 50%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 0 0% 20%;
+    --border-light: 0 0% 18%;
+    --border-strong: 0 0% 30%;
+    
+    --input: 0 0% 20%;
+    --ring: 4 70% 60%;
+    --ring-offset: 0 0% 10%;
+
+    /* Sidebar Dark */
+    --sidebar-background: 0 0% 10%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 4 70% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 18%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 0 0% 20%;
+    --sidebar-ring: 4 70% 60%;
+
+    /* Semantic Dark */
+    --success-bg: 142 30% 15%;
+    --success-text: 142 50% 65%;
+    
+    --warning-bg: 38 50% 15%;
+    --warning-text: 38 70% 65%;
+    
+    --error-bg: 0 40% 15%;
+    --error-text: 0 60% 65%;
+    
+    --info-bg: 217 40% 15%;
+    --info-text: 217 60% 65%;
+  }
+}
+
+@layer base {
+  html {
+    /* Responsive base font */
+    font-size: clamp(14px, 0.8vw + 0.8vh + 6px, 15px);
+  }
+  
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Clean selection */
+  ::selection {
+    @apply bg-primary/15 text-foreground;
+  }
+
+  /* Scrollbar - minimal */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/20 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/30;
+  }
+
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.2) transparent;
+  }
+}
+
+@layer components {
+  /* ========================================
+     CARD STYLES - Flat & Clean
+     ======================================== */
+  
+  .card-minimal {
+    @apply rounded-lg border bg-background transition-colors duration-150;
+  }
+  
+  .card-minimal-hover:hover {
+    @apply bg-background-secondary;
+  }
+
+  /* ========================================
+     BUTTON STYLES - Flat
+     ======================================== */
+  
+  .btn-minimal {
+    @apply inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-opacity duration-150;
+  }
+  
+  .btn-minimal:hover {
+    @apply opacity-90;
+  }
+  
+  .btn-minimal:active {
+    @apply opacity-80;
+  }
+
+  /* ========================================
+     INPUT STYLES - Clean Borders
+     ======================================== */
+  
+  .input-minimal {
+    @apply flex h-8 w-full rounded-md border bg-background px-3 py-1.5 text-sm transition-colors duration-150;
+    @apply placeholder:text-muted-foreground;
+    @apply hover:border-border-strong;
+    @apply focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20;
+  }
+
+  /* ========================================
+     NAVIGATION - Subtle
+     ======================================== */
+  
+  .nav-item {
+    @apply flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors duration-150;
+    @apply text-muted-foreground hover:bg-background-secondary hover:text-foreground;
+  }
+  
+  .nav-item-active {
+    @apply bg-background-secondary text-foreground font-medium;
+  }
+
+  /* ========================================
+     TYPOGRAPHY UTILITIES
+     ======================================== */
+  
+  .text-title {
+    @apply text-base font-semibold text-foreground tracking-tight;
+  }
+  
+  .text-body {
+    @apply text-sm text-foreground leading-relaxed;
+  }
+  
+  .text-caption {
+    @apply text-xs text-muted-foreground;
+  }
+}
+
+@layer utilities {
+  /* Focus ring - subtle */
+  .focus-ring-minimal {
+    @apply focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20 focus-visible:border-primary;
+  }
+  
+  /* Subtle hover bg */
+  .hover-subtle {
+    @apply transition-colors duration-150 hover:bg-background-secondary;
+  }
+  
+  /* Page container */
+  .page-container {
+    @apply mx-auto w-full max-w-6xl p-6;
+  }
+  
+  /* Section spacing */
+  .section-gap {
+    @apply space-y-6;
+  }
+  
+  /* Card spacing */
+  .card-gap {
+    @apply space-y-4;
+  }
+}

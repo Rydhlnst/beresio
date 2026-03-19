@@ -7,6 +7,7 @@ export function DashboardHighlightCard() {
         <SectionCard
             title="Sorotan Utama"
             description="Ringkasan cepat untuk fokus hari ini."
+            className="h-full"
             actions={(
                 <div className="flex items-center gap-2">
                     <Button size="sm" className="h-8 px-3 text-xs font-semibold" asChild>
@@ -30,14 +31,14 @@ export function DashboardHighlightCard() {
             )}
         >
             <div className="flex h-full flex-col gap-4">
-                <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
+                <div className="rounded-lg border bg-secondary/50 p-3">
                     <div className="flex items-start gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted/60">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-secondary">
                             <Sparkles className="h-4 w-4 text-primary" />
                         </div>
                         <div>
-                            <p className="text-sm font-semibold text-foreground">Dashboard siap dipakai</p>
-                            <p className="text-xs text-muted-foreground mt-1">
+                            <p className="text-sm font-medium text-foreground">Dashboard siap dipakai</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
                                 Tambahkan insight penting di sini untuk tim.
                             </p>
                         </div>
@@ -45,13 +46,13 @@ export function DashboardHighlightCard() {
                 </div>
 
                 <div className="space-y-2">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                         Aksi cepat
                     </p>
                     <div className="flex flex-col gap-2">
                         <Button
                             variant="outline"
-                            className="h-9 w-full justify-between text-xs font-semibold"
+                            className="h-8 w-full justify-between text-xs font-medium"
                             asChild
                         >
                             <a href="/dashboard/reports">
@@ -61,7 +62,7 @@ export function DashboardHighlightCard() {
                         </Button>
                         <Button
                             variant="ghost"
-                            className="h-9 w-full justify-between text-xs font-semibold"
+                            className="h-8 w-full justify-between text-xs font-medium"
                             asChild
                         >
                             <a href="/settings/billing">

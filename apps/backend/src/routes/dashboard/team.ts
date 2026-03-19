@@ -298,6 +298,65 @@ teamRouter.get('/roles', authMiddleware, async (c) => {
     }
 })
 
+// GET /api/dashboard/team/roles/:id
+teamRouter.get('/roles/:id', authMiddleware, async (c) => {
+    try {
+        const db = c.get('db')
+        const orgId = await getOrgId(c)
+        const roleId = c.req.param('id')
+
+        const [row] = await db
+            .select({
+                id: roles.id,
+                name: roles.name,
+                slug: roles.slug,
+                description: roles.description,
+                isSystem: roles.isSystem,
+                createdAt: roles.createdAt,
+                updatedAt: roles.updatedAt,
+            })
+            .from(roles)
+            .where(and(eq(roles.id, roleId), eq(roles.organizationId, orgId)))
+            .limit(1)
+
+        if (!row) return errors.notFound(c, 'Role not found')
+        return ok(c, row)
+    } catch (err: any) {
+        console.error('[team/roles/detail]', err)
+        return errors.internal(c, err.message)
+    }
+})
+
+// GET /api/dashboard/team/roles/:id/permissions
+teamRouter.get('/roles/:id/permissions', authMiddleware, async (c) => {
+    try {
+        const db = c.get('db')
+        const orgId = await getOrgId(c)
+        const roleId = c.req.param('id')
+
+        const [roleRow] = await db
+            .select({ id: roles.id })
+            .from(roles)
+            .where(and(eq(roles.id, roleId), eq(roles.organizationId, orgId)))
+            .limit(1)
+
+        if (!roleRow) return errors.notFound(c, 'Role not found')
+
+        const rows = await db
+            .select({
+                permission: rolePermissions.permission,
+            })
+            .from(rolePermissions)
+            .where(eq(rolePermissions.roleId, roleId))
+            .orderBy(rolePermissions.permission)
+
+        return ok(c, rows.map((row: any) => row.permission))
+    } catch (err: any) {
+        console.error('[team/roles/permissions]', err)
+        return errors.internal(c, err.message)
+    }
+})
+
 teamRouter.post('/roles', authMiddleware, async (c) => {
     try {
         const db = c.get('db')

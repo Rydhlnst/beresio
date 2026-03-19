@@ -29,6 +29,7 @@ export function ActivityFeedClient({ data }: { data: any[] }) {
     return (
         <SectionCard
             title="Aktivitas Real-time"
+            className="h-full"
             actions={
                 <div className="flex items-center gap-1 rounded-md border border-border/60 bg-muted/40 p-1">
                     {FILTERS.map((f) => (

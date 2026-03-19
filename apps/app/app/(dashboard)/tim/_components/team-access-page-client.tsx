@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import Link from "next/link";
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
@@ -428,14 +429,18 @@ export function TeamAccessPageClient({
                             <h2 className="text-sm font-semibold text-foreground">Role & Izin</h2>
                             <p className="text-xs text-muted-foreground mt-1">Klik role untuk melihat izin.</p>
                         </div>
-                        <Button variant="outline" className="h-9 text-xs font-semibold">Buat Role Baru</Button>
+                        <Button variant="outline" className="h-9 text-xs font-semibold" asChild>
+                            <Link href="/tim/roles/new">Buat Role Baru</Link>
+                        </Button>
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2">
                         {roleOptions.length === 0 ? (
                             <div className="rounded-xl border border-border/60 bg-card p-4">
                                 <p className="text-sm font-semibold text-foreground">Belum ada role</p>
                                 <p className="text-xs text-muted-foreground mt-1">Tambahkan role untuk membagi akses.</p>
-                                <Button variant="outline" className="h-8 text-xs font-semibold mt-3">Buat Role Baru</Button>
+                                <Button variant="outline" className="h-8 text-xs font-semibold mt-3" asChild>
+                                    <Link href="/tim/roles/new">Buat Role Baru</Link>
+                                </Button>
                             </div>
                         ) : (
                             roleOptions.map((role) => (
@@ -444,7 +449,9 @@ export function TeamAccessPageClient({
                                     <p className="text-xs text-muted-foreground mt-1">
                                         {role.permissionsCount ?? 0} modul aktif
                                     </p>
-                                    <Button variant="outline" className="h-8 text-xs font-semibold mt-3">Lihat Izin</Button>
+                                    <Button variant="outline" className="h-8 text-xs font-semibold mt-3" asChild>
+                                        <Link href={`/tim/roles/${role.id}`}>Lihat Izin</Link>
+                                    </Button>
                                 </div>
                             ))
                         )}

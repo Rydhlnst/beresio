@@ -2,8 +2,8 @@ import { Hono } from 'hono'
 import { authMiddleware } from '../../middleware/auth'
 import { getOrgId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
-import { and, eq, ne, sql } from 'drizzle-orm'
-import { branchMembers, branches, payments } from '@beresio/db'
+import { and, eq, ne, sql, gte, lte } from 'drizzle-orm'
+import { branchMembers, branches, member, orders, payments } from '@beresio/db'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
 type Variables = { db: any; user: any; session: any }
@@ -185,6 +185,84 @@ branchesRouter.patch('/:id/status', authMiddleware, async (c) => {
         return ok(c, updated[0])
     } catch (err: any) {
         console.error('[branches/status]', err)
+        return errors.internal(c, err.message)
+    }
+})
+
+// GET /api/dashboard/branches/:id/metrics
+branchesRouter.get('/:id/metrics', authMiddleware, async (c) => {
+    try {
+        const db = c.get('db')
+        const orgId = await getOrgId(c)
+        const branchId = c.req.param('id')
+
+        const dateFrom = c.req.query('dateFrom')
+        const dateTo = c.req.query('dateTo')
+
+        const from = dateFrom
+            ? new Date(`${dateFrom}T00:00:00.000Z`)
+            : new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00.000Z')
+        const to = dateTo
+            ? new Date(`${dateTo}T23:59:59.999Z`)
+            : new Date(new Date().toISOString().slice(0, 10) + 'T23:59:59.999Z')
+
+        if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) {
+            return errors.badRequest(c, 'Invalid date range')
+        }
+
+        const [branchRow] = await db
+            .select({ id: branches.id })
+            .from(branches)
+            .where(and(eq(branches.id, branchId), eq(branches.organizationId, orgId)))
+            .limit(1)
+
+        if (!branchRow) return errors.notFound(c, 'Branch not found')
+
+        const [revenueRows, orderRows, staffRows] = await Promise.all([
+            db
+                .select({
+                    revenue: sql<number>`COALESCE(SUM(${payments.amount}), 0)`.as('revenue'),
+                })
+                .from(payments)
+                .where(and(
+                    eq(payments.organizationId, orgId),
+                    eq(payments.branchId, branchId),
+                    eq(payments.status, 'SUCCESS'),
+                    gte(payments.createdAt, from),
+                    lte(payments.createdAt, to),
+                )),
+            db
+                .select({
+                    total: sql<number>`COUNT(*)`.as('total'),
+                })
+                .from(orders)
+                .where(and(
+                    eq(orders.organizationId, orgId),
+                    eq(orders.branchId, branchId),
+                    gte(orders.createdAt, from),
+                    lte(orders.createdAt, to),
+                )),
+            db
+                .select({
+                    staff: sql<number>`COUNT(DISTINCT ${branchMembers.memberId})`.as('staff'),
+                })
+                .from(branchMembers)
+                .innerJoin(member, eq(branchMembers.memberId, member.id))
+                .where(and(
+                    eq(branchMembers.organizationId, orgId),
+                    eq(branchMembers.branchId, branchId),
+                    eq(member.status, 'active'),
+                )),
+        ])
+
+        return ok(c, {
+            ordersToday: Number(orderRows[0]?.total ?? 0),
+            revenueToday: Number(revenueRows[0]?.revenue ?? 0),
+            staffActive: Number(staffRows[0]?.staff ?? 0),
+            range: { from, to },
+        })
+    } catch (err: any) {
+        console.error('[branches/metrics]', err)
         return errors.internal(c, err.message)
     }
 })

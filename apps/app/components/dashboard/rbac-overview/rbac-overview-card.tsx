@@ -57,6 +57,7 @@ export async function RBACOverviewCard() {
     return (
         <SectionCard
             title="Akses & Tim"
+            className="h-full"
             actions={
                 <Link
                     href="/settings/access"

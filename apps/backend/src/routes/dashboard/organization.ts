@@ -63,3 +63,59 @@ organizationRouter.get('/', authMiddleware, async (c) => {
         return errors.internal(c, err.message)
     }
 })
+
+// PATCH /api/dashboard/organization
+organizationRouter.patch('/', authMiddleware, async (c) => {
+    try {
+        const db = c.get('db')
+        let orgId: string
+        try {
+            orgId = await getOrgId(c)
+        } catch {
+            return errors.unauthorized(c, 'No organization context')
+        }
+
+        const body = await c.req.json().catch(() => null)
+
+        const [orgRow] = await db
+            .select({ id: organization.id, metadata: organization.metadata })
+            .from(organization)
+            .where(eq(organization.id, orgId))
+            .limit(1)
+
+        if (!orgRow) return errors.notFound(c, 'Organization not found')
+
+        let nextMetadata = orgRow.metadata
+        if (body?.metadata && typeof body.metadata === 'object') {
+            nextMetadata = JSON.stringify(body.metadata)
+        } else if (body?.timezone || body?.currency) {
+            let parsed: Record<string, any> = {}
+            try {
+                parsed = orgRow.metadata ? JSON.parse(orgRow.metadata) : {}
+            } catch {
+                parsed = {}
+            }
+            if (body?.timezone) parsed.timezone = body.timezone
+            if (body?.currency) parsed.currency = body.currency
+            nextMetadata = JSON.stringify(parsed)
+        }
+
+        const updated = await db
+            .update(organization)
+            .set({
+                name: body?.name ?? undefined,
+                slug: body?.slug ?? undefined,
+                businessType: body?.businessType ?? undefined,
+                logoUrl: body?.logoUrl ?? undefined,
+                metadata: nextMetadata ?? undefined,
+            })
+            .where(eq(organization.id, orgId))
+            .returning()
+
+        if (updated.length === 0) return errors.notFound(c, 'Organization not found')
+        return ok(c, updated[0])
+    } catch (err: any) {
+        console.error('[organization/update]', err)
+        return errors.internal(c, err.message)
+    }
+})

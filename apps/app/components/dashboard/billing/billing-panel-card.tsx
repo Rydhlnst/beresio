@@ -52,7 +52,7 @@ export async function BillingPanelCard() {
     const planName = data.plan.charAt(0).toUpperCase() + data.plan.slice(1) + " Plan";
 
     return (
-        <SectionCard title="Langganan">
+        <SectionCard title="Langganan" className="h-full">
             <div className="flex h-full flex-col gap-4">
                 {/* Upgrade nudge banner */}
                 {showUpgradeNudge && (

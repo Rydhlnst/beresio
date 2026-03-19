@@ -2,10 +2,8 @@ import { auth } from "@/lib/auth";
 import { createDbNextjs, member, roles, team } from "@beresio/db";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { AppSidebar } from "@/components/dashboard/layout/app-sidebar";
-import { DashboardHeader } from "@/components/dashboard/layout/dashboard-header";
 import { NAV_ITEMS } from "@/components/dashboard/layout/nav-config";
-import { SidebarProvider, SidebarInset } from "@repo/ui/sidebar";
+import { DashboardShell } from "@/components/dashboard/layout/dashboard-shell";
 import { and, eq, sql } from "drizzle-orm";
 
 type OrgRecord = {
@@ -86,28 +84,22 @@ export default async function DashboardLayout({
         redirect("/onboarding/team");
     }
 
+    const activePlan = activeOrganization?.plan ?? "starter";
+
     return (
-        <SidebarProvider>
-            <AppSidebar
-                organizations={organizations}
-                activeOrganizationId={activeOrganization?.id}
-                navItems={visibleNavItems}
-            />
-            <SidebarInset className="overflow-hidden bg-background/50">
-                <DashboardHeader
-                    organizationName={activeOrganization?.name ?? "Organisasi"}
-                    user={{
-                        name: session.user.name ?? "Owner",
-                        email: session.user.email ?? "",
-                        avatar: session.user.image ?? "",
-                    }}
-                />
-                <main className="flex-1 overflow-y-auto bg-background">
-                    <div className="mx-auto w-full max-w-7xl p-6">
-                        {children}
-                    </div>
-                </main>
-            </SidebarInset>
-        </SidebarProvider>
+        <DashboardShell
+            organizationName={activeOrganization?.name ?? "Organisasi"}
+            user={{
+                name: session.user.name ?? "Owner",
+                email: session.user.email ?? "",
+                avatar: session.user.image ?? "",
+            }}
+            plan={activePlan}
+            organizations={organizations}
+            activeOrganizationId={activeOrganization?.id}
+            navItems={visibleNavItems}
+        >
+            {children}
+        </DashboardShell>
     );
 }

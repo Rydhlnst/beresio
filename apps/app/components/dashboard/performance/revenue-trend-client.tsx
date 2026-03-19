@@ -33,6 +33,7 @@ export function RevenueTrendClient({
     return (
         <SectionCard
             title="Tren Revenue"
+            className="h-full"
             actions={<TimeRangeSelector value={range} onChange={setRange} />}
         >
             {data.length === 0 ? (
@@ -41,7 +42,7 @@ export function RevenueTrendClient({
                     title="Belum ada transaksi di periode ini"
                 />
             ) : (
-                <div className="flex-1 min-h-[240px]">
+                <div className="h-full min-h-[200px]">
                     <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={data} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="4 4" stroke="hsl(var(--border) / 0.4)" vertical={false} />
@@ -63,7 +64,7 @@ export function RevenueTrendClient({
                                 content={({ active, payload }) => {
                                     if (active && payload && payload.length) {
                                         return (
-                                            <div className="rounded-lg border border-border/60 bg-background p-2">
+                                            <div className="rounded-lg border bg-background p-2">
                                                 <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">
                                                     {payload[0]?.payload?.date}
                                                 </p>
@@ -80,10 +81,10 @@ export function RevenueTrendClient({
                                 type="monotone"
                                 dataKey="revenue"
                                 stroke="hsl(var(--primary))"
-                                strokeWidth={3}
+                                strokeWidth={2}
                                 dot={false}
                                 activeDot={{
-                                    r: 5,
+                                    r: 4,
                                     fill: "hsl(var(--primary))",
                                     stroke: "hsl(var(--background))",
                                     strokeWidth: 2

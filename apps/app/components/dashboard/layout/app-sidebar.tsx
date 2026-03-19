@@ -54,8 +54,8 @@ export function AppSidebar({
 
   return (
     <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>
-        <div className="flex items-center gap-3 px-2 py-2 group-data-[collapsible=icon]:justify-center">
+      <SidebarHeader className="p-0">
+        <div className="flex h-14 items-center gap-3 px-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2">
           <Image src="/logo.svg" alt="Beres logo" width={26} height={26} />
           <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
             <span className="truncate font-semibold text-foreground">Beres.io</span>
@@ -65,8 +65,8 @@ export function AppSidebar({
           </div>
         </div>
       </SidebarHeader>
-      <SidebarContent>
-        <SidebarMenu className="px-2 py-1 gap-1">
+      <SidebarContent className="px-2">
+        <SidebarMenu className="gap-1">
           {navItems.map((item) => {
              const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
              const Icon = ICONS[item.iconKey] ?? LayoutDashboard

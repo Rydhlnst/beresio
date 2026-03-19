@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import { headers } from "next/headers";
+import Link from "next/link";
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
 import { apiClient } from "@/lib/api-client";
@@ -71,7 +72,9 @@ export default async function CabangPage() {
                         Kelola cabang dan lihat performa singkat.
                     </p>
                 </div>
-                <Button className="h-9 text-xs font-semibold">Tambah Cabang</Button>
+                <Button className="h-9 text-xs font-semibold" asChild>
+                    <Link href="/cabang/new">Tambah Cabang</Link>
+                </Button>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -115,11 +118,11 @@ export default async function CabangPage() {
                             </div>
 
                             <div className="flex gap-2">
-                                <Button variant="outline" className="h-8 text-xs font-semibold w-full">
-                                    Lihat Detail
+                                <Button variant="outline" className="h-8 text-xs font-semibold w-full" asChild>
+                                    <Link href={`/cabang/${branch.id}`}>Lihat Detail</Link>
                                 </Button>
-                                <Button variant="outline" className="h-8 text-xs font-semibold w-full">
-                                    Pengaturan
+                                <Button variant="outline" className="h-8 text-xs font-semibold w-full" asChild>
+                                    <Link href={`/cabang/${branch.id}/pengaturan`}>Pengaturan</Link>
                                 </Button>
                             </div>
                         </div>
