@@ -433,7 +433,7 @@ ordersRouter.patch('/:id', authMiddleware, async (c) => {
             return updated
         })
 
-        return ok(c, result[0])
+        return ok(c, result)
     } catch (err: any) {
         console.error('[orders/update]', err)
         return errors.internal(c, err.message)

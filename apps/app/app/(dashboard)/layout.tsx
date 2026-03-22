@@ -1,10 +1,10 @@
 import { auth } from "@/lib/auth";
-import { createDbNextjs, member, roles, team } from "@beresio/db";
+import { createDbNextjs, team } from "@beresio/db";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { NAV_ITEMS } from "@/components/dashboard/layout/nav-config";
+import type { BusinessNavResponse, BusinessNavItem } from "@/components/dashboard/layout/nav-config";
 import { DashboardShell } from "@/components/dashboard/layout/dashboard-shell";
-import { and, eq, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 type OrgRecord = {
     id: string;
@@ -39,6 +39,7 @@ export default async function DashboardLayout({
         businessType: org.businessType ?? null,
     }));
 
+    // Dashboard access rule: Must have at least one organization
     if (organizations.length === 0) {
         redirect("/onboarding/org");
     }
@@ -48,28 +49,37 @@ export default async function DashboardLayout({
     const activeOrganization =
         organizations.find((org) => org.id === activeOrganizationId) ?? organizations[0];
 
-    const memberRows = activeOrganization?.id
-        ? await db
-            .select({ roleSlug: roles.slug, roleLegacy: member.role })
-            .from(member)
-            .leftJoin(roles, eq(member.roleId, roles.id))
-            .where(
-                and(
-                    eq(member.organizationId, activeOrganization.id),
-                    eq(member.userId, session.user.id)
-                )
-            )
-            .limit(1)
-        : [];
+    const cookie = reqHeaders.get("cookie") || "";
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
+    let navItems: BusinessNavItem[] = [];
+    let navBaseItems: BusinessNavItem[] = [];
+    let navVerticalItems: BusinessNavItem[] = [];
+    let navLoaded = false;
+    let businessName: string | null = activeOrganization?.name ?? null;
+    let businessType: string | null = activeOrganization?.businessType ?? null;
 
-    const userRole = (memberRows[0]?.roleSlug ?? memberRows[0]?.roleLegacy ?? "owner").toLowerCase();
-    const orgVertical = (activeOrganization?.businessType ?? "laundry").toLowerCase();
+    if (activeOrganization?.id) {
+        const navRes = await fetch(
+            `${apiBaseUrl}/api/businesses/${activeOrganization.id}/navigation`,
+            {
+                headers: { cookie },
+                cache: "no-store",
+            }
+        );
 
-    const visibleNavItems = NAV_ITEMS.filter((item) => {
-        const roleMatch = item.roles.includes(userRole);
-        const verticalMatch = !item.verticals || item.verticals.includes(orgVertical);
-        return roleMatch && verticalMatch;
-    });
+        if (navRes.ok) {
+            const navBody = (await navRes.json()) as { data?: BusinessNavResponse };
+            const navData = navBody?.data;
+            navItems = navData?.navigation ?? [];
+            navBaseItems = navData?.navigationBase ?? [];
+            navVerticalItems = navData?.navigationVertical ?? [];
+            businessName = navData?.business?.name ?? businessName;
+            businessType = navData?.business?.type ?? businessType;
+        } else {
+            console.error("Failed to fetch business navigation:", await navRes.text());
+        }
+        navLoaded = true;
+    }
 
     const teamCountRows = activeOrganization?.id
         ? await db
@@ -88,7 +98,7 @@ export default async function DashboardLayout({
 
     return (
         <DashboardShell
-            organizationName={activeOrganization?.name ?? "Organisasi"}
+            organizationName={businessName ?? "Organisasi"}
             user={{
                 name: session.user.name ?? "Owner",
                 email: session.user.email ?? "",
@@ -97,7 +107,12 @@ export default async function DashboardLayout({
             plan={activePlan}
             organizations={organizations}
             activeOrganizationId={activeOrganization?.id}
-            navItems={visibleNavItems}
+            navItems={navItems}
+            navBaseItems={navBaseItems}
+            navVerticalItems={navVerticalItems}
+            isNavLoading={!navLoaded}
+            businessName={businessName}
+            businessType={businessType}
         >
             {children}
         </DashboardShell>

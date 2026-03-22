@@ -1,0 +1,176 @@
+{
+  "provinces": [
+    {
+      "name": "Aceh",
+      "cities": []
+    },
+    {
+      "name": "Sumatera Utara",
+      "cities": []
+    },
+    {
+      "name": "Sumatera Barat",
+      "cities": []
+    },
+    {
+      "name": "Riau",
+      "cities": []
+    },
+    {
+      "name": "Kepulauan Riau",
+      "cities": []
+    },
+    {
+      "name": "Jambi",
+      "cities": []
+    },
+    {
+      "name": "Sumatera Selatan",
+      "cities": []
+    },
+    {
+      "name": "Kepulauan Bangka Belitung",
+      "cities": []
+    },
+    {
+      "name": "Bengkulu",
+      "cities": []
+    },
+    {
+      "name": "Lampung",
+      "cities": []
+    },
+    {
+      "name": "DKI Jakarta",
+      "cities": [
+        {
+          "name": "Jakarta Pusat",
+          "districts": [
+            { "name": "Menteng", "villages": ["Cikini", "Gondangdia", "Pegangsaan"] },
+            { "name": "Tanah Abang", "villages": ["Bendungan Hilir", "Gelora", "Karet Tengsin"] }
+          ]
+        },
+        {
+          "name": "Jakarta Selatan",
+          "districts": [
+            { "name": "Kebayoran Baru", "villages": ["Senayan", "Gandaria Utara", "Gunung"] },
+            { "name": "Tebet", "villages": ["Tebet Barat", "Tebet Timur"] }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Jawa Barat",
+      "cities": [
+        {
+          "name": "Bandung",
+          "districts": [
+            { "name": "Coblong", "villages": ["Dago", "Lebak Gede"] },
+            { "name": "Lengkong", "villages": ["Cijagra", "Turangga"] }
+          ]
+        },
+        {
+          "name": "Bekasi",
+          "districts": [
+            { "name": "Bekasi Selatan", "villages": ["Kayuringin Jaya", "Pekayon Jaya"] }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Banten",
+      "cities": []
+    },
+    {
+      "name": "Jawa Tengah",
+      "cities": []
+    },
+    {
+      "name": "DI Yogyakarta",
+      "cities": []
+    },
+    {
+      "name": "Jawa Timur",
+      "cities": []
+    },
+    {
+      "name": "Bali",
+      "cities": [
+        {
+          "name": "Denpasar",
+          "districts": [
+            { "name": "Denpasar Selatan", "villages": ["Sanur", "Sesetan"] }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Nusa Tenggara Barat",
+      "cities": []
+    },
+    {
+      "name": "Nusa Tenggara Timur",
+      "cities": []
+    },
+    {
+      "name": "Kalimantan Barat",
+      "cities": []
+    },
+    {
+      "name": "Kalimantan Tengah",
+      "cities": []
+    },
+    {
+      "name": "Kalimantan Selatan",
+      "cities": []
+    },
+    {
+      "name": "Kalimantan Timur",
+      "cities": []
+    },
+    {
+      "name": "Kalimantan Utara",
+      "cities": []
+    },
+    {
+      "name": "Sulawesi Utara",
+      "cities": []
+    },
+    {
+      "name": "Gorontalo",
+      "cities": []
+    },
+    {
+      "name": "Sulawesi Tengah",
+      "cities": []
+    },
+    {
+      "name": "Sulawesi Barat",
+      "cities": []
+    },
+    {
+      "name": "Sulawesi Selatan",
+      "cities": []
+    },
+    {
+      "name": "Sulawesi Tenggara",
+      "cities": []
+    },
+    {
+      "name": "Maluku",
+      "cities": []
+    },
+    {
+      "name": "Maluku Utara",
+      "cities": []
+    },
+    {
+      "name": "Papua",
+      "cities": []
+    },
+    {
+      "name": "Papua Barat",
+      "cities": []
+    }
+  ]
+}

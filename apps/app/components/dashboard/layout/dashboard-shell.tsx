@@ -1,12 +1,9 @@
-"use client";
-
-import { useState, useEffect } from "react";
 import { SidebarProvider, SidebarInset } from "@repo/ui/sidebar";
 import { AppSidebar } from "./app-sidebar";
 import { DashboardHeader } from "./dashboard-header";
 import { UpgradeBanner } from "./upgrade-banner";
 import type { OrgSwitcherItem } from "./org-switcher";
-import type { NavItem } from "./nav-config";
+import type { BusinessNavItem } from "./nav-config";
 
 interface DashboardShellProps {
     children: React.ReactNode;
@@ -19,7 +16,12 @@ interface DashboardShellProps {
     plan: string;
     organizations: OrgSwitcherItem[];
     activeOrganizationId?: string | null;
-    navItems: NavItem[];
+    navItems: BusinessNavItem[];
+    navBaseItems?: BusinessNavItem[];
+    navVerticalItems?: BusinessNavItem[];
+    isNavLoading?: boolean;
+    businessName?: string | null;
+    businessType?: string | null;
 }
 
 export function DashboardShell({
@@ -30,41 +32,36 @@ export function DashboardShell({
     organizations,
     activeOrganizationId,
     navItems,
+    navBaseItems,
+    navVerticalItems,
+    isNavLoading,
+    businessName,
+    businessType,
 }: DashboardShellProps) {
-    const [isBannerVisible, setIsBannerVisible] = useState(plan === "starter");
-    const bannerHeight = isBannerVisible ? 40 : 0;
-
-    // Update CSS variable when banner visibility changes
-    useEffect(() => {
-        document.documentElement.style.setProperty('--banner-height', `${bannerHeight}px`);
-        
-        return () => {
-            document.documentElement.style.setProperty('--banner-height', '0px');
-        };
-    }, [bannerHeight]);
-
     return (
-        <div className="flex min-h-screen flex-col">
+        <div className="min-h-screen">
             {/* Banner at the very top */}
-            <UpgradeBanner 
-                plan={plan} 
-                onDismiss={() => setIsBannerVisible(false)}
-            />
+            <UpgradeBanner plan={plan} />
             
-            {/* Main layout */}
-            <div className="flex flex-1">
-                <SidebarProvider className="flex-1">
+            {/* Main layout with sidebar below banner */}
+            <div className="flex">
+                <SidebarProvider className="flex w-full">
                     <AppSidebar
                         organizations={organizations}
                         activeOrganizationId={activeOrganizationId}
                         navItems={navItems}
+                        navBaseItems={navBaseItems}
+                        navVerticalItems={navVerticalItems}
+                        isNavLoading={isNavLoading}
+                        businessName={businessName}
+                        businessType={businessType}
                     />
-                    <SidebarInset className="overflow-hidden bg-background/50">
+                    <SidebarInset className="flex-1 overflow-hidden bg-background/50">
                         <DashboardHeader
                             organizationName={organizationName}
                             user={user}
                         />
-                        <main className="flex-1 overflow-y-auto bg-background">
+                        <main className="overflow-y-auto bg-background" style={{ minHeight: 'calc(100vh - 40px - 64px)' }}>
                             <div className="mx-auto w-full max-w-7xl 2xl:max-w-[1400px] p-4 lg:p-6">
                                 {children}
                             </div>

@@ -11,7 +11,7 @@ import {
 import { cn } from "@repo/ui/lib/utils"
 import { Button } from "@repo/ui/button"
 import { Heading, Text } from "@repo/ui"
-import { Section } from "./Section"
+import { SectionClient } from "./SectionClient"
 
 const FEATURES = [
     { id: "pos", name: "Point of Sale (POS)", savingPerUser: 50000 },
@@ -55,7 +55,7 @@ export function SavingsCalculator() {
     }
 
     return (
-        <Section id="calculator" className="relative overflow-hidden bg-background">
+        <SectionClient id="calculator" className="relative overflow-hidden bg-background">
             {/* Background decorative elements matching WhyChooseUs */}
             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-border/60 to-transparent" />
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
@@ -130,9 +130,11 @@ export function SavingsCalculator() {
                 <div className="bg-muted/20 border border-border/40 rounded-[32px] p-[clamp(1.5rem,4vw,2.5rem)] grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8 xl:gap-12 items-start xl:items-center">
                     {/* Team Size */}
                     <div className="space-y-4 sm:col-span-2 lg:col-span-1 border-b sm:border-b-0 sm:border-r border-border/20 md:border-border/40 pb-6 sm:pb-0 sm:pr-8 lg:border-r-0 lg:pr-0">
-                        <label className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-primary">Team Size</label>
+                        <label htmlFor="team-size" className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-primary">Team Size</label>
                         <div className="flex items-center gap-4 bg-background border border-border/60 rounded-2xl p-4 shadow-sm w-full max-w-[220px] group transition-all hover:border-primary/40">
                             <input
+                                id="team-size"
+                                aria-label="Team size"
                                 type="number"
                                 value={teamSize}
                                 onChange={(e) => setTeamSize(Math.max(1, parseInt(e.target.value) || 1))}
@@ -141,12 +143,14 @@ export function SavingsCalculator() {
                             <div className="flex flex-col border-l border-border/60 pl-3">
                                 <button
                                     onClick={() => setTeamSize(prev => prev + 1)}
+                                    aria-label="Increase team size"
                                     className="p-1 hover:text-primary transition-colors"
                                 >
                                     <Plus className="w-4 h-4" />
                                 </button>
                                 <button
                                     onClick={() => setTeamSize(prev => Math.max(1, prev - 1))}
+                                    aria-label="Decrease team size"
                                     className="p-1 hover:text-primary transition-colors"
                                 >
                                     <Minus className="w-4 h-4" />
@@ -185,6 +189,7 @@ export function SavingsCalculator() {
                     Estimasi berdasarkan data efisiensi operasional 1000+ mitra bisnis.
                 </p>
             </div>
-        </Section>
+        </SectionClient>
     )
 }
+

@@ -3,6 +3,7 @@ import { Metadata } from "next";
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import { SectionCard } from "@/components/dashboard/shared/section-card";
+import { createHighlightAction } from "../_actions/highlights";
 
 export const metadata: Metadata = {
     title: "Buat Highlight | Beres",
@@ -24,18 +25,22 @@ export default function DashboardHighlightNewPage() {
                 </Button>
             </div>
 
-            <SectionCard title="Detail Highlight" description="Isi informasi ringkas highlight.">
-                <div className="grid gap-4 sm:grid-cols-2">
-                    <Input placeholder="Judul highlight" />
-                    <Input placeholder="Kategori (mis. Revenue, Order)" />
-                </div>
-                <div className="mt-4">
-                    <Input placeholder="Deskripsi singkat" />
-                </div>
-                <div className="mt-4">
-                    <Button className="h-9 text-xs font-semibold">Simpan Highlight</Button>
-                </div>
-            </SectionCard>
+            <form action={createHighlightAction}>
+                <SectionCard title="Detail Highlight" description="Isi informasi ringkas highlight.">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <Input name="title" placeholder="Judul highlight" required />
+                        <Input name="category" placeholder="Kategori (mis. Revenue, Order)" />
+                    </div>
+                    <div className="mt-4">
+                        <Input name="description" placeholder="Deskripsi singkat" />
+                    </div>
+                    <div className="mt-4">
+                        <Button type="submit" className="h-9 text-xs font-semibold">
+                            Simpan Highlight
+                        </Button>
+                    </div>
+                </SectionCard>
+            </form>
         </div>
     );
 }

@@ -1,6 +1,3 @@
-"use client"
-
-import { motion } from "framer-motion"
 import { ArrowRight } from "lucide-react"
 import { Button, Heading, Text } from "@repo/ui"
 
@@ -22,13 +19,7 @@ export function SectionCTA({
     secondaryHref
 }: SectionCTAProps) {
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="mt-32 border-t border-border pt-32 flex flex-col items-start gap-12"
-        >
+        <div className="mt-32 border-t border-border pt-32 flex flex-col items-start gap-12">
             <div className="max-w-xl text-start">
                 <Heading as="h4" className="mb-4 text-3xl tracking-tight leading-tight">
                     {title}
@@ -50,6 +41,6 @@ export function SectionCTA({
                     </Button>
                 )}
             </div>
-        </motion.div>
+        </div>
     )
 }

@@ -1,15 +1,21 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
-import { createDbNextjs, team } from "@beresio/db";
+import { createDbNextjs } from "@beresio/db";
 import { OrgOnboardingForm } from "./_components/org-onboarding-form";
-import { eq, sql } from "drizzle-orm";
 
 export const metadata = {
     title: "Daftarkan Usaha | Beres",
     description: "Lengkapi data usaha utama kamu untuk mulai menggunakan Beres",
 };
 
+/**
+ * Onboarding Organization Page
+ * 
+ * STRICT RULE: This page is ONLY for users who have NO organizations.
+ * If user has any organization, they are redirected to dashboard.
+ * For creating additional organizations after the first one, use /dashboard/organizations/new
+ */
 export default async function OnboardingOrgPage() {
     const db = createDbNextjs(process.env.DATABASE_URL!);
     const authInstance = auth(db);
@@ -28,23 +34,9 @@ export default async function OnboardingOrgPage() {
 
     const hasOrg = orgData && orgData.length > 0;
 
+    // STRICT: If user has ANY organization, redirect to dashboard immediately
+    // They cannot create first org via this page
     if (hasOrg) {
-        const organizationId =
-            (session as any)?.activeOrganizationId ?? orgData?.[0]?.id;
-
-        const teamCountRows = organizationId
-            ? await db
-                .select({ count: sql<number>`count(*)` })
-                .from(team)
-                .where(eq(team.organizationId, organizationId))
-            : [{ count: 0 }];
-
-        const hasTeam = Number(teamCountRows[0]?.count ?? 0) > 0;
-
-        if (!hasTeam) {
-            redirect("/onboarding/team");
-        }
-
         redirect("/dashboard");
     }
 

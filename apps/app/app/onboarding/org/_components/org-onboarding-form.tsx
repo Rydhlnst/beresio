@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 import { authClient } from "@/lib/auth-client";
+import { normalizeBusinessType } from "@/lib/business-type";
 import { useTransitionRouter } from "@/hooks/use-transition-router";
 import { bootstrapRbacForActiveOrg } from "../../_actions/rbac";
 
@@ -53,7 +54,7 @@ export function OrgOnboardingForm() {
             const { data, error } = await authClient.organization.create({
                 name: values.name,
                 slug: values.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
-                businessType: values.businessType,
+                businessType: normalizeBusinessType(values.businessType),
             });
 
             if (error) {

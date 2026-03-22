@@ -1,19 +1,12 @@
-"use client"
-
-import React from "react"
-import { motion } from "framer-motion"
 import {
     TrendingUp,
-    CreditCard,
     Package,
     Users,
     FileText,
-    Check,
     ArrowRight,
-    Plus
 } from "lucide-react"
 import { cn } from "@repo/ui/lib/utils"
-import { Button, Heading, Text } from "@repo/ui"
+import { Heading, Text } from "@repo/ui"
 import { Section } from "./Section"
 import { SectionCTA } from "./SectionCTA"
 
@@ -30,33 +23,13 @@ function BeresLogo({ className }: { className?: string }) {
     )
 }
 
-function SlackIcon({ className }: { className?: string }) {
-    return (
-        <svg viewBox="0 0 24 24" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.52c-1.392 0-2.52-1.128-2.522-2.52a2.52 2.52 0 0 1 2.522-2.52h2.52v2.52zm1.264 0a2.528 2.528 0 0 1 2.52-2.52 2.528 2.528 0 0 1 2.52 2.52v6.315a2.528 2.528 0 0 1-2.52 2.52 2.528 2.528 0 0 1-2.52-2.52v-6.315zM8.835 5.042a2.528 2.528 0 0 1-2.52-2.52c0-1.392 1.128-2.52 2.52-2.522a2.52 2.52 0 0 1 2.52 2.522v2.52h-2.52zm0 1.264a2.528 2.528 0 0 1 2.52 2.52 2.528 2.528 0 0 1-2.52 2.52h-6.315a2.528 2.528 0 0 1-2.52-2.52 2.528 2.528 0 0 1 2.52-2.52h6.315zM18.958 8.835a2.528 2.528 0 0 1 2.52-2.52c1.392 0 2.52 1.128 2.522 2.52a2.52 2.52 0 0 1-2.522 2.52h-2.52v-2.52zm-1.264 0a2.528 2.528 0 0 1-2.52 2.52 2.528 2.528 0 0 1-2.52-2.52v-6.315a2.528 2.528 0 0 1 2.52-2.52 2.528 2.528 0 0 1 2.52 2.52v6.315zM15.165 18.958a2.528 2.528 0 0 1 2.52 2.52c0 1.392-1.128 2.52-2.52 2.522a2.52 2.52 0 0 1-2.52-2.522v-2.52h2.52zm0-1.264a2.528 2.528 0 0 1-2.52-2.52 2.528 2.528 0 0 1 2.52-2.52h6.315a2.528 2.528 0 0 1 2.52 2.52 2.528 2.528 0 0 1-2.52 2.52h-6.315z" fill="currentColor" />
-        </svg>
-    )
-}
-
-function NotionIcon({ className }: { className?: string }) {
-    return (
-        <svg viewBox="0 0 24 24" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path fillRule="evenodd" clipRule="evenodd" d="M4.195 2.155C3.385 2.22 2.525 2.65 2.13 3.425C1.94 3.79 1.94 4.395 1.925 8.16C1.91 11.51 1.91 12.43 1.925 12.63C1.94 13.06 1.94 14.285 2.115 14.65C2.465 15.395 3.32 15.845 4.195 15.91L5.975 16.035C5.92 16.335 5.8 17.065 5.76 17.515C5.69 18.23 5.4 20.375 5.31 20.945C5.19 21.625 5.48 22.185 6.075 22.42C6.395 22.545 7.155 22.545 7.505 22.42C7.99 22.25 10.155 19.33 11.96 16.27C15.91 16.27 19.16 16.27 20.5 16.14C21.43 16.055 22.375 15.545 22.75 14.65C22.925 14.23 22.925 13.29 22.94 9.1C22.955 5.165 22.955 3.96 22.8 3.585C22.5 2.875 21.84 2.375 21 2.185C20.485 2.065 18.995 2.025 12.55 2.025C6.11 2.025 4.61 2.065 4.195 2.155ZM20.895 4.41C20.91 4.545 20.91 5.375 20.91 10.955V14.27H19.78C18.42 14.27 18.265 14.25 17.915 14.01C17.72 13.88 16.28 12.385 14.715 10.71V4.41H20.895ZM13.01 10.87H11.565L12.565 15.175H13.63L14.715 10.87H13.65V10.87ZM10.51 10.955V15.175H9.68C8.955 15.175 8.8 15.15 8.45 14.93C8.255 14.81 6.815 13.315 5.25 11.64V4.41H6.075L10.51 10.955ZM12.005 4.41V8.655L10.92 7.025V4.41H12.005Z" fill="black" />
-        </svg>
-    )
-}
 
 // --- MINI MOCKUP COMPONENTS ---
 
 function EnterpriseSearchMockup() {
     return (
         <div className="w-full h-full bg-[#F06A50] flex flex-col items-center justify-start pt-12">
-            <motion.div
-                initial={{ y: 40, opacity: 0 }}
-                whileInView={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-                className="w-[90%] bg-background rounded-t-2xl shadow-2xl p-6 pb-20 relative overflow-hidden flex flex-col gap-6"
-            >
+            <div className="w-[90%] bg-background rounded-t-2xl shadow-2xl p-6 pb-20 relative overflow-hidden flex flex-col gap-6">
                 {/* Search Badge */}
                 <div className="absolute top-4 right-4 bg-muted/30 text-[9px] font-bold px-3 py-1 rounded-full text-foreground/60 backdrop-blur-sm">
                     top customer requests this quarter
@@ -118,15 +91,12 @@ function EnterpriseSearchMockup() {
                 <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex items-center justify-center pb-6 w-full px-6">
                     <div className="flex items-center gap-2 p-1.5 bg-background/60 backdrop-blur-xl rounded-3xl border border-border/60 shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
                         {/* Center Logo - Beres */}
-                        <motion.div
-                            animate={{ y: -10 }}
-                            className="h-16 w-16 bg-background rounded-[24px] border border-border/60 flex items-center justify-center p-3 shadow-[0_12px_24px_-8px_rgba(238,72,34,0.35)] relative z-10"
-                        >
+                        <div className="h-16 w-16 bg-background rounded-[24px] border border-border/60 flex items-center justify-center p-3 shadow-[0_12px_24px_-8px_rgba(238,72,34,0.35)] relative z-10">
                             <BeresLogo className="h-full w-full" />
-                        </motion.div>
+                        </div>
                     </div>
                 </div>
-            </motion.div>
+            </div>
         </div>
     )
 }
@@ -134,11 +104,7 @@ function EnterpriseSearchMockup() {
 function FinanceMockup() {
     return (
         <div className="w-full h-full bg-emerald-500 overflow-hidden flex flex-col items-center pt-10">
-            <motion.div
-                initial={{ y: 50, opacity: 0 }}
-                whileInView={{ y: 0, opacity: 1 }}
-                className="w-[85%] bg-background rounded-2xl shadow-2xl p-6 space-y-6"
-            >
+            <div className="w-[85%] bg-background rounded-2xl shadow-2xl p-6 space-y-6">
                 <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Arus Kas</span>
                     <div className="h-8 w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
@@ -168,7 +134,7 @@ function FinanceMockup() {
                         </div>
                     ))}
                 </div>
-            </motion.div>
+            </div>
         </div>
     )
 }
@@ -176,11 +142,7 @@ function FinanceMockup() {
 function InventoryMockup() {
     return (
         <div className="w-full h-full bg-blue-500 overflow-hidden flex flex-col items-center pt-10 px-6">
-            <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                whileInView={{ scale: 1, opacity: 1 }}
-                className="w-full bg-background rounded-2xl shadow-2xl p-6"
-            >
+            <div className="w-full bg-background rounded-2xl shadow-2xl p-6">
                 <div className="flex items-center gap-3 mb-6">
                     <div className="h-10 w-10 rounded-xl bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
                         <Package className="h-5 w-5 text-white" />
@@ -205,7 +167,7 @@ function InventoryMockup() {
                         </div>
                     ))}
                 </div>
-            </motion.div>
+            </div>
         </div>
     )
 }
@@ -213,11 +175,7 @@ function InventoryMockup() {
 function InvoicesMockup() {
     return (
         <div className="w-full h-full bg-amber-500 overflow-hidden flex flex-col items-center pt-10">
-            <motion.div
-                initial={{ rotate: -5, y: 40 }}
-                whileInView={{ rotate: 0, y: 0 }}
-                className="w-[80%] bg-background rounded-2xl shadow-2xl p-6 flex flex-col gap-4"
-            >
+            <div className="w-[80%] bg-background rounded-2xl shadow-2xl p-6 flex flex-col gap-4">
                 <div className="flex justify-between items-start">
                     <div className="space-y-1 text-left">
                         <p className="text-xs font-black text-foreground uppercase tracking-tight">Kwitansi Digital</p>
@@ -245,7 +203,7 @@ function InvoicesMockup() {
                         <p className="text-[10px] font-black text-background">Total: Rp 55.000</p>
                     </div>
                 </div>
-            </motion.div>
+            </div>
         </div>
     )
 }
@@ -253,11 +211,7 @@ function InvoicesMockup() {
 function UsersMockup() {
     return (
         <div className="w-full h-full bg-violet-600 overflow-hidden flex flex-col items-center pt-10 px-6">
-            <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                className="w-full bg-background rounded-2xl shadow-2xl p-6"
-            >
+            <div className="w-full bg-background rounded-2xl shadow-2xl p-6">
                 <div className="flex items-center justify-between mb-8">
                     <p className="text-[11px] font-black text-foreground uppercase tracking-wider">Tim Operasional</p>
                     <div className="flex -space-x-2">
@@ -284,7 +238,7 @@ function UsersMockup() {
                         </div>
                     ))}
                 </div>
-            </motion.div>
+            </div>
         </div>
     )
 }
@@ -339,13 +293,7 @@ export function WhyChooseUs() {
 
             {/* Header */}
             <div className="max-w-3xl mb-[clamp(2rem,5vw,4rem)] text-left relative z-10">
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5 }}
-                    className="flex flex-col gap-6"
-                >
+                <div className="flex flex-col gap-6">
                     <Text variant="overline">Key Performance Grid</Text>
                     <Heading as="h3" className="text-[clamp(1.75rem,4vw,3rem)] tracking-tight leading-[1.15]">
                         Satu Platform. <br />
@@ -354,18 +302,14 @@ export function WhyChooseUs() {
                     <Text variant="lead">
                         Beres.io bukan hanya kasir. Kami adalah ekosistem lengkap untuk pertumbuhan bisnis Anda, dari operasional meja hingga laporan keuangan.
                     </Text>
-                </motion.div>
+                </div>
             </div>
 
             {/* Bento Grid */}
             <div className="grid grid-cols-1 md:grid-cols-6 gap-6 mb-[clamp(4rem,6vw,6rem)]">
-                {cards.map((card, index) => (
-                    <motion.div
+                {cards.map((card) => (
+                    <div
                         key={card.title}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        whileInView={{ opacity: 1, scale: 1 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.5, delay: index * 0.1 }}
                         className={cn(
                             "group bg-card rounded-[40px] border border-border/60 flex flex-col hover:shadow-3xl hover:shadow-primary/5 transition-all duration-500 overflow-hidden",
                             card.className
@@ -385,7 +329,7 @@ export function WhyChooseUs() {
                         <div className="relative w-full flex-1 flex items-stretch">
                             {card.mockup}
                         </div>
-                    </motion.div>
+                    </div>
                 ))}
             </div>
 

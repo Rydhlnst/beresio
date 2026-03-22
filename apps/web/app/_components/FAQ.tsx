@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Badge } from "@repo/ui/badge";
-import { Section } from "./Section";
+import { SectionClient } from "./SectionClient";
 import {
     Accordion,
     AccordionContent,
@@ -123,7 +123,7 @@ export function FAQ({
     const [activeCategory, setActiveCategory] = useState(initialCategory);
 
     return (
-        <Section id="faq" className="bg-background">
+        <SectionClient id="faq" className="bg-background">
             {/* Decorative top right SVGs */}
             <div className="absolute top-10 right-10 md:right-32 hidden md:block">
                 <div className="relative">
@@ -257,6 +257,6 @@ export function FAQ({
                     </div>
                 </div>
             </div>
-        </Section>
+        </SectionClient>
     );
 }

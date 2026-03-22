@@ -7,3 +7,4 @@ export * from './crm.schema';
 export * from './inventory.schema';
 export * from './highlights.schema';
 export * from './pickup.schema';
+export * from './business.schema';

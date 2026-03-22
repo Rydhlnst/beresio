@@ -14,8 +14,8 @@ import {
 } from "lucide-react"
 import { cn } from "@repo/ui/lib/utils"
 import { Button, Heading, Text } from "@repo/ui"
-import { Section } from "./Section"
-import { SectionCTA } from "./SectionCTA"
+import { SectionClient } from "./SectionClient"
+import { SectionCTAClient } from "./SectionCTAClient"
 
 // --- HELPERS ---
 
@@ -156,6 +156,8 @@ function ValueCarousel() {
                             <button
                                 key={i}
                                 onClick={() => setActiveIndex(i)}
+                                aria-label={`Select feature ${i + 1}: ${FEATURES[i].title}`}
+                                aria-current={i === activeIndex}
                                 className={cn(
                                     "h-1.5 transition-all duration-500 rounded-full",
                                     i === activeIndex ? "w-10 bg-primary" : "w-1.5 bg-muted-foreground/20 hover:bg-muted-foreground/40"
@@ -196,6 +198,7 @@ function ValueCarousel() {
                             variant="outline"
                             size="icon"
                             onClick={prev}
+                            aria-label="Previous feature"
                             className="rounded-sm h-12 w-12 border-border/40 hover:bg-muted/50 hover:text-primary transition-all active:scale-95"
                         >
                             <ChevronLeft className="h-5 w-5" />
@@ -204,6 +207,7 @@ function ValueCarousel() {
                             variant="outline"
                             size="icon"
                             onClick={next}
+                            aria-label="Next feature"
                             className="rounded-sm h-12 w-12 border-border/40 hover:bg-muted/50 hover:text-primary transition-all active:scale-95"
                         >
                             <ChevronRight className="h-5 w-5" />
@@ -272,7 +276,7 @@ function ComparisonSection() {
 
 export function ValueProposition() {
     return (
-        <Section id="value-proposition">
+        <SectionClient id="value-proposition">
             {/* Header */}
             <div className="max-w-4xl mb-[clamp(3rem,6vw,8rem)]">
                 <motion.div
@@ -298,7 +302,7 @@ export function ValueProposition() {
             {/* Comparison Table */}
             <ComparisonSection />
 
-            <SectionCTA
+            <SectionCTAClient
                 title="Saatnya Berhenti Sibuk Mengurus, Mulai Bebas Memimpin."
                 description="Otomatisasi operasional Anda hari ini dan amankan keunggulan kompetitif. Bergabunglah dengan ratusan pengusaha modern yang memilih cara pintar."
                 primaryLabel="Dapatkan Akses Awal"
@@ -306,6 +310,10 @@ export function ValueProposition() {
                 secondaryLabel="Pelajari Fitur"
                 secondaryHref="#features"
             />
-        </Section>
+        </SectionClient>
     )
 }
+
+
+
+

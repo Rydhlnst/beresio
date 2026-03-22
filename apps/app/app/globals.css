@@ -90,6 +90,9 @@
     --info: 217 60% 55%;
     --info-bg: 217 40% 95%;
     --info-text: 217 60% 35%;
+    
+    --neutral-bg: 220 10% 96%;
+    --neutral-text: 220 10% 40%;
   }
 
   /* ========================================
@@ -145,6 +148,8 @@
     --error-text: 0 60% 65%;
     --info-bg: 217 40% 15%;
     --info-text: 217 60% 65%;
+    --neutral-bg: 220 10% 18%;
+    --neutral-text: 220 10% 65%;
   }
 }
 
@@ -224,5 +229,53 @@
   /* Section spacing */
   .section-gap {
     @apply space-y-6;
+  }
+
+  /* Status badge utilities - works in both light and dark mode */
+  .badge-success {
+    background-color: hsl(var(--success-bg)) !important;
+    color: hsl(var(--success-text)) !important;
+    border-color: hsl(var(--success-bg) / 0.5) !important;
+  }
+  
+  .badge-warning {
+    background-color: hsl(var(--warning-bg)) !important;
+    color: hsl(var(--warning-text)) !important;
+    border-color: hsl(var(--warning-bg) / 0.5) !important;
+  }
+  
+  .badge-error {
+    background-color: hsl(var(--error-bg)) !important;
+    color: hsl(var(--error-text)) !important;
+    border-color: hsl(var(--error-bg) / 0.5) !important;
+  }
+  
+  .badge-info {
+    background-color: hsl(var(--info-bg)) !important;
+    color: hsl(var(--info-text)) !important;
+    border-color: hsl(var(--info-bg) / 0.5) !important;
+  }
+  
+  .badge-neutral {
+    background-color: hsl(var(--neutral-bg)) !important;
+    color: hsl(var(--neutral-text)) !important;
+    border-color: hsl(var(--border)) !important;
+  }
+
+  /* Table row status highlighting - subtle and clean */
+  .row-success {
+    background-color: hsl(var(--success-bg) / 0.3) !important;
+  }
+  
+  .row-warning {
+    background-color: hsl(var(--warning-bg) / 0.3) !important;
+  }
+  
+  .row-error {
+    background-color: hsl(var(--error-bg) / 0.3) !important;
+  }
+  
+  .row-info {
+    background-color: hsl(var(--info-bg) / 0.3) !important;
   }
 }

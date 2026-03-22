@@ -462,7 +462,7 @@ export function Navbar() {
 
                         <Sheet>
                             <SheetTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-11 w-11 lg:hidden hover:bg-accent">
+                                <Button variant="ghost" size="icon" className="h-11 w-11 lg:hidden hover:bg-accent" aria-label="Open menu">
                                     <Menu className="h-6 w-6 text-foreground" />
                                 </Button>
                             </SheetTrigger>
@@ -547,3 +547,4 @@ export function Navbar() {
         </header>
     )
 }
+

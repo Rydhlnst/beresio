@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { Metadata } from "next";
 import { Button } from "@repo/ui/button";
-import { Input } from "@repo/ui/input";
 import { SectionCard } from "@/components/dashboard/shared/section-card";
+import { BranchFormClient } from "./_components/branch-form-client";
 
 export const metadata: Metadata = {
     title: "Tambah Cabang | Beres",
@@ -25,15 +25,7 @@ export default function CabangNewPage() {
             </div>
 
             <SectionCard title="Detail Cabang" description="Informasi dasar cabang baru.">
-                <div className="grid gap-4 sm:grid-cols-2">
-                    <Input placeholder="Nama cabang" />
-                    <Input placeholder="Kota / Area" />
-                    <Input placeholder="Alamat lengkap" />
-                    <Input placeholder="Nomor telepon" />
-                </div>
-                <div className="mt-4">
-                    <Button className="h-9 text-xs font-semibold">Simpan Cabang</Button>
-                </div>
+                <BranchFormClient />
             </SectionCard>
         </div>
     );

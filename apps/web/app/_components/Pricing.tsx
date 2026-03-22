@@ -11,7 +11,7 @@ import {
     Building2,
     ShieldCheck,
 } from "lucide-react"
-import { Section } from "./Section"
+import { SectionClient } from "./SectionClient"
 import { cn } from "@repo/ui/lib/utils"
 import { Button, Heading, Text } from "@repo/ui"
 import { Badge } from "@repo/ui/badge"
@@ -539,7 +539,7 @@ function DataTable({
 
 export function Pricing() {
     return (
-        <Section id="pricing" className="relative overflow-hidden bg-background">
+        <SectionClient id="pricing" className="relative overflow-hidden bg-background">
             <div className="max-w-4xl text-left space-y-6">
                 <Text variant="overline">Pricing & Subscription Plans</Text>
                 <Heading as="h2" className="text-[clamp(2rem,4vw,3.5rem)] leading-[1.1] tracking-tight">
@@ -883,7 +883,7 @@ export function Pricing() {
                     <div>Next Review: Q3 2026</div>
                 </div>
             </div>
-        </Section>
+        </SectionClient>
     )
 }
 

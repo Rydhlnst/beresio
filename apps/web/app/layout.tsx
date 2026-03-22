@@ -5,6 +5,7 @@ import { Navbar } from "./_components/Navbar";
 import { Footer } from "./_components/Footer";
 import { Toaster } from "@repo/ui";
 import { LayoutProvider } from "./_components/LayoutProvider";
+import { Analytics } from "./_components/Analytics";
 
 const jakarta = Plus_Jakarta_Sans({
     subsets: ["latin"],
@@ -60,7 +61,7 @@ export const metadata: Metadata = {
             "Kasir digital, inventori, laporan keuangan, dan pengiriman dalam satu platform. Kelola semua cabang dari satu dashboard. Coba gratis 14 hari.",
         images: [
             {
-                url: "/og-image.png",
+                url: "/og-image.svg",
                 width: 1200,
                 height: 630,
                 alt: "Beres.io — Platform Manajemen Bisnis UMKM Indonesia",
@@ -72,7 +73,7 @@ export const metadata: Metadata = {
         title: "Beres.io — Solusi Bisnis Digital Terpadu untuk UMKM",
         description:
             "Kasir digital, inventori, laporan keuangan, dan pengiriman dalam satu platform cloud untuk UMKM Indonesia.",
-        images: ["/og-image.png"],
+        images: ["/og-image.svg"],
         creator: "@beresio",
         site: "@beresio",
     },
@@ -155,8 +156,10 @@ export default function RootLayout({
                     </main>
                     <Footer />
                     <Toaster />
+                    <Analytics />
                 </LayoutProvider>
             </body>
         </html>
     );
 }
+

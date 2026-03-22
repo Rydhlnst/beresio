@@ -2,6 +2,7 @@ import { Hero } from "./_components/Hero";
 import { FAQ } from "./_components/FAQ";
 import { WhyChooseUs } from "./_components/WhyChooseUs";
 import { ValueProposition, SavingsCalculator } from "./_components/LazySections";
+import { Testimonials } from "./_components/Testimonials";
 
 /**
  * Landing Page (Server Component).
@@ -18,6 +19,7 @@ export default function Page() {
             <Hero />
             <ValueProposition />
             <WhyChooseUs />
+            <Testimonials />
             <SavingsCalculator />
             <FAQ />
         </>

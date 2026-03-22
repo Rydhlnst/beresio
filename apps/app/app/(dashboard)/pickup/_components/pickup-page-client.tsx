@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
@@ -36,42 +36,16 @@ type DeliveryOrder = {
 
 const COLUMNS: DeliveryStatus[] = ["Dikonfirmasi", "Dicuci", "Siap Diantar", "Dalam Pengiriman", "Selesai"];
 
-const ORDERS: DeliveryOrder[] = [
-    {
-        id: "PK-221",
-        customer: "Rina Anjani",
-        address: "Jl. Sudirman No. 12",
-        eta: "12:30",
-        status: "Dikonfirmasi",
-        items: ["Cuci Kering 2kg", "Setrika 1kg"],
-    },
-    {
-        id: "PK-220",
-        customer: "Bagas Pratama",
-        address: "Jl. Kemang Raya No. 8",
-        eta: "13:00",
-        status: "Dicuci",
-        items: ["Dry Clean 3pcs"],
-    },
-    {
-        id: "PK-219",
-        customer: "Shinta Lestari",
-        address: "Jl. Margonda No. 15",
-        eta: "15:00",
-        status: "Siap Diantar",
-        driver: "Rudi",
-        items: ["Cuci Basah 5kg"],
-    },
-    {
-        id: "PK-218",
-        customer: "Dimas Hendra",
-        address: "Jl. Gatot Subroto No. 9",
-        eta: "16:00",
-        status: "Dalam Pengiriman",
-        driver: "Ayu",
-        items: ["Cuci Kering 2kg"],
-    },
-];
+type PickupOrderApi = {
+    id: string;
+    orderNumber?: string | null;
+    customer?: string | null;
+    address?: string | null;
+    eta?: string | null;
+    status?: DeliveryStatus | string | null;
+    driver?: string | null;
+    items?: string[] | null;
+};
 
 const STATUS_SEQUENCE: DeliveryStatus[] = ["Dikonfirmasi", "Dicuci", "Siap Diantar", "Dalam Pengiriman", "Selesai"];
 
@@ -136,23 +110,49 @@ function StatusSteps({ status }: { status: DeliveryStatus }) {
     );
 }
 
-export function PickupPageClient() {
+type PickupPageClientProps = {
+    orders: PickupOrderApi[];
+};
+
+export function PickupPageClient({ orders: ordersInput }: PickupPageClientProps) {
+    const orders: DeliveryOrder[] = useMemo(() => {
+        return ordersInput.map((order) => ({
+            id: order.orderNumber ?? order.id,
+            customer: order.customer ?? "Unknown",
+            address: order.address ?? "-",
+            eta: order.eta ?? "-",
+            status: (order.status as DeliveryStatus) ?? "Dikonfirmasi",
+            driver: order.driver ?? undefined,
+            items: order.items ?? [],
+        }));
+    }, [ordersInput]);
+
     const [view, setView] = useState<"kanban" | "list">("kanban");
-    const [selectedId, setSelectedId] = useState<string | null>(ORDERS[0]?.id ?? null);
+    const [selectedId, setSelectedId] = useState<string | null>(orders[0]?.id ?? null);
     const [searchQuery, setSearchQuery] = useState("");
+
+    useEffect(() => {
+        if (!selectedId && orders.length > 0) {
+            setSelectedId(orders[0].id);
+            return;
+        }
+        if (selectedId && !orders.find((order) => order.id === selectedId) && orders.length > 0) {
+            setSelectedId(orders[0].id);
+        }
+    }, [orders, selectedId]);
 
     const filteredOrders = useMemo(() => {
         const query = searchQuery.trim().toLowerCase();
-        if (!query) return ORDERS;
-        return ORDERS.filter((order) => (
+        if (!query) return orders;
+        return orders.filter((order) => (
             order.id.toLowerCase().includes(query) ||
             order.customer.toLowerCase().includes(query) ||
             order.address.toLowerCase().includes(query) ||
             order.status.toLowerCase().includes(query)
         ));
-    }, [searchQuery]);
+    }, [searchQuery, orders]);
 
-    const visibleOrders = view === "list" ? filteredOrders : ORDERS;
+    const visibleOrders = view === "list" ? filteredOrders : orders;
     const selectedOrder = visibleOrders.find((order) => order.id === selectedId) ?? null;
 
     return (

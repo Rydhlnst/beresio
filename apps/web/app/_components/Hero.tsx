@@ -1,40 +1,17 @@
-"use client";
-
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import dynamic from "next/dynamic";
-import { motion } from "framer-motion";
 import { Button, Heading, Text } from "@repo/ui";
 import { Section } from "./Section";
+import { HeroDashboardLazy } from "./HeroDashboardLazy";
 
-// ── Lazy load bagian berat: DashboardMockup + SocialProof + Counter
-// ssr: false → tidak dirender di server, dikurangi dari JS critical path
-// Skeleton sederhana ditampilkan selama komponen loading
-const HeroDashboard = dynamic(
-    () => import("./HeroDashboard").then((m) => m.HeroDashboard),
-    {
-        ssr: false,
-        loading: () => (
-            <div className="w-full relative py-12 animate-pulse">
-                <div className="mx-auto max-w-7xl rounded-[2rem] rounded-b-none bg-muted/50 border border-border/50 h-[clamp(280px,40vw,560px)]" />
-            </div>
-        ),
-    }
-);
-
-// ─── HERO ─────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ HERO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function Hero() {
     return (
         <Section id="hero" showDivider={false} className="relative overflow-hidden bg-background pb-[clamp(4rem,8vw,8rem)]">
-            {/* ── TOP SECTION: Text & CTA (server-renderable, penting untuk LCP) ── */}
+            {/* â”€â”€ TOP SECTION: Text & CTA (server-renderable, penting untuk LCP) â”€â”€ */}
             <div className="flex flex-col items-start pb-[clamp(2rem,5vw,4rem)] relative">
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className="max-w-4xl space-y-8"
-                >
+                <div className="max-w-4xl space-y-8">
                     {/* Status Badge */}
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 text-primary text-[11px] font-extrabold uppercase tracking-widest animate-fade-in">
                         <span className="relative flex h-2 w-2">
@@ -80,11 +57,11 @@ export function Hero() {
                             <Link href="/demo">Lihat Demo</Link>
                         </Button>
                     </div>
-                </motion.div>
+                </div>
             </div>
 
-            {/* ── LAZY LOADED: Dashboard Mockup + Social Proof ── */}
-            <HeroDashboard />
+            {/* â”€â”€ LAZY LOADED: Dashboard Mockup + Social Proof â”€â”€ */}
+            <HeroDashboardLazy />
         </Section>
     );
 }

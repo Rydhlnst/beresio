@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
 import {
     Select,
@@ -29,8 +28,18 @@ import {
     SheetTitle,
 } from "@repo/ui/sheet";
 import { CardEmptyState } from "@/components/dashboard/shared/card-empty-state";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { cn } from "@/lib/utils";
 import { AlertTriangle, CheckCircle2, Search } from "lucide-react";
+import { useForm } from "@tanstack/react-form";
+import { z } from "zod";
+import { toast } from "sonner";
+import { useTransitionRouter } from "@/hooks/use-transition-router";
+import {
+    createInventoryAdjustmentAction,
+    createInventoryTransferAction,
+    updateInventoryTransferStatusAction,
+} from "../_actions/inventory";
 
 type ProductStock = {
     id: string;
@@ -38,24 +47,30 @@ type ProductStock = {
     stocks: Record<string, number>;
 };
 
-const BRANCHES = ["Sudirman", "Kemang", "Depok"];
-
-const PRODUCTS: ProductStock[] = [
-    { id: "prd-01", name: "Detergen Premium", stocks: { Sudirman: 14, Kemang: 4, Depok: 0 } },
-    { id: "prd-02", name: "Pewangi Lavender", stocks: { Sudirman: 7, Kemang: 8, Depok: 6 } },
-    { id: "prd-03", name: "Plastic Bag", stocks: { Sudirman: 3, Kemang: 2, Depok: 1 } },
-    { id: "prd-04", name: "Hanger", stocks: { Sudirman: 25, Kemang: 12, Depok: 9 } },
-];
-
-const TRANSFER_REQUESTS = [
-    { id: "TRF-44", from: "Kemang", to: "Sudirman", product: "Detergen Premium", qty: 8, status: "Pending" },
-    { id: "TRF-43", from: "Depok", to: "Kemang", product: "Plastic Bag", qty: 20, status: "Pending" },
-];
-
-const ADJUSTMENT_HISTORY = [
-    { id: "ADJ-10", product: "Detergen Premium", branch: "Sudirman", qty: "+5", by: "Rina", reason: "Stok baru", time: "Hari ini" },
-    { id: "ADJ-09", product: "Plastic Bag", branch: "Depok", qty: "-10", by: "Bagas", reason: "Rusak", time: "Kemarin" },
-];
+type InventoryBranch = { id: string; name: string };
+type InventoryProduct = {
+    id: string;
+    name: string;
+    stocks?: Array<{ branchId: string | null; branchName?: string | null; quantity: number | string }>;
+};
+type InventoryTransfer = {
+    id: string;
+    product?: { id: string; name: string } | null;
+    fromBranch?: { id: string; name: string } | null;
+    toBranch?: { id: string; name: string } | null;
+    quantity?: number | string | null;
+    status?: string | null;
+    note?: string | null;
+};
+type InventoryAdjustment = {
+    id: string;
+    product?: { id: string; name: string } | null;
+    branch?: { id: string; name: string } | null;
+    quantityDelta?: number | string | null;
+    reason?: string | null;
+    actor?: { id: string; name: string } | null;
+    createdAt?: string | null;
+};
 
 function getStatus(stocks: Record<string, number>) {
     const values = Object.values(stocks);
@@ -65,25 +80,112 @@ function getStatus(stocks: Record<string, number>) {
     return "OK";
 }
 
-function statusBadge(status: string) {
-    if (status === "OK") return "bg-emerald-50 text-emerald-700 border-emerald-200";
-    if (status === "Low") return "bg-amber-50 text-amber-700 border-amber-200";
-    return "bg-rose-50 text-rose-700 border-rose-200";
+function rowHighlight(status: string) {
+    // Subtle row highlighting based on status
+    if (status === "OK") return "row-success";
+    if (status === "Low") return "row-warning";
+    if (status === "Habis") return "row-error";
+    return "";
 }
 
-export function InventoryPageClient() {
+const adjustmentSchema = z.object({
+    branchId: z.string().min(1, "Cabang wajib dipilih"),
+    quantityDelta: z.number().int().positive("Jumlah harus lebih dari 0"),
+    reason: z.string().optional(),
+});
+
+const transferSchema = z.object({
+    fromBranchId: z.string().min(1, "Cabang asal wajib dipilih"),
+    toBranchId: z.string().min(1, "Cabang tujuan wajib dipilih"),
+    productId: z.string().min(1, "Produk wajib dipilih"),
+    quantity: z.number().int().positive("Jumlah harus lebih dari 0"),
+    note: z.string().optional(),
+}).refine((data) => data.fromBranchId !== data.toBranchId, {
+    message: "Cabang asal dan tujuan harus berbeda",
+    path: ["toBranchId"],
+});
+
+function transferStatusLabel(status?: string | null) {
+    if (!status) return "Pending";
+    if (status === "approved") return "Approved";
+    if (status === "rejected") return "Rejected";
+    if (status === "cancelled") return "Cancelled";
+    if (status === "pending") return "Pending";
+    return status;
+}
+
+function formatDateLabel(value?: string | null) {
+    if (!value) return "-";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "-";
+    return date.toLocaleDateString("id-ID", { day: "2-digit", month: "short" });
+}
+
+type InventoryPageClientProps = {
+    branches: InventoryBranch[];
+    products: InventoryProduct[];
+    transfers: InventoryTransfer[];
+    adjustments: InventoryAdjustment[];
+};
+
+export function InventoryPageClient({
+    branches,
+    products,
+    transfers,
+    adjustments,
+}: InventoryPageClientProps) {
+    const { refresh } = useTransitionRouter();
     const [activeTab, setActiveTab] = useState("overview");
     const [selectedProduct, setSelectedProduct] = useState<ProductStock | null>(null);
     const [sheetOpen, setSheetOpen] = useState(false);
     const [productQuery, setProductQuery] = useState("");
     const [historyQuery, setHistoryQuery] = useState("");
+    const [transferActionPending, setTransferActionPending] = useState<string | null>(null);
 
     const tableRows = useMemo(() => {
-        return PRODUCTS.map((product) => ({
-            ...product,
-            status: getStatus(product.stocks),
+        return products.map((product) => {
+            const stocks: Record<string, number> = {};
+            for (const branch of branches) {
+                stocks[branch.name] = 0;
+            }
+            for (const stock of product.stocks ?? []) {
+                const branchName = stock.branchName ?? branches.find((b) => b.id === stock.branchId)?.name;
+                if (!branchName) continue;
+                stocks[branchName] = Number(stock.quantity ?? 0);
+            }
+            return {
+                id: product.id,
+                name: product.name,
+                stocks,
+                status: getStatus(stocks),
+            };
+        });
+    }, [branches, products]);
+
+    const transferRequests = useMemo(() => {
+        return transfers.map((transfer) => ({
+            id: transfer.id,
+            from: transfer.fromBranch?.name ?? "-",
+            to: transfer.toBranch?.name ?? "-",
+            product: transfer.product?.name ?? "-",
+            qty: Number(transfer.quantity ?? 0),
+            status: transferStatusLabel(transfer.status),
+            rawStatus: transfer.status ?? "pending",
+            note: transfer.note ?? null,
         }));
-    }, []);
+    }, [transfers]);
+
+    const adjustmentHistory = useMemo(() => {
+        return adjustments.map((row) => ({
+            id: row.id,
+            product: row.product?.name ?? "-",
+            branch: row.branch?.name ?? "-",
+            qty: `${Number(row.quantityDelta ?? 0) >= 0 ? "+" : ""}${Number(row.quantityDelta ?? 0)}`,
+            by: row.actor?.name ?? "-",
+            reason: row.reason ?? "-",
+            time: formatDateLabel(row.createdAt ?? null),
+        }));
+    }, [adjustments]);
 
     const filteredRows = useMemo(() => {
         const query = productQuery.trim().toLowerCase();
@@ -96,14 +198,93 @@ export function InventoryPageClient() {
 
     const filteredHistory = useMemo(() => {
         const query = historyQuery.trim().toLowerCase();
-        if (!query) return ADJUSTMENT_HISTORY;
-        return ADJUSTMENT_HISTORY.filter((row) => (
+        if (!query) return adjustmentHistory;
+        return adjustmentHistory.filter((row) => (
             row.product.toLowerCase().includes(query) ||
             row.branch.toLowerCase().includes(query) ||
             row.by.toLowerCase().includes(query) ||
             row.reason.toLowerCase().includes(query)
         ));
-    }, [historyQuery]);
+    }, [historyQuery, adjustmentHistory]);
+
+    const adjustmentForm = useForm({
+        defaultValues: {
+            branchId: "",
+            quantityDelta: 1,
+            reason: "",
+        },
+        onSubmit: async ({ value }) => {
+            if (!selectedProduct) {
+                toast.error("Pilih produk terlebih dahulu.");
+                return;
+            }
+            const parsed = adjustmentSchema.safeParse({
+                ...value,
+                reason: value.reason?.trim() || undefined,
+            });
+            if (!parsed.success) {
+                toast.error(parsed.error.issues[0]?.message ?? "Form tidak valid.");
+                return;
+            }
+            const result = await createInventoryAdjustmentAction({
+                productId: selectedProduct.id,
+                ...parsed.data,
+            });
+            if (!result.ok) {
+                toast.error(result.error || "Gagal menambahkan stok.");
+                return;
+            }
+            toast.success("Stok berhasil diperbarui.");
+            setSheetOpen(false);
+            refresh();
+        },
+    });
+
+    const transferForm = useForm({
+        defaultValues: {
+            fromBranchId: "",
+            toBranchId: "",
+            productId: "",
+            quantity: 1,
+            note: "",
+        },
+        onSubmit: async ({ value }) => {
+            const parsed = transferSchema.safeParse({
+                ...value,
+                note: value.note?.trim() || undefined,
+            });
+            if (!parsed.success) {
+                toast.error(parsed.error.issues[0]?.message ?? "Form tidak valid.");
+                return;
+            }
+            const result = await createInventoryTransferAction(parsed.data);
+            if (!result.ok) {
+                toast.error(result.error || "Gagal mengajukan transfer.");
+                return;
+            }
+            toast.success("Transfer berhasil diajukan.");
+            transferForm.reset({
+                fromBranchId: "",
+                toBranchId: "",
+                productId: "",
+                quantity: 1,
+                note: "",
+            });
+            refresh();
+        },
+    });
+
+    const handleTransferStatus = async (transferId: string, status: "approved" | "rejected" | "cancelled") => {
+        setTransferActionPending(`${transferId}:${status}`);
+        const result = await updateInventoryTransferStatusAction(transferId, status);
+        setTransferActionPending(null);
+        if (!result.ok) {
+            toast.error(result.error || "Gagal memperbarui transfer.");
+            return;
+        }
+        toast.success("Status transfer diperbarui.");
+        refresh();
+    };
 
     return (
         <div className="space-y-6">
@@ -130,8 +311,8 @@ export function InventoryPageClient() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">Semua Cabang</SelectItem>
-                                    {BRANCHES.map((branch) => (
-                                        <SelectItem key={branch} value={branch.toLowerCase()}>{branch}</SelectItem>
+                                    {branches.map((branch) => (
+                                        <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
@@ -163,8 +344,8 @@ export function InventoryPageClient() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Produk</TableHead>
-                                    {BRANCHES.map((branch) => (
-                                        <TableHead key={branch}>{branch}</TableHead>
+                                {branches.map((branch) => (
+                                        <TableHead key={branch.id}>{branch.name}</TableHead>
                                     ))}
                                     <TableHead>Status</TableHead>
                                     <TableHead>Aksi</TableHead>
@@ -174,26 +355,18 @@ export function InventoryPageClient() {
                                 {filteredRows.map((row) => (
                                     <TableRow
                                         key={row.id}
-                                        className={cn(
-                                            row.status === "Low" && "bg-amber-50/60",
-                                            row.status === "Habis" && "bg-rose-50/60"
-                                        )}
+                                        className={rowHighlight(row.status)}
                                     >
                                         <TableCell className="font-semibold">{row.name}</TableCell>
-                                        {BRANCHES.map((branch) => (
-                                            <TableCell key={branch} className={cn(
-                                                row.stocks[branch] === 0 && "text-rose-700 font-semibold"
+                                        {branches.map((branch) => (
+                                            <TableCell key={branch.id} className={cn(
+                                                row.stocks[branch.name] === 0 && "text-rose-700 font-semibold"
                                             )}>
-                                                {row.stocks[branch]}
+                                                {row.stocks[branch.name]}
                                             </TableCell>
                                         ))}
                                         <TableCell>
-                                            <Badge
-                                                variant="outline"
-                                                className={cn("border text-[11px] font-semibold", statusBadge(row.status))}
-                                            >
-                                                {row.status}
-                                            </Badge>
+                                            <StatusBadge status={row.status} />
                                         </TableCell>
                                         <TableCell>
                                             <Button
@@ -202,6 +375,11 @@ export function InventoryPageClient() {
                                                 onClick={() => {
                                                     setSelectedProduct(row);
                                                     setSheetOpen(true);
+                                                    adjustmentForm.reset({
+                                                        branchId: "",
+                                                        quantityDelta: 1,
+                                                        reason: "",
+                                                    });
                                                 }}
                                             >
                                                 Tambah Stok
@@ -221,7 +399,7 @@ export function InventoryPageClient() {
                                 <h2 className="text-sm font-semibold text-foreground">Permintaan Transfer</h2>
                                 <p className="text-xs text-muted-foreground mt-1">Menunggu approval owner.</p>
                             </div>
-                            {TRANSFER_REQUESTS.length === 0 ? (
+                            {transferRequests.length === 0 ? (
                                 <CardEmptyState
                                     icon={AlertTriangle}
                                     title="Belum ada permintaan"
@@ -229,21 +407,47 @@ export function InventoryPageClient() {
                                 />
                             ) : (
                                 <div className="space-y-3">
-                                    {TRANSFER_REQUESTS.map((req) => (
+                                    {transferRequests.map((req) => (
                                         <div key={req.id} className="rounded-lg border border-border/60 bg-muted/30 p-4">
                                             <div className="flex items-center justify-between">
                                                 <p className="text-sm font-semibold text-foreground">{req.product}</p>
-                                                <Badge variant="outline" className="text-[11px] font-semibold border border-amber-200 text-amber-700 bg-amber-50">
-                                                    {req.status}
-                                                </Badge>
+                                                <StatusBadge status={req.status} />
                                             </div>
                                             <p className="text-xs text-muted-foreground mt-2">
-                                                {req.from} → {req.to} • {req.qty} pcs
+                                                {req.from} -> {req.to} -> {req.qty} pcs
                                             </p>
-                                            <div className="mt-3 flex gap-2">
-                                                <Button variant="outline" className="h-8 text-xs font-semibold">Tolak</Button>
-                                                <Button className="h-8 text-xs font-semibold">Setujui</Button>
-                                            </div>
+                                            {req.note ? (
+                                                <p className="mt-2 text-xs text-muted-foreground">
+                                                    Catatan: {req.note}
+                                                </p>
+                                            ) : null}
+                                            {req.rawStatus === "pending" ? (
+                                                <div className="mt-3 flex gap-2">
+                                                    <Button
+                                                        variant="outline"
+                                                        className="h-8 text-xs font-semibold"
+                                                        onClick={() => handleTransferStatus(req.id, "rejected")}
+                                                        disabled={transferActionPending === `${req.id}:rejected`}
+                                                    >
+                                                        Tolak
+                                                    </Button>
+                                                    <Button
+                                                        className="h-8 text-xs font-semibold"
+                                                        onClick={() => handleTransferStatus(req.id, "approved")}
+                                                        disabled={transferActionPending === `${req.id}:approved`}
+                                                    >
+                                                        Setujui
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        className="h-8 text-xs font-semibold text-muted-foreground"
+                                                        onClick={() => handleTransferStatus(req.id, "cancelled")}
+                                                        disabled={transferActionPending === `${req.id}:cancelled`}
+                                                    >
+                                                        Batalkan
+                                                    </Button>
+                                                </div>
+                                            ) : null}
                                         </div>
                                     ))}
                                 </div>
@@ -254,41 +458,80 @@ export function InventoryPageClient() {
                                 <h2 className="text-sm font-semibold text-foreground">Form Transfer</h2>
                                 <p className="text-xs text-muted-foreground mt-1">Ajukan transfer antar cabang.</p>
                             </div>
-                            <div className="space-y-3">
-                                <Select>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Dari Cabang" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {BRANCHES.map((branch) => (
-                                            <SelectItem key={branch} value={branch.toLowerCase()}>{branch}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <Select>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Ke Cabang" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {BRANCHES.map((branch) => (
-                                            <SelectItem key={branch} value={branch.toLowerCase()}>{branch}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <Select>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Produk" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {PRODUCTS.map((product) => (
-                                            <SelectItem key={product.id} value={product.id}>{product.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <Input type="number" placeholder="Jumlah" />
-                                <Button className="w-full h-9 text-xs font-semibold">Ajukan Transfer</Button>
-                            </div>
-                            <div className="rounded-lg border border-border/60 bg-muted/30 p-4 space-y-2">
+                            <form
+                                className="space-y-3"
+                                onSubmit={(event) => {
+                                    event.preventDefault();
+                                    transferForm.handleSubmit();
+                                }}
+                            >
+                                <transferForm.Field name="fromBranchId">
+                                    {(field) => (
+                                        <Select value={field.state.value} onValueChange={field.handleChange}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Dari Cabang" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {branches.map((branch) => (
+                                                    <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                </transferForm.Field>
+                                <transferForm.Field name="toBranchId">
+                                    {(field) => (
+                                        <Select value={field.state.value} onValueChange={field.handleChange}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Ke Cabang" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {branches.map((branch) => (
+                                                    <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                </transferForm.Field>
+                                <transferForm.Field name="productId">
+                                    {(field) => (
+                                        <Select value={field.state.value} onValueChange={field.handleChange}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Produk" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {tableRows.map((product) => (
+                                                    <SelectItem key={product.id} value={product.id}>{product.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                </transferForm.Field>
+                                <transferForm.Field name="quantity">
+                                    {(field) => (
+                                        <Input
+                                            type="number"
+                                            min={1}
+                                            placeholder="Jumlah"
+                                            value={field.state.value}
+                                            onChange={(event) => field.handleChange(Number(event.target.value))}
+                                        />
+                                    )}
+                                </transferForm.Field>
+                                <transferForm.Field name="note">
+                                    {(field) => (
+                                        <Input
+                                            placeholder="Catatan (opsional)"
+                                            value={field.state.value}
+                                            onChange={(event) => field.handleChange(event.target.value)}
+                                        />
+                                    )}
+                                </transferForm.Field>
+                                <Button className="w-full h-9 text-xs font-semibold" type="submit">
+                                    Ajukan Transfer
+                                </Button>
+                            </form>
+<div className="rounded-lg border border-border/60 bg-muted/30 p-4 space-y-2">
                                 <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
                                     <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                                     Transfer selesai akan masuk ke riwayat otomatis.
@@ -357,23 +600,53 @@ export function InventoryPageClient() {
                             {selectedProduct ? selectedProduct.name : "Pilih produk dulu."}
                         </SheetDescription>
                     </SheetHeader>
-                    <div className="mt-6 space-y-4">
-                        <Select>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Cabang" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {BRANCHES.map((branch) => (
-                                    <SelectItem key={branch} value={branch.toLowerCase()}>{branch}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <Input type="number" placeholder="Jumlah tambah" />
-                        <Input placeholder="Alasan / catatan" />
-                    </div>
-                    <SheetFooter className="mt-6">
-                        <Button className="w-full h-9 text-xs font-semibold">Simpan</Button>
-                    </SheetFooter>
+                    <form
+                        className="mt-6 space-y-4"
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            adjustmentForm.handleSubmit();
+                        }}
+                    >
+                        <adjustmentForm.Field name="branchId">
+                            {(field) => (
+                                <Select value={field.state.value} onValueChange={field.handleChange}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Cabang" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {branches.map((branch) => (
+                                            <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        </adjustmentForm.Field>
+                        <adjustmentForm.Field name="quantityDelta">
+                            {(field) => (
+                                <Input
+                                    type="number"
+                                    min={1}
+                                    placeholder="Jumlah tambah"
+                                    value={field.state.value}
+                                    onChange={(event) => field.handleChange(Number(event.target.value))}
+                                />
+                            )}
+                        </adjustmentForm.Field>
+                        <adjustmentForm.Field name="reason">
+                            {(field) => (
+                                <Input
+                                    placeholder="Alasan / catatan"
+                                    value={field.state.value}
+                                    onChange={(event) => field.handleChange(event.target.value)}
+                                />
+                            )}
+                        </adjustmentForm.Field>
+                        <SheetFooter className="mt-6">
+                            <Button className="w-full h-9 text-xs font-semibold" type="submit">
+                                Simpan
+                            </Button>
+                        </SheetFooter>
+                    </form>
                 </SheetContent>
             </Sheet>
         </div>

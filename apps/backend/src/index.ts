@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { authMiddleware } from './middleware/auth'
 import { createDbHttp } from '@beresio/db'
 import { dashboardRouter } from './routes/dashboard'
+import { businessesRouter } from './routes/businesses'
 
 type Bindings = {
   DATABASE_URL: string
@@ -33,7 +34,7 @@ app.get('/me', authMiddleware, (c) => {
 })
 
 // Mount dashboard API routes
-const routes = app.route('/api/dashboard', dashboardRouter)
+const routes = app.route('/api/dashboard', dashboardRouter).route('/api/businesses', businessesRouter)
 
 export type AppType = typeof routes
 

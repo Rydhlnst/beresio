@@ -101,7 +101,7 @@ export function OrgSwitcher({
       <SidebarGroup>
         <SidebarGroupLabel>Organisasi</SidebarGroupLabel>
         <SidebarGroupAction
-          onClick={() => push("/onboarding/org")}
+          onClick={() => push("/organizations/new")}
           aria-label="Tambah Organisasi"
         >
           <Plus className="size-4" />
@@ -181,7 +181,7 @@ export function OrgSwitcher({
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="gap-2 p-2" onClick={() => push("/onboarding/org")}>
+            <DropdownMenuItem className="gap-2 p-2" onClick={() => push("/organizations/new")}>
               <div className="flex size-6 items-center justify-center rounded-md border bg-background">
                 <GalleryVerticalEnd className="size-4" />
               </div>
