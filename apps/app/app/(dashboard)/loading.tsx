@@ -88,16 +88,25 @@ function UpgradeBannerSkeleton() {
   return <div className="h-10 w-full bg-muted/50" />
 }
 
+// Default banner height for skeleton (starter plan)
+const BANNER_HEIGHT = "40px"
+
 export default function DashboardLoading() {
   return (
-    <div className="min-h-screen">
+    <div 
+      className="min-h-screen flex flex-col"
+      style={{ "--banner-height": BANNER_HEIGHT } as React.CSSProperties}
+    >
+      {/* Banner at the very top */}
       <UpgradeBannerSkeleton />
-      <div className="flex">
+      
+      {/* Main layout with sidebar below banner */}
+      <div className="flex-1 flex overflow-hidden">
         <SidebarProvider className="flex w-full">
           <AppSidebarSkeleton />
           <SidebarInset className="flex-1 overflow-hidden bg-background/50">
             <DashboardHeaderSkeleton />
-            <main className="overflow-y-auto bg-background" style={{ minHeight: 'calc(100vh - 40px - 64px)' }}>
+            <main className="overflow-y-auto bg-background" style={{ minHeight: `calc(100vh - ${BANNER_HEIGHT} - 64px)` }}>
               <div className="mx-auto w-full max-w-7xl 2xl:max-w-[1400px] p-4 lg:p-6">
                 <div className="space-y-4">
                   <Skeleton className="h-8 w-48" />
