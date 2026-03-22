@@ -15,6 +15,7 @@ import { reportsRouter } from './reports'
 import { pickupRouter } from './pickup'
 import { highlightsRouter } from './highlights'
 import { settingsRouter } from './settings'
+import { productsRouter } from './products'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
 type Variables = { db: any; user: any; session: any }
@@ -37,3 +38,4 @@ dashboardRouter.route('/reports', reportsRouter)
 dashboardRouter.route('/pickup', pickupRouter)
 dashboardRouter.route('/highlights', highlightsRouter)
 dashboardRouter.route('/settings', settingsRouter)
+dashboardRouter.route('/products', productsRouter)
