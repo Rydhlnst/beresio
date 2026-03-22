@@ -3,10 +3,13 @@ import { auth } from "@/lib/auth";
 import { createDbNextjs } from "@beresio/db";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@repo/ui/button";
+import { ArrowLeft } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Tambah Order - Beres",
-  description: "Buat order baru",
+  title: "Tambah Order | Beres",
+  description: "Buat order baru untuk pelanggan",
 };
 
 export default async function CreateOrderPage() {
@@ -22,14 +25,21 @@ export default async function CreateOrderPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Tambah Order</h1>
-        <p className="text-muted-foreground">
-          Buat order baru untuk pelanggan
-        </p>
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+          <Link href="/order">
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+        </Button>
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">Tambah Order</h1>
+          <p className="text-sm text-muted-foreground mt-2">
+            Buat order baru untuk pelanggan.
+          </p>
+        </div>
       </div>
 
-      <div className="rounded-xl border bg-card p-8">
+      <div className="rounded-xl border border-border/60 bg-card p-8">
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <div className="rounded-full bg-muted p-4">
             <svg
@@ -46,7 +56,7 @@ export default async function CreateOrderPage() {
               />
             </svg>
           </div>
-          <h3 className="mt-4 text-lg font-medium">Form Order Baru</h3>
+          <h3 className="mt-4 text-lg font-semibold text-foreground">Form Order Baru</h3>
           <p className="mt-2 max-w-sm text-sm text-muted-foreground">
             Form pembuatan order akan segera hadir. Fitur ini sedang dalam pengembangan.
           </p>

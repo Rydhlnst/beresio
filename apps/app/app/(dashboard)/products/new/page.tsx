@@ -8,7 +8,7 @@ import { Button } from "@repo/ui/button";
 import { ArrowLeft } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Tambah Produk - Beres",
+  title: "Tambah Produk | Beres",
   description: "Tambah produk baru",
 };
 
@@ -26,20 +26,20 @@ export default async function NewProductPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
           <Link href="/products">
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Tambah Produk</h1>
-          <p className="text-muted-foreground">
-            Tambahkan produk baru ke katalog
+          <h1 className="text-2xl font-semibold text-foreground">Tambah Produk</h1>
+          <p className="text-sm text-muted-foreground mt-2">
+            Tambahkan produk baru ke katalog.
           </p>
         </div>
       </div>
 
-      <div className="rounded-xl border bg-card p-8">
+      <div className="rounded-xl border border-border/60 bg-card p-8">
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <div className="rounded-full bg-muted p-4">
             <svg
@@ -56,7 +56,7 @@ export default async function NewProductPage() {
               />
             </svg>
           </div>
-          <h3 className="mt-4 text-lg font-medium">Form Tambah Produk</h3>
+          <h3 className="mt-4 text-lg font-semibold text-foreground">Form Tambah Produk</h3>
           <p className="mt-2 max-w-sm text-sm text-muted-foreground">
             Form pembuatan produk baru akan segera hadir. Fitur ini sedang dalam pengembangan.
           </p>

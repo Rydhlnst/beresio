@@ -4,12 +4,12 @@ import { createDbNextjs } from "@beresio/db";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Button } from "@repo/ui/button";
-import { Plus, BookOpen } from "lucide-react";
+import { BookOpen } from "lucide-react";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Menu & Resep - Beres",
-  description: "Kelola menu dan resep masakan",
+  title: "Menu & Resep | Beres",
+  description: "Kelola daftar menu, kategori, dan resep masakan",
 };
 
 export default async function MenuPage() {
@@ -25,27 +25,24 @@ export default async function MenuPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Menu & Resep</h1>
-          <p className="text-muted-foreground">
-            Kelola daftar menu, kategori, dan resep masakan
+          <h1 className="text-2xl font-semibold text-foreground">Menu & Resep</h1>
+          <p className="text-sm text-muted-foreground mt-2">
+            Kelola daftar menu, kategori, dan resep masakan.
           </p>
         </div>
-        <Button asChild>
-          <Link href="/menu/new">
-            <Plus className="mr-2 h-4 w-4" />
-            Tambah Menu
-          </Link>
+        <Button className="h-9 text-xs font-semibold" asChild>
+          <Link href="/menu/new">Tambah Menu</Link>
         </Button>
       </div>
 
-      <div className="rounded-xl border bg-card p-8">
+      <div className="rounded-xl border border-border/60 bg-card p-8">
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <div className="rounded-full bg-muted p-4">
             <BookOpen className="h-8 w-8 text-muted-foreground" />
           </div>
-          <h3 className="mt-4 text-lg font-medium">Menu & Resep</h3>
+          <h3 className="mt-4 text-lg font-semibold text-foreground">Menu & Resep</h3>
           <p className="mt-2 max-w-sm text-sm text-muted-foreground">
             Fitur menu dan resep akan segera hadir. Kelola katalog menu, 
             harga, kategori, dan resep bahan dengan integrasi inventory.
