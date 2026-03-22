@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "@tanstack/react-form";
+import { zodValidator } from "@tanstack/zod-form-adapter";
 import { z } from "zod";
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
@@ -26,18 +27,18 @@ const branchSchema = z
     provinsi: z.string().min(1, "Provinsi wajib dipilih"),
     kota: z.string().min(1, "Kota/area wajib diisi"),
     alamatLengkap: z.string().min(8, "Alamat lengkap minimal 8 karakter"),
-    kecamatan: z.string().optional().nullable(),
-    kelurahan: z.string().optional().nullable(),
-    kodePos: z.string().optional().nullable(),
+    kecamatan: z.string().nullable(),
+    kelurahan: z.string().nullable(),
+    kodePos: z.string().nullable(),
     nomorTelepon: z.string().min(6, "Nomor telepon wajib diisi"),
-    googlePlaceId: z.string().optional().nullable(),
-    latitude: z.number().optional().nullable(),
-    longitude: z.number().optional().nullable(),
+    googlePlaceId: z.string().nullable(),
+    latitude: z.number().nullable(),
+    longitude: z.number().nullable(),
     inputMethod: z.enum(["autocomplete", "manual"]),
   })
   .superRefine((value, ctx) => {
-    if (value.latitude !== null || value.longitude !== null) {
-      if (value.latitude === null || value.longitude === null) {
+    if (value.latitude != null || value.longitude != null) {
+      if (value.latitude == null || value.longitude == null) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: "Koordinat tidak lengkap",
@@ -131,15 +132,15 @@ export function BranchFormClient({ onSubmit, defaultValues, isSubmitting }: Bran
 
   const provinces = useMemo(() => regions.provinces.map((province) => province.name), []);
 
-  const form = useForm<BranchFormValues>({
+  const form = useForm<BranchFormValues, any, any, any, any, any, any, any, any, any, any, any>({
     defaultValues: {
       namaCabang: "",
       provinsi: "",
       kota: "",
       alamatLengkap: "",
-      kecamatan: "",
-      kelurahan: "",
-      kodePos: "",
+      kecamatan: null,
+      kelurahan: null,
+      kodePos: null,
       nomorTelepon: "",
       googlePlaceId: null,
       latitude: null,
@@ -147,7 +148,7 @@ export function BranchFormClient({ onSubmit, defaultValues, isSubmitting }: Bran
       inputMethod: "autocomplete",
       ...defaultValues,
     },
-    onSubmit: async ({ value }) => {
+    onSubmit: async ({ value }: any) => {
       const parsed = branchSchema.safeParse(value);
       if (!parsed.success) {
         setFormError(parsed.error.issues[0]?.message ?? "Form tidak valid.");
@@ -167,7 +168,7 @@ export function BranchFormClient({ onSubmit, defaultValues, isSubmitting }: Bran
         metadata: {
           google_place_id: parsed.data.googlePlaceId || null,
           koordinat:
-            parsed.data.latitude !== null && parsed.data.longitude !== null
+            parsed.data.latitude != null && parsed.data.longitude != null
               ? { lat: parsed.data.latitude, lng: parsed.data.longitude }
               : null,
           input_method: parsed.data.inputMethod,

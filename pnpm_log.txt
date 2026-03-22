@@ -1,0 +1,11 @@
+Scope: all 10 workspace projects
+Progress: resolved 0, reused 1, downloaded 0, added 0
+D:\Projects\beresio\apps\app:
+ ERR_PNPM_NO_MATCHING_VERSION  No matching version found for @tanstack/zod-form-adapter@^1.31.2
+
+This error happened while installing a direct dependency of D:\Projects\beresio\apps\app
+
+The latest release of @tanstack/zod-form-adapter is "0.42.1".
+
+If you need the full list of all 88 published versions run "$ pnpm view @tanstack/zod-form-adapter versions".
+Progress: resolved 73, reused 73, downloaded 0, added 0

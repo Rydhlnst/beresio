@@ -10,7 +10,8 @@ import {
   DropdownMenuTrigger,
 } from "@repo/ui/dropdown-menu";
 import { cn, formatRupiah } from "@/lib/utils";
-import { Package, MoreHorizontal, Pencil, Trash2, Copy, Barcode } from "lucide-react";
+import { Package, MoreHorizontal, Pencil, Trash2, Copy, Barcode, Eye } from "lucide-react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 export type Product = {
@@ -83,13 +84,21 @@ function StockBadge({ status, quantity }: { status: string; quantity: number | n
 }
 
 export function ProductCard({ product, onEdit, onDelete, onDuplicate }: ProductCardProps) {
+  const router = useRouter();
   const displayPrice = product.pricing.salePrice || product.pricing.basePrice;
 
   return (
-    <div className={cn(
-      "rounded-xl border border-border/60 bg-card p-4 space-y-4 transition-all",
-      !product.isActive && "opacity-60"
-    )}>
+    <div 
+      className={cn(
+        "rounded-xl border border-border/60 bg-card p-4 space-y-4 transition-all cursor-pointer hover:border-primary/50 hover:shadow-sm",
+        !product.isActive && "opacity-60"
+      )}
+      onClick={(e) => {
+        // Don't navigate if clicking on dropdown or buttons
+        if ((e.target as HTMLElement).closest('button')) return;
+        router.push(`/products/${product.id}`);
+      }}
+    >
       {/* Header */}
       <div className="flex items-start gap-3">
         {/* Image */}
@@ -123,6 +132,10 @@ export function ProductCard({ product, onEdit, onDelete, onDuplicate }: ProductC
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => router.push(`/products/${product.id}`)}>
+                  <Eye className="mr-2 h-4 w-4" />
+                  Lihat Detail
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onEdit(product)}>
                   <Pencil className="mr-2 h-4 w-4" />
                   Edit Produk

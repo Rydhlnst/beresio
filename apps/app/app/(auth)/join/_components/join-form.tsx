@@ -65,7 +65,7 @@ export function JoinForm({ initialToken }: JoinFormProps) {
         if (initialToken) {
             acceptInvite();
         }
-    }, [initialToken, router]);
+    }, [initialToken, push]);
 
     async function onSubmit(values: JoinFormValues) {
         setIsLoading(true);

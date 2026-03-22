@@ -22,7 +22,7 @@ async function parseResult<T>(res: Response): Promise<ActionResult<T>> {
 
 export async function updateMemberRoleAction(memberId: string, roleId: string) {
     const cookie = await getCookieHeader();
-    const res = await apiClient.api.dashboard.team.members[":id"].role.$patch(
+    const res = await (apiClient as any).api.dashboard.team.members[":id"].role.$patch(
         {
             param: { id: memberId },
             json: { roleId },
@@ -46,7 +46,7 @@ export async function createRoleAction(input: {
     permissions?: string[];
 }) {
     const cookie = await getCookieHeader();
-    const res = await apiClient.api.dashboard.team.roles.$post(
+    const res = await (apiClient as any).api.dashboard.team.roles.$post(
         {
             json: {
                 name: input.name,
@@ -65,7 +65,7 @@ export async function createRoleAction(input: {
 
 export async function updateMemberStatusAction(memberId: string, status: "active" | "inactive") {
     const cookie = await getCookieHeader();
-    const res = await apiClient.api.dashboard.team.members[":id"].status.$patch(
+    const res = await (apiClient as any).api.dashboard.team.members[":id"].status.$patch(
         {
             param: { id: memberId },
             json: { status },
@@ -80,7 +80,7 @@ export async function updateMemberStatusAction(memberId: string, status: "active
 
 export async function resendInviteAction(inviteId: string) {
     const cookie = await getCookieHeader();
-    const res = await apiClient.api.dashboard.team.invitations[":id"].resend.$post(
+    const res = await (apiClient as any).api.dashboard.team.invitations[":id"].resend.$post(
         {
             param: { id: inviteId },
         },
@@ -94,7 +94,7 @@ export async function resendInviteAction(inviteId: string) {
 
 export async function cancelInviteAction(inviteId: string) {
     const cookie = await getCookieHeader();
-    const res = await apiClient.api.dashboard.team.invitations[":id"].cancel.$post(
+    const res = await (apiClient as any).api.dashboard.team.invitations[":id"].cancel.$post(
         {
             param: { id: inviteId },
         },
@@ -112,7 +112,7 @@ export async function createInviteAction(input: {
     branchId?: string;
 }) {
     const cookie = await getCookieHeader();
-    const res = await apiClient.api.dashboard.team.invitations.$post(
+    const res = await (apiClient as any).api.dashboard.team.invitations.$post(
         {
             json: {
                 email: input.email,
