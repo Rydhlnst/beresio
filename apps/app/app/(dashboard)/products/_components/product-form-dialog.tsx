@@ -27,6 +27,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { Loader2, Package, ImageIcon } from "lucide-react";
 import { ProductCategory, Supplier, CreateProductInput, UpdateProductInput } from "../_actions/products";
+import { ImageUpload } from "./image-upload";
 
 const productSchema = z.object({
   name: z.string().min(1, "Nama produk wajib diisi").max(150),
@@ -240,19 +241,12 @@ export function ProductFormDialog({
                 name="imageUrl"
                 children={(field) => (
                   <div className="space-y-2">
-                    <Label htmlFor="imageUrl">URL Gambar</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="imageUrl"
-                        value={field.state.value}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                        onBlur={field.handleBlur}
-                        placeholder="https://..."
-                      />
-                      <Button type="button" variant="outline" size="icon">
-                        <ImageIcon className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <Label>Gambar Produk</Label>
+                    <ImageUpload
+                      value={field.state.value}
+                      onChange={(url) => field.handleChange(url)}
+                      onClear={() => field.handleChange("")}
+                    />
                   </div>
                 )}
               />

@@ -101,6 +101,7 @@ export function ProductCard({ product, onEdit, onDelete, onDuplicate }: ProductC
               fill
               className="object-cover"
               sizes="64px"
+              unoptimized={product.imageUrl.includes('cloudinary')}
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center">

@@ -15,6 +15,7 @@ import { reportsRouter } from './reports'
 import { pickupRouter } from './pickup'
 import { highlightsRouter } from './highlights'
 import { settingsRouter } from './settings'
+import { uploadRouter } from './upload'
 import { productsRouter } from './products'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
@@ -38,4 +39,5 @@ dashboardRouter.route('/reports', reportsRouter)
 dashboardRouter.route('/pickup', pickupRouter)
 dashboardRouter.route('/highlights', highlightsRouter)
 dashboardRouter.route('/settings', settingsRouter)
+dashboardRouter.route('/upload', uploadRouter)
 dashboardRouter.route('/products', productsRouter)
