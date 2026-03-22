@@ -2,8 +2,8 @@ import { Hono } from 'hono'
 import { authMiddleware } from '../../middleware/auth'
 import { getOrgId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
-import { sql, and, eq, gt } from 'drizzle-orm'
-import { payments, activityLogs, customers, session, member } from '@beresio/db'
+import { sql, and, eq, gt, gte } from 'drizzle-orm'
+import { orders, customers, branches } from '@beresio/db'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
 type Variables = { db: any; user: any; session: any }
@@ -20,54 +20,65 @@ kpisRouter.get('/', authMiddleware, async (c) => {
             return errors.unauthorized(c, 'No organization context')
         }
 
-        // Run all aggregations in parallel
-        const [revenueResult, customerResult, sessionResult, alertResult] = await Promise.all([
-            // Total Revenue: SUM of SUCCESS payments
+        // 1. Omzet Hari Ini: SUM total_amount of orders created today
+        // 2. Pesanan Hari Ini: COUNT orders created today
+        // 3. Pelanggan Baru: COUNT customers created today
+        // 4. Cabang Aktif: Active vs Total count
+
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+
+        const [revenueResult, ordersResult, customerResult, branchResult] = await Promise.all([
+            // Omzet Hari Ini
             db
-                .select({ total: sql<number>`COALESCE(SUM(${payments.amount}), 0)` })
-                .from(payments)
+                .select({ total: sql<number>`COALESCE(SUM(${orders.totalAmount}), 0)` })
+                .from(orders)
                 .where(
                     and(
-                        eq(payments.organizationId, orgId),
-                        eq(payments.status, 'SUCCESS')
+                        eq(orders.organizationId, orgId),
+                        eq(orders.paymentStatus, 'paid'),
+                        gte(orders.createdAt, today)
                     )
                 ),
 
-            // Total Customers: unique count
+            // Pesanan Hari Ini
+            db
+                .select({ total: sql<number>`COUNT(*)` })
+                .from(orders)
+                .where(
+                    and(
+                        eq(orders.organizationId, orgId),
+                        gte(orders.createdAt, today)
+                    )
+                ),
+
+            // Pelanggan Baru (Today)
             db
                 .select({ total: sql<number>`COUNT(*)` })
                 .from(customers)
-                .where(eq(customers.organizationId, orgId)),
-
-            // Active Sessions: sessions not expired for org members
-            db
-                .select({ total: sql<number>`COUNT(DISTINCT ${session.id})` })
-                .from(session)
-                .innerJoin(member, eq(session.userId, member.userId))
                 .where(
                     and(
-                        eq(member.organizationId, orgId),
-                        gt(session.expiresAt, new Date())
+                        eq(customers.organizationId, orgId),
+                        gte(customers.createdAt, today)
                     )
                 ),
 
-            // Security Alerts: warning-level activity logs
+            // Cabang Aktif vs Total
             db
-                .select({ total: sql<number>`COUNT(*)` })
-                .from(activityLogs)
-                .where(
-                    and(
-                        eq(activityLogs.organizationId, orgId),
-                        eq(activityLogs.level, 'warning')
-                    )
-                ),
+                .select({
+                    active: sql<number>`COUNT(*) FILTER (WHERE ${branches.isActive} = true)`,
+                    total: sql<number>`COUNT(*)`,
+                })
+                .from(branches)
+                .where(eq(branches.organizationId, orgId)),
         ])
 
         return ok(c, {
-            totalRevenue: Number(revenueResult[0]?.total ?? 0),
-            totalCustomers: Number(customerResult[0]?.total ?? 0),
-            activeSessions: Number(sessionResult[0]?.total ?? 0),
-            securityAlerts: Number(alertResult[0]?.total ?? 0),
+            omzetHariIni: Number(revenueResult[0]?.total ?? 0),
+            pesananHariIni: Number(ordersResult[0]?.total ?? 0),
+            pelangganBaru: Number(customerResult[0]?.total ?? 0),
+            activeBranches: Number(branchResult[0]?.active ?? 0),
+            totalBranches: Number(branchResult[0]?.total ?? 0),
         })
     } catch (err: any) {
         console.error('[kpis]', err)

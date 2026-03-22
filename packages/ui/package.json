@@ -29,7 +29,8 @@
     "./scroll-area": "./src/scroll-area.tsx",
     "./tabs": "./src/tabs.tsx",
     "./tooltip": "./src/tooltip.tsx",
-    "./sidebar": "./src/sidebar.tsx"
+    "./sidebar": "./src/sidebar.tsx",
+    "./dialog": "./src/dialog.tsx"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",

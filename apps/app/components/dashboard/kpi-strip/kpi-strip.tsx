@@ -18,34 +18,33 @@ export async function KPIStrip() {
     if (!res.ok) {
         console.error("Failed to fetch KPIs:", await res.text());
         return (
-            <>
-                <ErrorToast
-                    id="dashboard-kpi-error"
-                    title="Gagal memuat KPI"
-                    description="Coba muat ulang halaman atau periksa koneksi."
-                />
-                <CardErrorState
-                    title="Gagal memuat KPI"
-                    description="Coba muat ulang halaman atau periksa koneksi."
-                    action={<ErrorRetryAction />}
-                    className="h-full rounded-lg border bg-card"
-                />
-            </>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 h-full">
+                {[1, 2, 3, 4].map((i) => (
+                    <CardErrorState
+                        key={i}
+                        title="Gagal memuat"
+                        description="Muat ulang halaman."
+                        className="h-full rounded-lg border bg-card"
+                    />
+                ))}
+            </div>
         );
     }
     
     const payload = await res.json();
-    const kpiData = payload?.data || {
-        totalRevenue: 0,
-        totalCustomers: 0,
-        activeSessions: 0,
-        securityAlerts: 0,
+    const kpiData = (payload as any)?.data || {
+        omzetHariIni: 0,
+        pesananHariIni: 0,
+        pelangganBaru: 0,
+        activeBranches: 0,
+        totalBranches: 0,
     };
 
-    const totalRevenue = Number(kpiData.totalRevenue ?? 0);
-    const totalCustomers = Number(kpiData.totalCustomers ?? 0);
-    const activeSessions = Number(kpiData.activeSessions ?? 0);
-    const securityAlerts = Number(kpiData.securityAlerts ?? 0);
+    const omzetHariIni = Number(kpiData.omzetHariIni ?? 0);
+    const pesananHariIni = Number(kpiData.pesananHariIni ?? 0);
+    const pelangganBaru = Number(kpiData.pelangganBaru ?? 0);
+    const activeBranches = Number(kpiData.activeBranches ?? 0);
+    const totalBranches = Number(kpiData.totalBranches ?? 0);
     
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat("id-ID", {
@@ -57,33 +56,33 @@ export async function KPIStrip() {
 
     const cards = [
         {
-            label: "Total Revenue",
-            value: formatCurrency(totalRevenue),
+            label: "Omzet Hari Ini",
+            value: formatCurrency(omzetHariIni),
             icon: DollarSign,
             variant: "default" as const,
         },
         {
-            label: "Total Customers",
-            value: totalCustomers.toString(),
+            label: "Pesanan Hari Ini",
+            value: pesananHariIni.toString(),
+            icon: Box,
+            variant: "default" as const,
+        },
+        {
+            label: "Pelanggan Baru",
+            value: pelangganBaru.toString(),
             icon: Users,
             variant: "default" as const,
         },
         {
-            label: "Active Sessions",
-            value: activeSessions.toString(),
+            label: "Cabang Aktif",
+            value: `${activeBranches}/${totalBranches}`,
             icon: Activity,
             variant: "default" as const,
-        },
-        {
-            label: "Security Alerts",
-            value: `${securityAlerts} events`,
-            icon: securityAlerts > 0 ? AlertTriangle : ShieldAlert,
-            variant: securityAlerts > 0 ? "danger" as const : "default" as const,
         },
     ];
 
     return (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2 lg:grid-rows-2 h-full">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 w-full">
             {cards.map((card) => (
                 <KPICard
                     key={card.label}

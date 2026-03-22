@@ -35,6 +35,8 @@ export function ActivityFeedClient({ data }: { data: any[] }) {
                     {FILTERS.map((f) => (
                         <button
                             key={f}
+                            type="button"
+                            suppressHydrationWarning
                             onClick={() => setActiveFilter(f)}
                             className={cn(
                                 "px-3 py-1.5 text-xs font-semibold rounded-md transition-colors duration-150 ease-out",

@@ -57,7 +57,7 @@ const branchSchema = z
 
 type BranchFormValues = z.infer<typeof branchSchema>;
 
-type BranchPayload = {
+export type BranchPayload = {
   nama_cabang: string;
   provinsi: string;
   kota: string;
@@ -73,9 +73,10 @@ type BranchPayload = {
   };
 };
 
-type BranchFormProps = {
+export type BranchFormProps = {
   onSubmit?: (payload: BranchPayload) => Promise<void> | void;
   defaultValues?: Partial<BranchFormValues>;
+  isSubmitting?: boolean;
 };
 
 function useDebouncedValue<T>(value: T, delayMs: number) {
@@ -104,7 +105,7 @@ function highlightMatch(text: string, query: string) {
   );
 }
 
-export function BranchFormClient({ onSubmit, defaultValues }: BranchFormProps) {
+export function BranchFormClient({ onSubmit, defaultValues, isSubmitting }: BranchFormProps) {
   const [formError, setFormError] = useState<string | null>(null);
   const [cityQuery, setCityQuery] = useState("");
   const [addressQuery, setAddressQuery] = useState("");
@@ -703,8 +704,8 @@ export function BranchFormClient({ onSubmit, defaultValues }: BranchFormProps) {
 
       {formError ? <p className="text-xs text-rose-600 font-semibold">{formError}</p> : null}
 
-      <Button className="h-9 text-xs font-semibold" type="submit">
-        Simpan Cabang
+      <Button className="h-9 text-xs font-semibold" type="submit" disabled={isSubmitting}>
+        {isSubmitting ? "Menyimpan..." : "Simpan Cabang"}
       </Button>
     </form>
   );

@@ -140,6 +140,20 @@ const NAV_REGISTRY: Record<string, Record<string, NavItem>> = {
             path: '/pengaturan',
             permissionsAny: ['settings.read', 'settings.manage'],
         },
+        meja: {
+            id: 'meja',
+            label: 'Manajemen Meja',
+            icon: 'grid',
+            path: '/meja',
+            permissionsAny: ['tables.read', 'tables.manage'],
+        },
+        menu: {
+            id: 'menu',
+            label: 'Menu & Resep',
+            icon: 'book-open',
+            path: '/menu',
+            permissionsAny: ['menu.read', 'menu.manage'],
+        },
     },
     retail: {
         dashboard: {
@@ -191,6 +205,20 @@ const NAV_REGISTRY: Record<string, Record<string, NavItem>> = {
             path: '/pengaturan',
             permissionsAny: ['settings.read', 'settings.manage'],
         },
+        products: {
+            id: 'products',
+            label: 'Katalog Produk',
+            icon: 'box',
+            path: '/products',
+            permissionsAny: ['products.read', 'products.manage'],
+        },
+        suppliers: {
+            id: 'suppliers',
+            label: 'Pemasok',
+            icon: 'users',
+            path: '/suppliers',
+            permissionsAny: ['suppliers.read', 'suppliers.manage'],
+        },
     },
 }
 
@@ -211,9 +239,9 @@ const BASE_MODULES = [
 // VERTICAL MODULES - Business type specific
 // ============================================
 const VERTICAL_MODULES_BY_TYPE: Record<string, string[]> = {
-    laundry: ['pickup'],      // Pickup hanya untuk laundry
-    fnb: [],                  // FnB bisa tambah 'pos', 'meja', 'menu' di masa depan
-    retail: [],               // Retail bisa tambah 'pos' di masa depan
+    laundry: ['pickup'],
+    fnb: ['meja', 'menu'],
+    retail: ['products', 'suppliers'],
 }
 
 const BUSINESS_TYPE_ALIASES: Record<string, keyof typeof NAV_REGISTRY> = {

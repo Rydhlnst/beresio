@@ -58,11 +58,11 @@ function AppSidebarSkeleton() {
       </SidebarHeader>
       <SidebarContent className="px-2">
         <SidebarMenu className="gap-1">
-          <SidebarMenuSkeleton showIcon />
-          <SidebarMenuSkeleton showIcon />
-          <SidebarMenuSkeleton showIcon />
-          <SidebarMenuSkeleton showIcon />
-          <SidebarMenuSkeleton showIcon />
+          <SidebarMenuSkeleton showIcon width="75%" />
+          <SidebarMenuSkeleton showIcon width="60%" />
+          <SidebarMenuSkeleton showIcon width="80%" />
+          <SidebarMenuSkeleton showIcon width="65%" />
+          <SidebarMenuSkeleton showIcon width="70%" />
         </SidebarMenu>
         <SidebarSeparator />
         <div className="px-3 py-2">
@@ -85,9 +85,7 @@ function AppSidebarSkeleton() {
 }
 
 function UpgradeBannerSkeleton() {
-  return (
-    <div className="h-10 w-full bg-muted/50" />
-  )
+  return <div className="h-10 w-full bg-muted/50" />
 }
 
 export default function DashboardLoading() {
@@ -103,12 +101,12 @@ export default function DashboardLoading() {
               <div className="mx-auto w-full max-w-7xl 2xl:max-w-[1400px] p-4 lg:p-6">
                 <div className="space-y-4">
                   <Skeleton className="h-8 w-48" />
-                  <Skeleton className="h-32 w-full" />
+                  <Skeleton className="h-32 w-full rounded-xl" />
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <Skeleton className="h-24 w-full" />
-                    <Skeleton className="h-24 w-full" />
-                    <Skeleton className="h-24 w-full" />
-                    <Skeleton className="h-24 w-full" />
+                    <Skeleton className="h-24 w-full rounded-xl" />
+                    <Skeleton className="h-24 w-full rounded-xl" />
+                    <Skeleton className="h-24 w-full rounded-xl" />
+                    <Skeleton className="h-24 w-full rounded-xl" />
                   </div>
                 </div>
               </div>

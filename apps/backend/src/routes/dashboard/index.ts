@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import { kpisRouter } from './kpis'
+import { alertsRouter } from './alerts'
 import { performanceRouter } from './performance'
 import { rbacRouter } from './rbac'
 import { billingRouter } from './billing'
@@ -21,6 +22,7 @@ type Variables = { db: any; user: any; session: any }
 export const dashboardRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
 dashboardRouter.route('/kpis', kpisRouter)
+dashboardRouter.route('/alerts', alertsRouter)
 dashboardRouter.route('/performance', performanceRouter)
 dashboardRouter.route('/rbac', rbacRouter)
 dashboardRouter.route('/billing', billingRouter)

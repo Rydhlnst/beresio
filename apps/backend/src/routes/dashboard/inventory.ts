@@ -135,6 +135,174 @@ inventoryRouter.get('/products', authMiddleware, async (c) => {
     }
 })
 
+// POST /api/dashboard/inventory/products
+inventoryRouter.post('/products', authMiddleware, async (c) => {
+    try {
+        const db = c.get('db')
+        const orgId = await getOrgId(c)
+        const body = await c.req.json().catch(() => null)
+
+        const name = body?.name?.trim()
+        const sku = body?.sku?.trim() ?? null
+        const unit = body?.unit?.trim() ?? 'pcs'
+
+        if (!name) return errors.badRequest(c, 'name is required')
+
+        // Check SKU uniqueness if provided
+        if (sku) {
+            const [existing] = await db
+                .select({ id: inventoryProducts.id })
+                .from(inventoryProducts)
+                .where(and(
+                    eq(inventoryProducts.organizationId, orgId),
+                    eq(inventoryProducts.sku, sku)
+                ))
+                .limit(1)
+            if (existing) return errors.badRequest(c, 'SKU already exists')
+        }
+
+        const [created] = await db
+            .insert(inventoryProducts)
+            .values({
+                organizationId: orgId,
+                name,
+                sku,
+                unit,
+                isActive: true,
+            })
+            .returning()
+
+        return ok(c, {
+            id: created.id,
+            name: created.name,
+            sku: created.sku,
+            unit: created.unit,
+            isActive: created.isActive,
+            createdAt: created.createdAt,
+            stocks: [],
+        })
+    } catch (err: any) {
+        console.error('[inventory/products/create]', err)
+        return errors.internal(c, err.message)
+    }
+})
+
+// PATCH /api/dashboard/inventory/products/:id
+inventoryRouter.patch('/products/:id', authMiddleware, async (c) => {
+    try {
+        const db = c.get('db')
+        const orgId = await getOrgId(c)
+        const productId = c.req.param('id')
+        const body = await c.req.json().catch(() => null)
+
+        const [existing] = await db
+            .select({ id: inventoryProducts.id, sku: inventoryProducts.sku })
+            .from(inventoryProducts)
+            .where(and(
+                eq(inventoryProducts.id, productId),
+                eq(inventoryProducts.organizationId, orgId)
+            ))
+            .limit(1)
+
+        if (!existing) return errors.notFound(c, 'Product not found')
+
+        const name = body?.name?.trim()
+        const sku = body?.sku?.trim()
+        const unit = body?.unit?.trim()
+        const isActive = body?.isActive
+
+        // Check SKU uniqueness if changing SKU
+        if (sku && sku !== existing.sku) {
+            const [duplicate] = await db
+                .select({ id: inventoryProducts.id })
+                .from(inventoryProducts)
+                .where(and(
+                    eq(inventoryProducts.organizationId, orgId),
+                    eq(inventoryProducts.sku, sku)
+                ))
+                .limit(1)
+            if (duplicate) return errors.badRequest(c, 'SKU already exists')
+        }
+
+        const updates: any = {}
+        if (name !== undefined) updates.name = name
+        if (sku !== undefined) updates.sku = sku
+        if (unit !== undefined) updates.unit = unit
+        if (isActive !== undefined) updates.isActive = isActive
+
+        if (Object.keys(updates).length === 0) {
+            return errors.badRequest(c, 'No fields to update')
+        }
+
+        const [updated] = await db
+            .update(inventoryProducts)
+            .set(updates)
+            .where(and(
+                eq(inventoryProducts.id, productId),
+                eq(inventoryProducts.organizationId, orgId)
+            ))
+            .returning()
+
+        return ok(c, {
+            id: updated.id,
+            name: updated.name,
+            sku: updated.sku,
+            unit: updated.unit,
+            isActive: updated.isActive,
+            createdAt: updated.createdAt,
+        })
+    } catch (err: any) {
+        console.error('[inventory/products/update]', err)
+        return errors.internal(c, err.message)
+    }
+})
+
+// DELETE /api/dashboard/inventory/products/:id
+inventoryRouter.delete('/products/:id', authMiddleware, async (c) => {
+    try {
+        const db = c.get('db')
+        const orgId = await getOrgId(c)
+        const productId = c.req.param('id')
+
+        const [existing] = await db
+            .select({ id: inventoryProducts.id })
+            .from(inventoryProducts)
+            .where(and(
+                eq(inventoryProducts.id, productId),
+                eq(inventoryProducts.organizationId, orgId)
+            ))
+            .limit(1)
+
+        if (!existing) return errors.notFound(c, 'Product not found')
+
+        // Check if product has stock in any branch
+        const [stockRow] = await db
+            .select({ quantity: inventoryStocks.quantity })
+            .from(inventoryStocks)
+            .where(and(
+                eq(inventoryStocks.productId, productId),
+                eq(inventoryStocks.organizationId, orgId)
+            ))
+            .limit(1)
+
+        if (stockRow && Number(stockRow.quantity) > 0) {
+            return errors.badRequest(c, 'Cannot delete product with existing stock')
+        }
+
+        await db
+            .delete(inventoryProducts)
+            .where(and(
+                eq(inventoryProducts.id, productId),
+                eq(inventoryProducts.organizationId, orgId)
+            ))
+
+        return ok(c, { deleted: true })
+    } catch (err: any) {
+        console.error('[inventory/products/delete]', err)
+        return errors.internal(c, err.message)
+    }
+})
+
 // GET /api/dashboard/inventory/adjustments
 inventoryRouter.get('/adjustments', authMiddleware, async (c) => {
     try {

@@ -35,6 +35,34 @@ export async function updateMemberRoleAction(memberId: string, roleId: string) {
     return parseResult(res);
 }
 
+// ============================================
+// ROLE ACTIONS
+// ============================================
+
+export async function createRoleAction(input: {
+    name: string;
+    slug?: string;
+    description?: string;
+    permissions?: string[];
+}) {
+    const cookie = await getCookieHeader();
+    const res = await apiClient.api.dashboard.team.roles.$post(
+        {
+            json: {
+                name: input.name,
+                slug: input.slug,
+                description: input.description,
+                permissions: input.permissions || [],
+            },
+        },
+        {
+            headers: { cookie },
+        }
+    );
+
+    return parseResult(res);
+}
+
 export async function updateMemberStatusAction(memberId: string, status: "active" | "inactive") {
     const cookie = await getCookieHeader();
     const res = await apiClient.api.dashboard.team.members[":id"].status.$patch(

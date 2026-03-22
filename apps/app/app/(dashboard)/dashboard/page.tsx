@@ -5,11 +5,10 @@ import { Metadata } from "next";
 import { KPIStrip } from "@/components/dashboard/kpi-strip/kpi-strip";
 import { RevenueTrendChart } from "@/components/dashboard/performance/revenue-trend-chart";
 import { RevenueBranchChart } from "@/components/dashboard/performance/revenue-branch-chart";
-import { RBACOverviewCard } from "@/components/dashboard/rbac-overview/rbac-overview-card";
-import { BillingPanelCard } from "@/components/dashboard/billing/billing-panel-card";
-import { ActivityFeedCard } from "@/components/dashboard/activity-feed/activity-feed-card";
-import { DashboardHighlightCard } from "@/components/dashboard/overview/dashboard-highlight-card";
+import { RecentOrdersPanel } from "@/components/dashboard/operations/recent-orders-panel";
+import { AlertsPanel } from "@/components/dashboard/operations/alerts-panel";
 import { OperationsStatusCard } from "@/components/dashboard/operations/operations-status-card";
+import { RBACOverviewCard } from "@/components/dashboard/rbac-overview/rbac-overview-card";
 
 export const metadata: Metadata = {
     title: "Dashboard | Beres",
@@ -47,38 +46,32 @@ export default async function DashboardPage() {
     const activeOrganizationId = (session as any)?.activeOrganizationId ?? null;
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-6">
             <DashboardGreeting name={userName} />
-            <div className="grid gap-4 lg:grid-cols-3 lg:items-stretch">
-                <div className="min-w-0 lg:col-span-2 h-full">
-                    <KPIStrip />
+            
+            {/* Row 1: KPI Cards */}
+            <div className="w-full">
+                <KPIStrip />
+            </div>
+
+            {/* Row 2: Charts Section */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div className="lg:col-span-2">
+                    <RevenueTrendChart />
                 </div>
-                <div className="h-full">
-                    <DashboardHighlightCard />
+                <div>
+                    <RevenueBranchChart />
                 </div>
             </div>
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:items-stretch">
-                <div className="grid gap-4 lg:col-span-2 lg:auto-rows-fr">
-                    <div className="h-full">
-                        <RevenueTrendChart />
-                    </div>
-                    <div className="h-full">
-                        <RevenueBranchChart />
-                    </div>
-                    <div className="h-full">
-                        <ActivityFeedCard />
-                    </div>
+
+            {/* Row 3: Operational Panel */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div className="lg:col-span-2">
+                    <RecentOrdersPanel />
                 </div>
-                <div className="grid gap-4 lg:auto-rows-fr">
-                    <div className="h-full">
-                        <OperationsStatusCard organizationId={activeOrganizationId} />
-                    </div>
-                    <div className="h-full">
-                        <RBACOverviewCard />
-                    </div>
-                    <div className="h-full">
-                        <BillingPanelCard />
-                    </div>
+                <div className="space-y-6">
+                    <AlertsPanel />
+                    <OperationsStatusCard organizationId={activeOrganizationId} />
                 </div>
             </div>
         </div>

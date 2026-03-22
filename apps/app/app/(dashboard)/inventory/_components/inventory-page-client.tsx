@@ -27,10 +27,18 @@ import {
     SheetHeader,
     SheetTitle,
 } from "@repo/ui/sheet";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@repo/ui/dialog";
 import { CardEmptyState } from "@/components/dashboard/shared/card-empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, CheckCircle2, Search } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Search, Plus, Pencil, Trash2 } from "lucide-react";
 import { useForm } from "@tanstack/react-form";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -39,6 +47,9 @@ import {
     createInventoryAdjustmentAction,
     createInventoryTransferAction,
     updateInventoryTransferStatusAction,
+    createProductAction,
+    updateProductAction,
+    deleteProductAction,
 } from "../_actions/inventory";
 
 type ProductStock = {
@@ -105,6 +116,12 @@ const transferSchema = z.object({
     path: ["toBranchId"],
 });
 
+const productSchema = z.object({
+    name: z.string().min(1, "Nama produk wajib diisi"),
+    sku: z.string().optional(),
+    unit: z.string().min(1, "Satuan wajib diisi"),
+});
+
 function transferStatusLabel(status?: string | null) {
     if (!status) return "Pending";
     if (status === "approved") return "Approved";
@@ -141,6 +158,14 @@ export function InventoryPageClient({
     const [productQuery, setProductQuery] = useState("");
     const [historyQuery, setHistoryQuery] = useState("");
     const [transferActionPending, setTransferActionPending] = useState<string | null>(null);
+    
+    // Product form states
+    const [productSheetOpen, setProductSheetOpen] = useState(false);
+    const [productSheetMode, setProductSheetMode] = useState<"create" | "edit">("create");
+    const [editingProduct, setEditingProduct] = useState<ProductStock | null>(null);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [deletingProduct, setDeletingProduct] = useState<ProductStock | null>(null);
+    const [productActionPending, setProductActionPending] = useState(false);
 
     const tableRows = useMemo(() => {
         return products.map((product) => {
@@ -286,6 +311,95 @@ export function InventoryPageClient({
         refresh();
     };
 
+    // Product form handlers
+    const openCreateProduct = () => {
+        setProductSheetMode("create");
+        setEditingProduct(null);
+        productForm.reset({ name: "", sku: "", unit: "pcs" });
+        setProductSheetOpen(true);
+    };
+
+    const openEditProduct = (product: ProductStock) => {
+        setProductSheetMode("edit");
+        setEditingProduct(product);
+        productForm.reset({ 
+            name: product.name, 
+            sku: "", 
+            unit: "pcs" 
+        });
+        setProductSheetOpen(true);
+    };
+
+    const openDeleteProduct = (product: ProductStock) => {
+        setDeletingProduct(product);
+        setDeleteDialogOpen(true);
+    };
+
+    const productForm = useForm({
+        defaultValues: {
+            name: "",
+            sku: "",
+            unit: "pcs",
+        },
+        onSubmit: async ({ value }) => {
+            const parsed = productSchema.safeParse(value);
+            if (!parsed.success) {
+                toast.error(parsed.error.issues[0]?.message ?? "Form tidak valid.");
+                return;
+            }
+            
+            setProductActionPending(true);
+            
+            if (productSheetMode === "create") {
+                const result = await createProductAction({
+                    name: parsed.data.name,
+                    sku: parsed.data.sku || null,
+                    unit: parsed.data.unit,
+                });
+                if (!result.ok) {
+                    toast.error(result.error || "Gagal membuat produk.");
+                    setProductActionPending(false);
+                    return;
+                }
+                toast.success("Produk berhasil dibuat.");
+            } else if (productSheetMode === "edit" && editingProduct) {
+                const result = await updateProductAction(editingProduct.id, {
+                    name: parsed.data.name,
+                    sku: parsed.data.sku || null,
+                    unit: parsed.data.unit,
+                });
+                if (!result.ok) {
+                    toast.error(result.error || "Gagal memperbarui produk.");
+                    setProductActionPending(false);
+                    return;
+                }
+                toast.success("Produk berhasil diperbarui.");
+            }
+            
+            setProductActionPending(false);
+            setProductSheetOpen(false);
+            refresh();
+        },
+    });
+
+    const handleDeleteProduct = async () => {
+        if (!deletingProduct) return;
+        
+        setProductActionPending(true);
+        const result = await deleteProductAction(deletingProduct.id);
+        setProductActionPending(false);
+        
+        if (!result.ok) {
+            toast.error(result.error || "Gagal menghapus produk.");
+            return;
+        }
+        
+        toast.success("Produk berhasil dihapus.");
+        setDeleteDialogOpen(false);
+        setDeletingProduct(null);
+        refresh();
+    };
+
     return (
         <div className="space-y-6">
             <div>
@@ -304,18 +418,27 @@ export function InventoryPageClient({
 
                 <TabsContent value="overview" className="mt-4 space-y-4">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="w-full sm:max-w-xs">
-                            <Select defaultValue="all">
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Semua Cabang" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">Semua Cabang</SelectItem>
-                                    {branches.map((branch) => (
-                                        <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                            <div className="w-full sm:w-48">
+                                <Select defaultValue="all">
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Semua Cabang" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Semua Cabang</SelectItem>
+                                        {branches.map((branch) => (
+                                            <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <Button 
+                                className="h-9 text-xs font-semibold"
+                                onClick={openCreateProduct}
+                            >
+                                <Plus className="h-4 w-4 mr-1" />
+                                Tambah Produk
+                            </Button>
                         </div>
                         <Button variant="outline" className="h-9 text-xs font-semibold">
                             Export
@@ -369,21 +492,40 @@ export function InventoryPageClient({
                                             <StatusBadge status={row.status} />
                                         </TableCell>
                                         <TableCell>
-                                            <Button
-                                                variant="outline"
-                                                className="h-8 text-xs font-semibold"
-                                                onClick={() => {
-                                                    setSelectedProduct(row);
-                                                    setSheetOpen(true);
-                                                    adjustmentForm.reset({
-                                                        branchId: "",
-                                                        quantityDelta: 1,
-                                                        reason: "",
-                                                    });
-                                                }}
-                                            >
-                                                Tambah Stok
-                                            </Button>
+                                            <div className="flex items-center gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="h-8 text-xs font-semibold"
+                                                    onClick={() => {
+                                                        setSelectedProduct(row);
+                                                        setSheetOpen(true);
+                                                        adjustmentForm.reset({
+                                                            branchId: "",
+                                                            quantityDelta: 1,
+                                                            reason: "",
+                                                        });
+                                                    }}
+                                                >
+                                                    + Stok
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8"
+                                                    onClick={() => openEditProduct(row)}
+                                                >
+                                                    <Pencil className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-rose-600 hover:text-rose-700"
+                                                    onClick={() => openDeleteProduct(row)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -414,7 +556,7 @@ export function InventoryPageClient({
                                                 <StatusBadge status={req.status} />
                                             </div>
                                             <p className="text-xs text-muted-foreground mt-2">
-                                                {req.from} -> {req.to} -> {req.qty} pcs
+                                                {req.from} {'->'} {req.to} {'->'} {req.qty} pcs
                                             </p>
                                             {req.note ? (
                                                 <p className="mt-2 text-xs text-muted-foreground">
@@ -592,6 +734,7 @@ export function InventoryPageClient({
                 </TabsContent>
             </Tabs>
 
+            {/* Adjustment Sheet */}
             <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
                 <SheetContent>
                     <SheetHeader>
@@ -649,6 +792,115 @@ export function InventoryPageClient({
                     </form>
                 </SheetContent>
             </Sheet>
+
+            {/* Product Create/Edit Sheet */}
+            <Sheet open={productSheetOpen} onOpenChange={setProductSheetOpen}>
+                <SheetContent>
+                    <SheetHeader>
+                        <SheetTitle>{productSheetMode === "create" ? "Tambah Produk" : "Edit Produk"}</SheetTitle>
+                        <SheetDescription>
+                            {productSheetMode === "create" 
+                                ? "Buat produk baru untuk inventory." 
+                                : editingProduct?.name}
+                        </SheetDescription>
+                    </SheetHeader>
+                    <form
+                        className="mt-6 space-y-4"
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            productForm.handleSubmit();
+                        }}
+                    >
+                        <productForm.Field name="name">
+                            {(field) => (
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Nama Produk *</label>
+                                    <Input
+                                        placeholder="Contoh: Deterjen Cair"
+                                        value={field.state.value}
+                                        onChange={(event) => field.handleChange(event.target.value)}
+                                    />
+                                </div>
+                            )}
+                        </productForm.Field>
+                        <productForm.Field name="sku">
+                            {(field) => (
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">SKU (Opsional)</label>
+                                    <Input
+                                        placeholder="Contoh: DET-001"
+                                        value={field.state.value}
+                                        onChange={(event) => field.handleChange(event.target.value)}
+                                    />
+                                </div>
+                            )}
+                        </productForm.Field>
+                        <productForm.Field name="unit">
+                            {(field) => (
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Satuan *</label>
+                                    <Select value={field.state.value} onValueChange={field.handleChange}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Pilih satuan" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="pcs">Pcs</SelectItem>
+                                            <SelectItem value="kg">Kg</SelectItem>
+                                            <SelectItem value="liter">Liter</SelectItem>
+                                            <SelectItem value="meter">Meter</SelectItem>
+                                            <SelectItem value="pack">Pack</SelectItem>
+                                            <SelectItem value="box">Box</SelectItem>
+                                            <SelectItem value="botol">Botol</SelectItem>
+                                            <SelectItem value="sachet">Sachet</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
+                        </productForm.Field>
+                        <SheetFooter className="mt-6">
+                            <Button 
+                                className="w-full h-9 text-xs font-semibold" 
+                                type="submit"
+                                disabled={productActionPending}
+                            >
+                                {productActionPending 
+                                    ? "Menyimpan..." 
+                                    : productSheetMode === "create" ? "Buat Produk" : "Simpan Perubahan"}
+                            </Button>
+                        </SheetFooter>
+                    </form>
+                </SheetContent>
+            </Sheet>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Hapus Produk</DialogTitle>
+                        <DialogDescription>
+                            Apakah Anda yakin ingin menghapus produk <strong>{deletingProduct?.name}</strong>?
+                            <br /><br />
+                            Tindakan ini tidak dapat dibatalkan. Produk dengan stok yang masih ada tidak dapat dihapus.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => setDeleteDialogOpen(false)}
+                            disabled={productActionPending}
+                        >
+                            Batal
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={handleDeleteProduct}
+                            disabled={productActionPending}
+                        >
+                            {productActionPending ? "Menghapus..." : "Hapus Produk"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
