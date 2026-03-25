@@ -11,12 +11,14 @@ type CreateProductInput = {
     name: string;
     sku?: string | null;
     unit?: string;
+    imageUrl?: string | null;
 };
 
 type UpdateProductInput = {
     name?: string;
     sku?: string | null;
     unit?: string;
+    imageUrl?: string | null;
     isActive?: boolean;
 };
 

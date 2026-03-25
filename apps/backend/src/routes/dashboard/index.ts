@@ -17,6 +17,9 @@ import { highlightsRouter } from './highlights'
 import { settingsRouter } from './settings'
 import { uploadRouter } from './upload'
 import { productsRouter } from './products'
+import { suppliersRouter } from './suppliers'
+import { transactionsRouter } from './transactions'
+import { crmRouter } from './crm'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
 type Variables = { db: any; user: any; session: any }
@@ -41,3 +44,6 @@ dashboardRouter.route('/highlights', highlightsRouter)
 dashboardRouter.route('/settings', settingsRouter)
 dashboardRouter.route('/upload', uploadRouter)
 dashboardRouter.route('/products', productsRouter)
+dashboardRouter.route('/suppliers', suppliersRouter)
+dashboardRouter.route('/transactions', transactionsRouter)
+dashboardRouter.route('/crm', crmRouter)

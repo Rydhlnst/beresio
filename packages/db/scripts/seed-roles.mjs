@@ -11,6 +11,7 @@ const sql = neon(databaseUrl);
 
 const ROLE_SEED = [
     { slug: "owner", name: "Owner" },
+    { slug: "admin", name: "Admin" },
     { slug: "branch_manager", name: "Branch Manager" },
     { slug: "cashier", name: "Cashier" },
     { slug: "staff", name: "Staff" },

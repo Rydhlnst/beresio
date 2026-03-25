@@ -9,59 +9,24 @@ import {
     inventoryProducts,
     inventoryStocks,
     inventoryTransfers,
+    stockMovements,
     user,
+    products,
+    productVariants,
+    inventoryVariantStocks,
 } from '@beresio/db'
+import {
+    adjustStockQuantity,
+    recordStockMovement,
+    adjustVariantStockQuantity,
+    recordVariantStockMovement,
+} from '../../lib/stock'
+import { getAccessibleBranchIds, getBranchAccessContext, hasBranchAccess } from '../../lib/branch-access'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
 type Variables = { db: any; user: any; session: any }
 
 const DEFAULT_LIMIT = 100
-
-async function adjustStockQuantity(tx: any, input: {
-    orgId: string
-    productId: string
-    branchId: string
-    delta: number
-}) {
-    const { orgId, productId, branchId, delta } = input
-    const [existing] = await tx
-        .select({
-            id: inventoryStocks.id,
-            quantity: inventoryStocks.quantity,
-        })
-        .from(inventoryStocks)
-        .where(and(
-            eq(inventoryStocks.organizationId, orgId),
-            eq(inventoryStocks.productId, productId),
-            eq(inventoryStocks.branchId, branchId),
-        ))
-        .limit(1)
-
-    const currentQty = Number(existing?.quantity ?? 0)
-    const nextQty = currentQty + delta
-    if (nextQty < 0) {
-        throw new Error('INSUFFICIENT_STOCK')
-    }
-
-    if (existing) {
-        await tx
-            .update(inventoryStocks)
-            .set({ quantity: nextQty, updatedAt: new Date() })
-            .where(eq(inventoryStocks.id, existing.id))
-        return nextQty
-    }
-
-    await tx
-        .insert(inventoryStocks)
-        .values({
-            organizationId: orgId,
-            productId,
-            branchId,
-            quantity: nextQty,
-        })
-
-    return nextQty
-}
 
 export const inventoryRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
@@ -70,6 +35,9 @@ inventoryRouter.get('/products', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
         const orgId = await getOrgId(c)
+        const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId)
+        if (branchIds.length === 0 && !isOrgWide) return errors.forbidden(c, 'No branch access')
+        if (branchIds.length === 0 && isOrgWide) return ok(c, [])
 
         const search = c.req.query('search')?.trim()
         const branchId = c.req.query('branchId')
@@ -86,6 +54,7 @@ inventoryRouter.get('/products', authMiddleware, async (c) => {
                 name: inventoryProducts.name,
                 sku: inventoryProducts.sku,
                 unit: inventoryProducts.unit,
+                imageUrl: inventoryProducts.imageUrl,
                 isActive: inventoryProducts.isActive,
                 createdAt: inventoryProducts.createdAt,
             })
@@ -101,7 +70,14 @@ inventoryRouter.get('/products', authMiddleware, async (c) => {
             eq(inventoryStocks.organizationId, orgId),
             inArray(inventoryStocks.productId, productIds),
         ]
-        if (branchId) stockConditions.push(eq(inventoryStocks.branchId, branchId))
+        if (branchId) {
+            if (!hasBranchAccess(branchIds, branchId)) {
+                return errors.forbidden(c, 'No access to branch')
+            }
+            stockConditions.push(eq(inventoryStocks.branchId, branchId))
+        } else {
+            stockConditions.push(inArray(inventoryStocks.branchId, branchIds))
+        }
 
         const stocks = await db
             .select({
@@ -109,6 +85,7 @@ inventoryRouter.get('/products', authMiddleware, async (c) => {
                 branchId: inventoryStocks.branchId,
                 branchName: branches.name,
                 quantity: inventoryStocks.quantity,
+                minThreshold: inventoryStocks.minThreshold,
             })
             .from(inventoryStocks)
             .leftJoin(branches, eq(inventoryStocks.branchId, branches.id))
@@ -121,138 +98,18 @@ inventoryRouter.get('/products', authMiddleware, async (c) => {
                 branchId: stock.branchId,
                 branchName: stock.branchName,
                 quantity: Number(stock.quantity ?? 0),
+                minThreshold: Number(stock.minThreshold ?? 0),
             })
             byProduct.set(stock.productId, list)
         }
 
-        return ok(c, products.map((product: any) => ({
+        const result = products.map((product: any) => ({
             ...product,
             stocks: byProduct.get(product.id) ?? [],
-        })))
-    } catch (err: any) {
-        console.error('[inventory/products]', err)
-        return errors.internal(c, err.message)
-    }
-})
+        }))
 
-// POST /api/dashboard/inventory/products
-inventoryRouter.post('/products', authMiddleware, async (c) => {
-    try {
-        const db = c.get('db')
-        const orgId = await getOrgId(c)
-        const body = await c.req.json().catch(() => null)
-
-        const name = body?.name?.trim()
-        const sku = body?.sku?.trim() ?? null
-        const unit = body?.unit?.trim() ?? 'pcs'
-
-        if (!name) return errors.badRequest(c, 'name is required')
-
-        // Check SKU uniqueness if provided
-        if (sku) {
-            const [existing] = await db
-                .select({ id: inventoryProducts.id })
-                .from(inventoryProducts)
-                .where(and(
-                    eq(inventoryProducts.organizationId, orgId),
-                    eq(inventoryProducts.sku, sku)
-                ))
-                .limit(1)
-            if (existing) return errors.badRequest(c, 'SKU already exists')
-        }
-
-        const [created] = await db
-            .insert(inventoryProducts)
-            .values({
-                organizationId: orgId,
-                name,
-                sku,
-                unit,
-                isActive: true,
-            })
-            .returning()
-
-        return ok(c, {
-            id: created.id,
-            name: created.name,
-            sku: created.sku,
-            unit: created.unit,
-            isActive: created.isActive,
-            createdAt: created.createdAt,
-            stocks: [],
-        })
-    } catch (err: any) {
-        console.error('[inventory/products/create]', err)
-        return errors.internal(c, err.message)
-    }
-})
-
-// PATCH /api/dashboard/inventory/products/:id
-inventoryRouter.patch('/products/:id', authMiddleware, async (c) => {
-    try {
-        const db = c.get('db')
-        const orgId = await getOrgId(c)
-        const productId = c.req.param('id')
-        const body = await c.req.json().catch(() => null)
-
-        const [existing] = await db
-            .select({ id: inventoryProducts.id, sku: inventoryProducts.sku })
-            .from(inventoryProducts)
-            .where(and(
-                eq(inventoryProducts.id, productId),
-                eq(inventoryProducts.organizationId, orgId)
-            ))
-            .limit(1)
-
-        if (!existing) return errors.notFound(c, 'Product not found')
-
-        const name = body?.name?.trim()
-        const sku = body?.sku?.trim()
-        const unit = body?.unit?.trim()
-        const isActive = body?.isActive
-
-        // Check SKU uniqueness if changing SKU
-        if (sku && sku !== existing.sku) {
-            const [duplicate] = await db
-                .select({ id: inventoryProducts.id })
-                .from(inventoryProducts)
-                .where(and(
-                    eq(inventoryProducts.organizationId, orgId),
-                    eq(inventoryProducts.sku, sku)
-                ))
-                .limit(1)
-            if (duplicate) return errors.badRequest(c, 'SKU already exists')
-        }
-
-        const updates: any = {}
-        if (name !== undefined) updates.name = name
-        if (sku !== undefined) updates.sku = sku
-        if (unit !== undefined) updates.unit = unit
-        if (isActive !== undefined) updates.isActive = isActive
-
-        if (Object.keys(updates).length === 0) {
-            return errors.badRequest(c, 'No fields to update')
-        }
-
-        const [updated] = await db
-            .update(inventoryProducts)
-            .set(updates)
-            .where(and(
-                eq(inventoryProducts.id, productId),
-                eq(inventoryProducts.organizationId, orgId)
-            ))
-            .returning()
-
-        return ok(c, {
-            id: updated.id,
-            name: updated.name,
-            sku: updated.sku,
-            unit: updated.unit,
-            isActive: updated.isActive,
-            createdAt: updated.createdAt,
-        })
-    } catch (err: any) {
-        console.error('[inventory/products/update]', err)
+        return ok(c, result)
+        } catch (err: any) {
         return errors.internal(c, err.message)
     }
 })
@@ -262,6 +119,8 @@ inventoryRouter.delete('/products/:id', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
         const orgId = await getOrgId(c)
+        const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId)
+        if (branchIds.length === 0 && !isOrgWide) return errors.forbidden(c, 'No branch access')
         const productId = c.req.param('id')
 
         const [existing] = await db
@@ -276,17 +135,20 @@ inventoryRouter.delete('/products/:id', authMiddleware, async (c) => {
         if (!existing) return errors.notFound(c, 'Product not found')
 
         // Check if product has stock in any branch
-        const [stockRow] = await db
-            .select({ quantity: inventoryStocks.quantity })
-            .from(inventoryStocks)
-            .where(and(
-                eq(inventoryStocks.productId, productId),
-                eq(inventoryStocks.organizationId, orgId)
-            ))
-            .limit(1)
+        if (branchIds.length > 0) {
+            const [stockRow] = await db
+                .select({ quantity: inventoryStocks.quantity })
+                .from(inventoryStocks)
+                .where(and(
+                    eq(inventoryStocks.productId, productId),
+                    eq(inventoryStocks.organizationId, orgId),
+                    inArray(inventoryStocks.branchId, branchIds)
+                ))
+                .limit(1)
 
-        if (stockRow && Number(stockRow.quantity) > 0) {
-            return errors.badRequest(c, 'Cannot delete product with existing stock')
+            if (stockRow && Number(stockRow.quantity) > 0) {
+                return errors.badRequest(c, 'Cannot delete product with existing stock')
+            }
         }
 
         await db
@@ -308,6 +170,9 @@ inventoryRouter.get('/adjustments', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
         const orgId = await getOrgId(c)
+        const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId)
+        if (branchIds.length === 0 && !isOrgWide) return errors.forbidden(c, 'No branch access')
+        if (branchIds.length === 0 && isOrgWide) return ok(c, [])
         const limit = Math.min(Number(c.req.query('limit') ?? DEFAULT_LIMIT), 200)
 
         const rows = await db
@@ -327,7 +192,10 @@ inventoryRouter.get('/adjustments', authMiddleware, async (c) => {
             .leftJoin(inventoryProducts, eq(inventoryAdjustments.productId, inventoryProducts.id))
             .leftJoin(branches, eq(inventoryAdjustments.branchId, branches.id))
             .leftJoin(user, eq(inventoryAdjustments.actorId, user.id))
-            .where(eq(inventoryAdjustments.organizationId, orgId))
+            .where(and(
+                eq(inventoryAdjustments.organizationId, orgId),
+                inArray(inventoryAdjustments.branchId, branchIds)
+            ))
             .orderBy(desc(inventoryAdjustments.createdAt))
             .limit(limit)
 
@@ -351,6 +219,8 @@ inventoryRouter.post('/adjustments', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
         const orgId = await getOrgId(c)
+        const branchIds = await getAccessibleBranchIds(c, orgId)
+        if (branchIds.length === 0) return errors.forbidden(c, 'No branch access')
         const actorId = (() => {
             try {
                 return getUserId(c)
@@ -366,6 +236,7 @@ inventoryRouter.post('/adjustments', authMiddleware, async (c) => {
         const reason = body?.reason ?? null
 
         if (!productId || !branchId) return errors.badRequest(c, 'productId and branchId are required')
+        if (!hasBranchAccess(branchIds, branchId)) return errors.forbidden(c, 'No access to branch')
         if (!Number.isFinite(quantityDelta) || quantityDelta === 0) {
             return errors.badRequest(c, 'quantityDelta must be a non-zero number')
         }
@@ -386,6 +257,16 @@ inventoryRouter.post('/adjustments', authMiddleware, async (c) => {
 
         const created = await db.transaction(async (tx: any) => {
             await adjustStockQuantity(tx, { orgId, productId, branchId, delta: quantityDelta })
+            await recordStockMovement(tx, {
+                orgId,
+                productId,
+                branchId,
+                delta: quantityDelta,
+                reason,
+                refType: 'adjustment',
+                refId: null,
+                actorId,
+            })
             const [adjustment] = await tx
                 .insert(inventoryAdjustments)
                 .values({
@@ -415,6 +296,9 @@ inventoryRouter.get('/transfers', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
         const orgId = await getOrgId(c)
+        const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId)
+        if (branchIds.length === 0 && !isOrgWide) return errors.forbidden(c, 'No branch access')
+        if (branchIds.length === 0 && isOrgWide) return ok(c, [])
         const limit = Math.min(Number(c.req.query('limit') ?? DEFAULT_LIMIT), 200)
 
         const rows = await db
@@ -440,7 +324,10 @@ inventoryRouter.get('/transfers', authMiddleware, async (c) => {
             })
             .from(inventoryTransfers)
             .leftJoin(inventoryProducts, eq(inventoryTransfers.productId, inventoryProducts.id))
-            .where(eq(inventoryTransfers.organizationId, orgId))
+            .where(and(
+                eq(inventoryTransfers.organizationId, orgId),
+                inArray(inventoryTransfers.fromBranchId, branchIds)
+            ))
             .orderBy(desc(inventoryTransfers.createdAt))
             .limit(limit)
 
@@ -468,6 +355,8 @@ inventoryRouter.post('/transfers', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
         const orgId = await getOrgId(c)
+        const branchIds = await getAccessibleBranchIds(c, orgId)
+        if (branchIds.length === 0) return errors.forbidden(c, 'No branch access')
         const requesterId = (() => {
             try {
                 return getUserId(c)
@@ -485,6 +374,9 @@ inventoryRouter.post('/transfers', authMiddleware, async (c) => {
 
         if (!productId || !fromBranchId || !toBranchId) {
             return errors.badRequest(c, 'productId, fromBranchId, toBranchId are required')
+        }
+        if (!hasBranchAccess(branchIds, fromBranchId) || !hasBranchAccess(branchIds, toBranchId)) {
+            return errors.forbidden(c, 'No access to branch')
         }
         if (fromBranchId === toBranchId) return errors.badRequest(c, 'fromBranchId and toBranchId must differ')
         if (!Number.isFinite(quantity) || quantity <= 0) return errors.badRequest(c, 'quantity must be > 0')
@@ -549,6 +441,8 @@ inventoryRouter.patch('/transfers/:id', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
         const orgId = await getOrgId(c)
+        const branchIds = await getAccessibleBranchIds(c, orgId)
+        if (branchIds.length === 0) return errors.forbidden(c, 'No branch access')
         const transferId = c.req.param('id')
         const body = await c.req.json().catch(() => null)
         const status = body?.status
@@ -564,6 +458,9 @@ inventoryRouter.patch('/transfers/:id', authMiddleware, async (c) => {
             .limit(1)
 
         if (!transferRow) return errors.notFound(c, 'Transfer not found')
+        if (!hasBranchAccess(branchIds, transferRow.fromBranchId) || !hasBranchAccess(branchIds, transferRow.toBranchId)) {
+            return errors.forbidden(c, 'No access to branch')
+        }
         if (transferRow.status !== 'pending') return errors.badRequest(c, 'Transfer already processed')
 
         const deciderId = (() => {
@@ -588,6 +485,26 @@ inventoryRouter.patch('/transfers/:id', authMiddleware, async (c) => {
                     branchId: transferRow.toBranchId,
                     delta: Number(transferRow.quantity ?? 0),
                 })
+                await recordStockMovement(tx, {
+                    orgId,
+                    productId: transferRow.productId,
+                    branchId: transferRow.fromBranchId,
+                    delta: -Number(transferRow.quantity ?? 0),
+                    reason: transferRow.note ?? null,
+                    refType: 'transfer_out',
+                    refId: transferRow.id,
+                    actorId: deciderId,
+                })
+                await recordStockMovement(tx, {
+                    orgId,
+                    productId: transferRow.productId,
+                    branchId: transferRow.toBranchId,
+                    delta: Number(transferRow.quantity ?? 0),
+                    reason: transferRow.note ?? null,
+                    refType: 'transfer_in',
+                    refId: transferRow.id,
+                    actorId: deciderId,
+                })
             }
 
             const [row] = await tx
@@ -609,6 +526,327 @@ inventoryRouter.patch('/transfers/:id', authMiddleware, async (c) => {
         if (err?.message === 'INSUFFICIENT_STOCK') {
             return errors.badRequest(c, 'Stok cabang asal tidak cukup')
         }
+        return errors.internal(c, err.message)
+    }
+})
+
+// GET /api/dashboard/inventory/movements
+inventoryRouter.get('/movements', authMiddleware, async (c) => {
+    try {
+        const db = c.get('db')
+        const orgId = await getOrgId(c)
+        const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId)
+        if (branchIds.length === 0 && !isOrgWide) return errors.forbidden(c, 'No branch access')
+        if (branchIds.length === 0 && isOrgWide) return ok(c, [])
+        const branchId = c.req.query('branchId')
+        const productId = c.req.query('productId')
+        const limit = Math.min(Number(c.req.query('limit') ?? DEFAULT_LIMIT), 200)
+
+        const conditions = [eq(stockMovements.organizationId, orgId)]
+        if (branchId) {
+            if (!hasBranchAccess(branchIds, branchId)) {
+                return errors.forbidden(c, 'No access to branch')
+            }
+            conditions.push(eq(stockMovements.branchId, branchId))
+        } else {
+            conditions.push(inArray(stockMovements.branchId, branchIds))
+        }
+        if (productId) conditions.push(eq(stockMovements.productId, productId))
+
+        const rows = await db
+            .select({
+                id: stockMovements.id,
+                productId: stockMovements.productId,
+                productName: inventoryProducts.name,
+                branchId: stockMovements.branchId,
+                branchName: branches.name,
+                delta: stockMovements.delta,
+                reason: stockMovements.reason,
+                refType: stockMovements.refType,
+                refId: stockMovements.refId,
+                actorId: stockMovements.actorId,
+                actorName: user.name,
+                createdAt: stockMovements.createdAt,
+            })
+            .from(stockMovements)
+            .leftJoin(inventoryProducts, eq(stockMovements.productId, inventoryProducts.id))
+            .leftJoin(branches, eq(stockMovements.branchId, branches.id))
+            .leftJoin(user, eq(stockMovements.actorId, user.id))
+            .where(and(...conditions))
+            .orderBy(desc(stockMovements.createdAt))
+            .limit(limit)
+
+        return ok(c, rows.map((row: any) => ({
+            id: row.id,
+            product: row.productName ? { id: row.productId, name: row.productName } : null,
+            branch: row.branchName ? { id: row.branchId, name: row.branchName } : null,
+            delta: Number(row.delta ?? 0),
+            reason: row.reason,
+            refType: row.refType,
+            refId: row.refId,
+            actor: row.actorName ? { id: row.actorId, name: row.actorName } : null,
+            createdAt: row.createdAt,
+        })))
+    } catch (err: any) {
+        console.error('[inventory/movements]', err)
+        return errors.internal(c, err.message)
+    }
+})
+
+// PATCH /api/dashboard/inventory/stocks/threshold
+inventoryRouter.patch('/stocks/threshold', authMiddleware, async (c) => {
+    try {
+        const db = c.get('db')
+        const orgId = await getOrgId(c)
+        const branchIds = await getAccessibleBranchIds(c, orgId)
+        if (branchIds.length === 0) return errors.forbidden(c, 'No branch access')
+        const body = await c.req.json().catch(() => null)
+
+        const productId = body?.productId
+        const branchId = body?.branchId
+        const minThreshold = Number(body?.minThreshold ?? 0)
+
+        if (!productId || !branchId) {
+            return errors.badRequest(c, 'productId and branchId are required')
+        }
+        if (!hasBranchAccess(branchIds, branchId)) {
+            return errors.forbidden(c, 'No access to branch')
+        }
+        if (!Number.isFinite(minThreshold) || minThreshold < 0) {
+            return errors.badRequest(c, 'minThreshold must be >= 0')
+        }
+
+        const [stockRow] = await db
+            .select({ id: inventoryStocks.id })
+            .from(inventoryStocks)
+            .where(and(
+                eq(inventoryStocks.organizationId, orgId),
+                eq(inventoryStocks.productId, productId),
+                eq(inventoryStocks.branchId, branchId),
+            ))
+            .limit(1)
+
+        if (!stockRow) {
+            return errors.notFound(c, 'Stock row not found')
+        }
+
+        const [updated] = await db
+            .update(inventoryStocks)
+            .set({ minThreshold, updatedAt: new Date() })
+            .where(eq(inventoryStocks.id, stockRow.id))
+            .returning()
+
+        return ok(c, {
+            id: updated.id,
+            productId,
+            branchId,
+            minThreshold: Number(updated.minThreshold ?? 0),
+        })
+    } catch (err: any) {
+        console.error('[inventory/threshold]', err)
+        return errors.internal(c, err.message)
+    }
+})
+
+// GET /api/dashboard/inventory/variant-stocks
+inventoryRouter.get('/variant-stocks', authMiddleware, async (c) => {
+    try {
+        const db = c.get('db')
+        const orgId = await getOrgId(c)
+        const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId)
+        if (branchIds.length === 0 && !isOrgWide) return errors.forbidden(c, 'No branch access')
+        if (branchIds.length === 0 && isOrgWide) return ok(c, [])
+        const branchId = c.req.query('branchId')
+        const productId = c.req.query('productId')
+        const variantId = c.req.query('variantId')
+        const limit = Math.min(Number(c.req.query('limit') ?? DEFAULT_LIMIT), 200)
+
+        const conditions = [eq(inventoryVariantStocks.organizationId, orgId)]
+        if (branchId) {
+            if (!hasBranchAccess(branchIds, branchId)) {
+                return errors.forbidden(c, 'No access to branch')
+            }
+            conditions.push(eq(inventoryVariantStocks.branchId, branchId))
+        } else {
+            conditions.push(inArray(inventoryVariantStocks.branchId, branchIds))
+        }
+        if (variantId) conditions.push(eq(inventoryVariantStocks.variantId, variantId))
+        if (productId) conditions.push(eq(productVariants.productId, productId))
+
+        const rows = await db
+            .select({
+                variantId: inventoryVariantStocks.variantId,
+                productId: productVariants.productId,
+                productName: products.name,
+                sku: productVariants.sku,
+                barcode: productVariants.barcode,
+                option1: productVariants.option1,
+                option2: productVariants.option2,
+                option3: productVariants.option3,
+                branchId: inventoryVariantStocks.branchId,
+                branchName: branches.name,
+                quantity: inventoryVariantStocks.quantity,
+                minThreshold: inventoryVariantStocks.minThreshold,
+                updatedAt: inventoryVariantStocks.updatedAt,
+            })
+            .from(inventoryVariantStocks)
+            .leftJoin(productVariants, eq(inventoryVariantStocks.variantId, productVariants.id))
+            .leftJoin(products, eq(productVariants.productId, products.id))
+            .leftJoin(branches, eq(inventoryVariantStocks.branchId, branches.id))
+            .where(and(...conditions))
+            .orderBy(desc(inventoryVariantStocks.updatedAt))
+            .limit(limit)
+
+        return ok(c, rows.map((row: any) => ({
+            variant: {
+                id: row.variantId,
+                sku: row.sku,
+                barcode: row.barcode,
+                option1: row.option1,
+                option2: row.option2,
+                option3: row.option3,
+            },
+            product: row.productId ? { id: row.productId, name: row.productName } : null,
+            branch: row.branchId ? { id: row.branchId, name: row.branchName } : null,
+            quantity: Number(row.quantity ?? 0),
+            minThreshold: Number(row.minThreshold ?? 0),
+            updatedAt: row.updatedAt,
+        })))
+    } catch (err: any) {
+        console.error('[inventory/variant-stocks]', err)
+        return errors.internal(c, err.message)
+    }
+})
+
+// POST /api/dashboard/inventory/variant-stocks/adjust
+inventoryRouter.post('/variant-stocks/adjust', authMiddleware, async (c) => {
+    try {
+        const db = c.get('db')
+        const orgId = await getOrgId(c)
+        const branchIds = await getAccessibleBranchIds(c, orgId)
+        if (branchIds.length === 0) return errors.forbidden(c, 'No branch access')
+        const actorId = (() => {
+            try {
+                return getUserId(c)
+            } catch {
+                return null
+            }
+        })()
+        const body = await c.req.json().catch(() => null)
+
+        const variantId = body?.variantId
+        const branchId = body?.branchId
+        const quantityDelta = Number(body?.quantityDelta ?? 0)
+        const reason = body?.reason ?? null
+
+        if (!variantId || !branchId) return errors.badRequest(c, 'variantId and branchId are required')
+        if (!hasBranchAccess(branchIds, branchId)) return errors.forbidden(c, 'No access to branch')
+        if (!Number.isFinite(quantityDelta) || quantityDelta === 0) {
+            return errors.badRequest(c, 'quantityDelta must be a non-zero number')
+        }
+
+        const [variantRow] = await db
+            .select({ id: productVariants.id })
+            .from(productVariants)
+            .where(and(eq(productVariants.id, variantId), eq(productVariants.organizationId, orgId)))
+            .limit(1)
+        if (!variantRow) return errors.notFound(c, 'Variant not found')
+
+        const [branchRow] = await db
+            .select({ id: branches.id })
+            .from(branches)
+            .where(and(eq(branches.id, branchId), eq(branches.organizationId, orgId)))
+            .limit(1)
+        if (!branchRow) return errors.notFound(c, 'Branch not found')
+
+        const created = await db.transaction(async (tx: any) => {
+            await adjustVariantStockQuantity(tx, { orgId, variantId, branchId, delta: quantityDelta })
+            await recordVariantStockMovement(tx, {
+                orgId,
+                variantId,
+                branchId,
+                delta: quantityDelta,
+                reason,
+                refType: 'adjustment',
+                refId: null,
+                actorId,
+            })
+            return { variantId, branchId, quantityDelta, reason }
+        })
+
+        return ok(c, created)
+    } catch (err: any) {
+        console.error('[inventory/variant-stocks/adjust]', err)
+        if (err?.message === 'INSUFFICIENT_STOCK') {
+            return errors.badRequest(c, 'Stok tidak mencukupi')
+        }
+        return errors.internal(c, err.message)
+    }
+})
+
+// PATCH /api/dashboard/inventory/variant-stocks/threshold
+inventoryRouter.patch('/variant-stocks/threshold', authMiddleware, async (c) => {
+    try {
+        const db = c.get('db')
+        const orgId = await getOrgId(c)
+        const branchIds = await getAccessibleBranchIds(c, orgId)
+        if (branchIds.length === 0) return errors.forbidden(c, 'No branch access')
+        const body = await c.req.json().catch(() => null)
+
+        const variantId = body?.variantId
+        const branchId = body?.branchId
+        const minThreshold = Number(body?.minThreshold ?? 0)
+
+        if (!variantId || !branchId) {
+            return errors.badRequest(c, 'variantId and branchId are required')
+        }
+        if (!hasBranchAccess(branchIds, branchId)) {
+            return errors.forbidden(c, 'No access to branch')
+        }
+        if (!Number.isFinite(minThreshold) || minThreshold < 0) {
+            return errors.badRequest(c, 'minThreshold must be >= 0')
+        }
+
+        const [stockRow] = await db
+            .select({ id: inventoryVariantStocks.id })
+            .from(inventoryVariantStocks)
+            .where(and(
+                eq(inventoryVariantStocks.organizationId, orgId),
+                eq(inventoryVariantStocks.variantId, variantId),
+                eq(inventoryVariantStocks.branchId, branchId),
+            ))
+            .limit(1)
+
+        let updated
+        if (!stockRow) {
+            const [created] = await db
+                .insert(inventoryVariantStocks)
+                .values({
+                    organizationId: orgId,
+                    variantId,
+                    branchId,
+                    quantity: 0,
+                    minThreshold,
+                })
+                .returning()
+            updated = created
+        } else {
+            const [row] = await db
+                .update(inventoryVariantStocks)
+                .set({ minThreshold, updatedAt: new Date() })
+                .where(eq(inventoryVariantStocks.id, stockRow.id))
+                .returning()
+            updated = row
+        }
+
+        return ok(c, {
+            id: updated.id,
+            variantId,
+            branchId,
+            minThreshold: Number(updated.minThreshold ?? 0),
+        })
+    } catch (err: any) {
+        console.error('[inventory/variant-stocks/threshold]', err)
         return errors.internal(c, err.message)
     }
 })

@@ -9,3 +9,5 @@ export * from './highlights.schema';
 export * from './pickup.schema';
 export * from './business.schema';
 export * from './products.schema';
+export * from './variants.schema';
+export * from './transactions.schema';

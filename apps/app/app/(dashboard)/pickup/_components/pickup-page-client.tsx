@@ -18,11 +18,11 @@ import { cn } from "@/lib/utils";
 import { MapPin, Search, Truck, User } from "lucide-react";
 
 type DeliveryStatus =
-    | "Dikonfirmasi"
-    | "Dicuci"
-    | "Siap Diantar"
-    | "Dalam Pengiriman"
-    | "Selesai";
+    | "received"
+    | "in_process"
+    | "ready_pickup"
+    | "out_for_delivery"
+    | "completed";
 
 type DeliveryOrder = {
     id: string;
@@ -34,7 +34,21 @@ type DeliveryOrder = {
     items: string[];
 };
 
-const COLUMNS: DeliveryStatus[] = ["Dikonfirmasi", "Dicuci", "Siap Diantar", "Dalam Pengiriman", "Selesai"];
+const STATUS_LABELS: Record<DeliveryStatus, string> = {
+    received: "Order Masuk",
+    in_process: "Sedang Dicuci",
+    ready_pickup: "Siap Diantar",
+    out_for_delivery: "Dalam Pengiriman",
+    completed: "Selesai",
+};
+
+const COLUMNS: DeliveryStatus[] = [
+    "received",
+    "in_process",
+    "ready_pickup",
+    "out_for_delivery",
+    "completed",
+];
 
 type PickupOrderApi = {
     id: string;
@@ -47,10 +61,39 @@ type PickupOrderApi = {
     items?: string[] | null;
 };
 
-const STATUS_SEQUENCE: DeliveryStatus[] = ["Dikonfirmasi", "Dicuci", "Siap Diantar", "Dalam Pengiriman", "Selesai"];
+const STATUS_SEQUENCE: DeliveryStatus[] = [
+    "received",
+    "in_process",
+    "ready_pickup",
+    "out_for_delivery",
+    "completed",
+];
+
+const STATUS_ALIASES: Record<string, DeliveryStatus> = {
+    pending: "received",
+    received: "received",
+    dikonfirmasi: "received",
+    processing: "in_process",
+    in_process: "in_process",
+    dicuci: "in_process",
+    ready: "ready_pickup",
+    ready_pickup: "ready_pickup",
+    "siap diantar": "ready_pickup",
+    out_delivery: "out_for_delivery",
+    out_for_delivery: "out_for_delivery",
+    "dalam pengiriman": "out_for_delivery",
+    completed: "completed",
+    selesai: "completed",
+};
+
+function normalizeDeliveryStatus(input?: string | null): DeliveryStatus {
+    if (!input) return "received";
+    const key = input.toLowerCase();
+    return STATUS_ALIASES[key] ?? "received";
+}
 
 function statusBadgeClass(status: DeliveryStatus) {
-    if (status === "Selesai") return "bg-primary/10 text-primary border-primary/30";
+    if (status === "completed") return "bg-primary/10 text-primary border-primary/30";
     return "bg-muted/40 text-muted-foreground border-border";
 }
 
@@ -61,7 +104,7 @@ function statusProgressIndex(status: DeliveryStatus) {
 function StatusBadge({ status }: { status: DeliveryStatus }) {
     return (
         <Badge variant="outline" className={cn("border text-[10px] font-semibold", statusBadgeClass(status))}>
-            {status}
+            {STATUS_LABELS[status]}
         </Badge>
     );
 }
@@ -97,7 +140,7 @@ function StatusSteps({ status }: { status: DeliveryStatus }) {
                         />
                         <div className="flex-1">
                             <p className={cn("text-sm", isActive ? "text-foreground font-semibold" : "text-muted-foreground")}>
-                                {step}
+                                {STATUS_LABELS[step]}
                             </p>
                             {isActive ? (
                                 <p className="text-xs text-muted-foreground mt-1">Menunggu update berikutnya.</p>
@@ -121,7 +164,7 @@ export function PickupPageClient({ orders: ordersInput }: PickupPageClientProps)
             customer: order.customer ?? "Unknown",
             address: order.address ?? "-",
             eta: order.eta ?? "-",
-            status: (order.status as DeliveryStatus) ?? "Dikonfirmasi",
+            status: normalizeDeliveryStatus(order.status ?? undefined),
             driver: order.driver ?? undefined,
             items: order.items ?? [],
         }));
@@ -148,7 +191,7 @@ export function PickupPageClient({ orders: ordersInput }: PickupPageClientProps)
             order.id.toLowerCase().includes(query) ||
             order.customer.toLowerCase().includes(query) ||
             order.address.toLowerCase().includes(query) ||
-            order.status.toLowerCase().includes(query)
+            STATUS_LABELS[order.status].toLowerCase().includes(query)
         ));
     }, [searchQuery, orders]);
 
@@ -195,7 +238,7 @@ export function PickupPageClient({ orders: ordersInput }: PickupPageClientProps)
                                     <div key={column} className="w-64 flex-shrink-0 space-y-3">
                                         <div className="flex items-center justify-between">
                                             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                                                {column}
+                                                {STATUS_LABELS[column]}
                                             </p>
                                             <span className="text-xs text-muted-foreground">
                                                 {visibleOrders.filter((order) => order.status === column).length}

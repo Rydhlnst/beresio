@@ -5,6 +5,8 @@ import { PickupPageClient } from "./_components/pickup-page-client";
 import { PageErrorState } from "@/components/dashboard/shared/page-error-state";
 import { ErrorRetryAction } from "@/components/dashboard/shared/error-retry-action";
 import { ErrorToast } from "@/components/dashboard/shared/error-toast";
+import { getActiveOrganizationContext } from "@/lib/organization-context";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
     title: "Pickup & Delivery | Beres",
@@ -12,6 +14,14 @@ export const metadata: Metadata = {
 };
 
 export default async function PickupPage() {
+    const activeOrg = await getActiveOrganizationContext();
+    if (!activeOrg) {
+        redirect("/login");
+    }
+    if (activeOrg.businessType !== "laundry") {
+        redirect("/dashboard");
+    }
+
     const cookie = (await headers()).get("cookie") || "";
     const pickupRes = await apiClient.api.dashboard.pickup.$get(undefined, {
         headers: { cookie },

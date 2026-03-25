@@ -1,14 +1,22 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { TrendingUp, ShoppingCart, Users, ArrowRight } from "lucide-react";
 import { PageHero } from "../_components/PageHero";
 import { Section } from "../_components/Section";
 import { Button, Heading, Text } from "@repo/ui";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
+import { generateMetadata as seoMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = seoMetadata({
+    title: "Dashboard - Ringkasan Bisnis Anda",
+    description: "Dashboard Beres.io - Pantau metrik bisnis, transaksi, dan aktivitas tim dalam satu layar.",
+    noIndex: true, // Dashboard should not be indexed
+});
 
 const DASHBOARD_METRICS = [
-    { label: "Transaksi Hari Ini", value: "â€”", icon: ShoppingCart },
-    { label: "Pendapatan Bulan Ini", value: "â€”", icon: TrendingUp },
-    { label: "Tim Aktif", value: "â€”", icon: Users },
+    { label: "Transaksi Hari Ini", value: "—", icon: ShoppingCart },
+    { label: "Pendapatan Bulan Ini", value: "—", icon: TrendingUp },
+    { label: "Tim Aktif", value: "—", icon: Users },
 ];
 
 const QUICK_ACTIONS = [

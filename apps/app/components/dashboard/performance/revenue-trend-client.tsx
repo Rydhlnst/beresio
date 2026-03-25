@@ -33,7 +33,7 @@ export function RevenueTrendClient({
     return (
         <SectionCard
             title="Tren Revenue"
-            className="h-full"
+            className="h-auto min-h-[320px]"
             actions={<TimeRangeSelector value={range} onChange={setRange} />}
         >
             {data.length === 0 ? (

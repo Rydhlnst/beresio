@@ -20,7 +20,6 @@ import {
 import { Loader2, Mail, Lock } from "lucide-react";
 import Link from "next/link";
 import { GoogleOAuthButton } from "./GoogleOAuthButton";
-import { signInAction } from "../actions";
 import { authClient, signIn } from "@/lib/auth-client";
 import { useTransitionRouter } from "@/hooks/use-transition-router";
 
@@ -50,13 +49,6 @@ export function LoginForm() {
         setIsLoading(true);
 
         try {
-            const result = await signInAction({ email: values.email });
-            if (!result.success) {
-                toast.error(result.error || "Account not found");
-                setIsLoading(false);
-                return;
-            }
-
             const { error } = await signIn.email({
                 email: values.email,
                 password: values.password,
@@ -64,7 +56,7 @@ export function LoginForm() {
             });
 
             if (error) {
-                toast.error(error.message || "Invalid credentials");
+                toast.error("Email atau password tidak valid");
             } else {
                 push("/dashboard");
                 refresh();

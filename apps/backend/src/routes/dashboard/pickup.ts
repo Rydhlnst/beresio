@@ -4,6 +4,7 @@ import { getOrgId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
 import { and, desc, eq, gte, inArray } from 'drizzle-orm'
 import { customers, orderItems, orders, pickupOrders } from '@beresio/db'
+import { getBranchAccessContext } from '../../lib/branch-access'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
 type Variables = { db: any; user: any; session: any }
@@ -56,6 +57,10 @@ pickupRouter.get('/', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
         const orgId = await getOrgId(c)
+        const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId)
+        console.log('[DEBUG] pickup/ - branchIds:', branchIds)
+        if (branchIds.length === 0 && !isOrgWide) return errors.forbidden(c, 'No branch access')
+        if (branchIds.length === 0 && isOrgWide) return ok(c, [])
         const limit = Math.min(Number(c.req.query('limit') ?? DEFAULT_LIMIT), 200)
         const days = Math.max(Number(c.req.query('days') ?? DEFAULT_DAYS), 1)
 

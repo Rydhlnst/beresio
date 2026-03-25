@@ -7,13 +7,26 @@ type OrderItemInput = {
     name: string;
     quantity: number;
     unitPrice: number;
+    inventoryProductId?: string | null;
+    sku?: string | null;
 };
+
+type LaundryOrderStatus =
+    | "received"
+    | "in_process"
+    | "done"
+    | "ready_pickup"
+    | "out_for_delivery"
+    | "completed"
+    | "cancelled";
+
+type LaundryOrderType = "walkin" | "pickup_delivery";
 
 export type CreateOrderInput = {
     branchId: string;
     customerId?: string | null;
-    type: "pickup" | "delivery" | "walk_in";
-    status?: "pending" | "processing" | "completed" | "cancelled";
+    type: LaundryOrderType;
+    status?: LaundryOrderStatus;
     paymentStatus?: "pending" | "paid" | "refunded" | "failed";
     paymentMethod?: string | null;
     discountAmount?: number;
@@ -24,8 +37,8 @@ export type CreateOrderInput = {
 };
 
 export type UpdateOrderInput = {
-    status?: "pending" | "processing" | "completed" | "cancelled";
-    type?: "pickup" | "delivery" | "walk_in";
+    status?: LaundryOrderStatus;
+    type?: LaundryOrderType;
     paymentStatus?: "pending" | "paid" | "refunded" | "failed";
     paymentMethod?: string | null;
     notes?: string | null;

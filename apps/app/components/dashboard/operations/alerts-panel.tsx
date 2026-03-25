@@ -22,6 +22,7 @@ export async function AlertsPanel() {
         <SectionCard 
             title="Perlu Perhatian" 
             description="Tugas tertunda dan notifikasi kritis"
+            className="h-auto min-h-[168px]"
         >
             {alerts.length === 0 ? (
                 <CardEmptyState 

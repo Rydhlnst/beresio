@@ -11,7 +11,7 @@ type OperationsStatusCardProps = {
 export async function OperationsStatusCard({ organizationId }: OperationsStatusCardProps) {
     if (!organizationId) {
         return (
-            <SectionCard title="Operasional" className="h-full">
+            <SectionCard title="Operasional" className="h-auto min-h-[168px]">
                 <CardEmptyState
                     icon={MapPin}
                     title="Belum ada cabang aktif"
@@ -63,7 +63,7 @@ export async function OperationsStatusCard({ organizationId }: OperationsStatusC
     return (
         <SectionCard
             title="Operasional"
-            className="h-full"
+            className="h-auto min-h-[168px]"
             description="Cabang aktif dan tim yang sedang bertugas."
         >
             <div className="space-y-4">

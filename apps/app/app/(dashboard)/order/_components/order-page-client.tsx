@@ -48,8 +48,16 @@ import { z } from "zod";
 import { createOrderAction, updateOrderAction, updateOrderItemsAction } from "../_actions/orders";
 import { updateCustomerAction } from "../_actions/customers";
 
-type OrderStatus = "pending" | "processing" | "completed" | "cancelled";
-type OrderType = "pickup" | "delivery" | "walk_in";
+type LaundryOrderStatus =
+    | "received"
+    | "in_process"
+    | "done"
+    | "ready_pickup"
+    | "out_for_delivery"
+    | "completed"
+    | "cancelled";
+
+type LaundryOrderType = "walkin" | "pickup_delivery";
 
 type OrderTimeline = {
     label: string;
@@ -62,10 +70,10 @@ type OrderSummary = {
     orderNumber: string;
     branch: { id: string; name: string } | null;
     customer: { id: string; name: string } | null;
-    status: OrderStatus;
+    status: string;
     totalAmount: number;
     createdAt: string;
-    type: OrderType;
+    type: string;
     paymentStatus: string;
     paymentMethod: string | null;
 };
@@ -73,8 +81,8 @@ type OrderSummary = {
 type OrderDetail = {
     id: string;
     orderNumber: string;
-    status: OrderStatus;
-    type: OrderType;
+    status: string;
+    type: string;
     totalAmount: number;
     paymentStatus: string;
     paymentMethod: string | null;
@@ -84,13 +92,14 @@ type OrderDetail = {
     items: Array<{
         id: string;
         name: string;
+        sku?: string | null;
         quantity: number;
         unitPrice: number;
         totalPrice: number;
     }>;
     events: Array<{
         id: string;
-        status: OrderStatus;
+        status: string;
         note: string | null;
         actorId: string | null;
         createdAt: string;
@@ -124,24 +133,63 @@ type OrderPageClientProps = {
     filters: OrderFilters;
 };
 
+const STATUS_ALIASES: Record<string, LaundryOrderStatus> = {
+    pending: "received",
+    received: "received",
+    processing: "in_process",
+    in_process: "in_process",
+    done: "done",
+    ready: "ready_pickup",
+    ready_pickup: "ready_pickup",
+    out_delivery: "out_for_delivery",
+    out_for_delivery: "out_for_delivery",
+    completed: "completed",
+    cancelled: "cancelled",
+};
+
+const TYPE_ALIASES: Record<string, LaundryOrderType> = {
+    walkin: "walkin",
+    walk_in: "walkin",
+    pickup_delivery: "pickup_delivery",
+    pickup: "pickup_delivery",
+    delivery: "pickup_delivery",
+};
+
+function normalizeOrderStatus(status: string | null | undefined): LaundryOrderStatus {
+    if (!status) return "received";
+    const key = status.toLowerCase();
+    return STATUS_ALIASES[key] ?? "received";
+}
+
+function normalizeOrderType(type: string | null | undefined): LaundryOrderType {
+    if (!type) return "walkin";
+    const key = type.toLowerCase();
+    return TYPE_ALIASES[key] ?? "walkin";
+}
+
 const STATUS_TABS: Array<{ label: string; value: string }> = [
     { label: "Semua", value: "all" },
-    { label: "Pending", value: "pending" },
-    { label: "Proses", value: "processing" },
+    { label: "Order Masuk", value: "received" },
+    { label: "Sedang Dicuci", value: "in_process" },
+    { label: "Selesai Dicuci", value: "done" },
+    { label: "Siap Diambil/Diantar", value: "ready_pickup" },
+    { label: "Dalam Pengiriman", value: "out_for_delivery" },
     { label: "Selesai", value: "completed" },
     { label: "Batal", value: "cancelled" },
 ];
 
 const TYPE_OPTIONS: Array<{ label: string; value: string }> = [
     { label: "Semua tipe", value: "all" },
-    { label: "Pickup", value: "pickup" },
-    { label: "Delivery", value: "delivery" },
-    { label: "Walk-in", value: "walk_in" },
+    { label: "Walk-in", value: "walkin" },
+    { label: "Pickup & Delivery", value: "pickup_delivery" },
 ];
 
-const ORDER_STATUS_OPTIONS: Array<{ label: string; value: OrderStatus }> = [
-    { label: "Pending", value: "pending" },
-    { label: "Proses", value: "processing" },
+const ORDER_STATUS_OPTIONS: Array<{ label: string; value: LaundryOrderStatus }> = [
+    { label: "Order Masuk", value: "received" },
+    { label: "Sedang Dicuci", value: "in_process" },
+    { label: "Selesai Dicuci", value: "done" },
+    { label: "Siap Diambil/Diantar", value: "ready_pickup" },
+    { label: "Dalam Pengiriman", value: "out_for_delivery" },
     { label: "Selesai", value: "completed" },
     { label: "Batal", value: "cancelled" },
 ];
@@ -153,20 +201,29 @@ const PAYMENT_STATUS_OPTIONS: Array<{ label: string; value: string }> = [
     { label: "Gagal", value: "failed" },
 ];
 
-const orderItemSchema = z.object({
-    name: z.string().min(1, "Nama item wajib diisi"),
-    quantity: z.number().int().positive("Qty harus lebih dari 0"),
-    unitPrice: z.number().min(0, "Harga tidak boleh negatif"),
-});
+    const orderItemSchema = z.object({
+        name: z.string().min(1, "Nama item wajib diisi"),
+        sku: z.string().optional().nullable(),
+        quantity: z.number().int().positive("Qty harus lebih dari 0"),
+        unitPrice: z.number().min(0, "Harga tidak boleh negatif"),
+    });
 
 const orderCreateSchema = z.object({
     branchId: z.string().min(1, "Cabang wajib dipilih"),
     customerId: z.string().optional().nullable(),
-    type: z.enum(["pickup", "delivery", "walk_in"]),
+    type: z.enum(["walkin", "pickup_delivery"]),
     paymentStatus: z.enum(["pending", "paid", "refunded", "failed"]).default("pending"),
     paymentMethod: z.string().optional().nullable(),
     notes: z.string().optional().nullable(),
     items: z.array(orderItemSchema).min(1, "Minimal 1 item"),
+}).superRefine((value, ctx) => {
+    if (value.type === "pickup_delivery" && !value.customerId) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Customer wajib diisi untuk pickup/delivery.",
+            path: ["customerId"],
+        });
+    }
 });
 
 const customerUpdateSchema = z.object({
@@ -184,9 +241,12 @@ function formatCurrency(value: number) {
     }).format(value);
 }
 
-function statusBadge(status: OrderStatus) {
+function statusBadge(status: LaundryOrderStatus) {
     if (status === "completed") return "bg-emerald-50 text-emerald-700 border-emerald-200";
-    if (status === "processing") return "bg-amber-50 text-amber-700 border-amber-200";
+    if (status === "out_for_delivery") return "bg-sky-50 text-sky-700 border-sky-200";
+    if (status === "ready_pickup") return "bg-indigo-50 text-indigo-700 border-indigo-200";
+    if (status === "done") return "bg-violet-50 text-violet-700 border-violet-200";
+    if (status === "in_process") return "bg-amber-50 text-amber-700 border-amber-200";
     if (status === "cancelled") return "bg-rose-50 text-rose-700 border-rose-200";
     return "bg-muted/50 text-muted-foreground border-border";
 }
@@ -197,16 +257,18 @@ function timelineIcon(status: OrderTimeline["status"]) {
     return XCircle;
 }
 
-function statusLabel(status: OrderStatus) {
+function statusLabel(status: LaundryOrderStatus) {
+    if (status === "received") return "Order Masuk";
+    if (status === "in_process") return "Sedang Dicuci";
+    if (status === "done") return "Selesai Dicuci";
+    if (status === "ready_pickup") return "Siap Diambil/Diantar";
+    if (status === "out_for_delivery") return "Dalam Pengiriman";
     if (status === "completed") return "Selesai";
-    if (status === "processing") return "Diproses";
-    if (status === "cancelled") return "Dibatalkan";
-    return "Menunggu konfirmasi";
+    return "Dibatalkan";
 }
 
-function typeLabel(type: OrderType) {
-    if (type === "delivery") return "Delivery";
-    if (type === "pickup") return "Pickup";
+function typeLabel(type: LaundryOrderType) {
+    if (type === "pickup_delivery") return "Pickup & Delivery";
     return "Walk-in";
 }
 
@@ -218,27 +280,57 @@ function paymentStatusLabel(status: string) {
 }
 
 export function OrderPageClient({
-    orders,
+    orders: ordersInput,
     branches,
     customers,
     selectedOrderId,
-    selectedOrder,
+    selectedOrder: selectedOrderInput,
     filters,
 }: OrderPageClientProps) {
+    const normalizedBranches = Array.isArray(branches)
+        ? branches
+        : (branches as unknown as { data?: BranchOption[] })?.data ?? [];
+    const normalizedCustomers = Array.isArray(customers)
+        ? customers
+        : (customers as unknown as { data?: CustomerOption[] })?.data ?? [];
     const { refresh, replace } = useTransitionRouter();
+    const orders = useMemo(() => {
+        return ordersInput.map((order) => ({
+            ...order,
+            status: normalizeOrderStatus(order.status),
+            type: normalizeOrderType(order.type),
+        }));
+    }, [ordersInput]);
+
+    const selectedOrder = useMemo(() => {
+        if (!selectedOrderInput) return null;
+        return {
+            ...selectedOrderInput,
+            status: normalizeOrderStatus(selectedOrderInput.status),
+            type: normalizeOrderType(selectedOrderInput.type),
+            events: selectedOrderInput.events.map((event) => ({
+                ...event,
+                status: normalizeOrderStatus(event.status),
+            })),
+        };
+    }, [selectedOrderInput]);
+
+    const normalizedFilterStatus = filters.status ? normalizeOrderStatus(filters.status) : "";
+    const normalizedFilterType = filters.type ? normalizeOrderType(filters.type) : "";
+
     const [searchQuery, setSearchQuery] = useState(filters.q);
-    const [activeStatus, setActiveStatus] = useState(filters.status || "all");
+    const [activeStatus, setActiveStatus] = useState(normalizedFilterStatus || "all");
     const [createOpen, setCreateOpen] = useState(false);
     const [createError, setCreateError] = useState<string | null>(null);
     const [createPending, setCreatePending] = useState(false);
-    const [updateStatus, setUpdateStatus] = useState<OrderStatus>("pending");
+    const [updateStatus, setUpdateStatus] = useState<LaundryOrderStatus>("received");
     const [updatePaymentStatus, setUpdatePaymentStatus] = useState("pending");
     const [updatePaymentMethod, setUpdatePaymentMethod] = useState<string>("");
     const [updateCustomerId, setUpdateCustomerId] = useState<string>("none");
     const [updatePending, setUpdatePending] = useState(false);
     const [updateError, setUpdateError] = useState<string | null>(null);
     const [editItemsOpen, setEditItemsOpen] = useState(false);
-    const [editItems, setEditItems] = useState<Array<{ name: string; quantity: number; unitPrice: number }>>([]);
+    const [editItems, setEditItems] = useState<Array<{ name: string; sku?: string | null; quantity: number; unitPrice: number }>>([]);
     const [editItemsPending, setEditItemsPending] = useState(false);
     const [editItemsError, setEditItemsError] = useState<string | null>(null);
     const [customerOpen, setCustomerOpen] = useState(false);
@@ -254,7 +346,7 @@ export function OrderPageClient({
 
     useEffect(() => {
         setSearchQuery(filters.q);
-        setActiveStatus(filters.status || "all");
+        setActiveStatus(filters.status ? normalizeOrderStatus(filters.status) : "all");
     }, [filters.q, filters.status]);
 
     useEffect(() => {
@@ -266,6 +358,7 @@ export function OrderPageClient({
         setUpdateError(null);
         setEditItems(selectedOrder.items.map((item) => ({
             name: item.name,
+            sku: item.sku ?? "",
             quantity: item.quantity,
             unitPrice: item.unitPrice,
         })));
@@ -274,15 +367,15 @@ export function OrderPageClient({
 
     const selectedCustomer = useMemo(() => {
         if (!updateCustomerId || updateCustomerId === "none") return null;
-        return customers.find((customer) => customer.id === updateCustomerId) ?? null;
-    }, [customers, updateCustomerId]);
+        return normalizedCustomers.find((customer) => customer.id === updateCustomerId) ?? null;
+    }, [normalizedCustomers, updateCustomerId]);
 
     useEffect(() => {
         const handle = window.setTimeout(() => {
             const params = new URLSearchParams();
             if (activeStatus !== "all") params.set("status", activeStatus);
             if (filters.branchId) params.set("branchId", filters.branchId);
-            if (filters.type) params.set("type", filters.type);
+            if (normalizedFilterType) params.set("type", normalizedFilterType);
             if (searchQuery.trim()) params.set("q", searchQuery.trim());
             if (filters.dateFrom) params.set("dateFrom", filters.dateFrom);
             if (filters.dateTo) params.set("dateTo", filters.dateTo);
@@ -291,7 +384,7 @@ export function OrderPageClient({
         }, 350);
 
         return () => window.clearTimeout(handle);
-    }, [activeStatus, filters.branchId, filters.type, filters.dateFrom, filters.dateTo, searchQuery, selectedOrderId, replace]);
+    }, [activeStatus, filters.branchId, normalizedFilterType, filters.dateFrom, filters.dateTo, searchQuery, selectedOrderId, replace]);
 
     const timeline = useMemo<OrderTimeline[]>(() => {
         if (!selectedOrder || selectedOrder.events.length === 0) return [];
@@ -310,11 +403,11 @@ export function OrderPageClient({
         defaultValues: {
             branchId: filters.branchId || "",
             customerId: "none",
-            type: "walk_in" as OrderType,
+            type: "walkin" as LaundryOrderType,
             paymentStatus: "pending",
             paymentMethod: "",
             notes: "",
-            items: [{ name: "", quantity: 1, unitPrice: 0 }],
+            items: [{ name: "", sku: "", quantity: 1, unitPrice: 0 }],
         },
         onSubmit: async ({ value }) => {
             const parsed = orderCreateSchema.safeParse({
@@ -345,9 +438,9 @@ export function OrderPageClient({
 
             if (result.data?.id) {
                 const params = new URLSearchParams();
-                if (filters.status) params.set("status", filters.status);
+                if (activeStatus !== "all") params.set("status", activeStatus);
                 if (filters.branchId) params.set("branchId", filters.branchId);
-                if (filters.type) params.set("type", filters.type);
+                if (normalizedFilterType) params.set("type", normalizedFilterType);
                 if (filters.q) params.set("q", filters.q);
                 if (filters.dateFrom) params.set("dateFrom", filters.dateFrom);
                 if (filters.dateTo) params.set("dateTo", filters.dateTo);
@@ -431,6 +524,7 @@ export function OrderPageClient({
 
         const normalized = editItems.map((item) => ({
             name: item.name.trim(),
+            sku: item.sku?.trim() || null,
             quantity: Number(item.quantity),
             unitPrice: Number(item.unitPrice),
         }));
@@ -472,9 +566,9 @@ export function OrderPageClient({
                         value={filters.branchId || "all"}
                         onValueChange={(value) => {
                             const params = new URLSearchParams();
-                            if (filters.status) params.set("status", filters.status);
+                            if (activeStatus !== "all") params.set("status", activeStatus);
                             if (value !== "all") params.set("branchId", value);
-                            if (filters.type) params.set("type", filters.type);
+                            if (normalizedFilterType) params.set("type", normalizedFilterType);
                             if (filters.q) params.set("q", filters.q);
                             if (filters.dateFrom) params.set("dateFrom", filters.dateFrom);
                             if (filters.dateTo) params.set("dateTo", filters.dateTo);
@@ -487,13 +581,13 @@ export function OrderPageClient({
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">Semua cabang</SelectItem>
-                            {branches.map((branch) => (
+                            {normalizedBranches.map((branch) => (
                                 <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
                     <Select
-                        value={filters.status || "all"}
+                        value={activeStatus}
                         onValueChange={(value) => {
                             setActiveStatus(value);
                         }}
@@ -510,10 +604,10 @@ export function OrderPageClient({
                         </SelectContent>
                     </Select>
                     <Select
-                        value={filters.type || "all"}
+                        value={normalizedFilterType || "all"}
                         onValueChange={(value) => {
                             const params = new URLSearchParams();
-                            if (filters.status) params.set("status", filters.status);
+                            if (activeStatus !== "all") params.set("status", activeStatus);
                             if (filters.branchId) params.set("branchId", filters.branchId);
                             if (value !== "all") params.set("type", value);
                             if (filters.q) params.set("q", filters.q);
@@ -540,9 +634,9 @@ export function OrderPageClient({
                         onChange={(event) => {
                             const value = event.target.value;
                             const params = new URLSearchParams();
-                            if (filters.status) params.set("status", filters.status);
+                            if (activeStatus !== "all") params.set("status", activeStatus);
                             if (filters.branchId) params.set("branchId", filters.branchId);
-                            if (filters.type) params.set("type", filters.type);
+                            if (normalizedFilterType) params.set("type", normalizedFilterType);
                             if (filters.q) params.set("q", filters.q);
                             if (value) params.set("dateFrom", value);
                             if (filters.dateTo) params.set("dateTo", filters.dateTo);
@@ -556,9 +650,9 @@ export function OrderPageClient({
                         onChange={(event) => {
                             const value = event.target.value;
                             const params = new URLSearchParams();
-                            if (filters.status) params.set("status", filters.status);
+                            if (activeStatus !== "all") params.set("status", activeStatus);
                             if (filters.branchId) params.set("branchId", filters.branchId);
-                            if (filters.type) params.set("type", filters.type);
+                            if (normalizedFilterType) params.set("type", normalizedFilterType);
                             if (filters.q) params.set("q", filters.q);
                             if (filters.dateFrom) params.set("dateFrom", filters.dateFrom);
                             if (value) params.set("dateTo", value);
@@ -622,9 +716,9 @@ export function OrderPageClient({
                                 className="cursor-pointer"
                                 onClick={() => {
                                     const params = new URLSearchParams();
-                                    if (filters.status) params.set("status", filters.status);
+                                    if (activeStatus !== "all") params.set("status", activeStatus);
                                     if (filters.branchId) params.set("branchId", filters.branchId);
-                                    if (filters.type) params.set("type", filters.type);
+                                    if (normalizedFilterType) params.set("type", normalizedFilterType);
                                     if (filters.q) params.set("q", filters.q);
                                     if (filters.dateFrom) params.set("dateFrom", filters.dateFrom);
                                     if (filters.dateTo) params.set("dateTo", filters.dateTo);
@@ -680,7 +774,7 @@ export function OrderPageClient({
                             <div className="rounded-lg border border-border/60 bg-muted/30 p-4 space-y-3">
                                 <p className="text-xs font-semibold text-muted-foreground uppercase">Update Status</p>
                                 <div className="grid gap-3 sm:grid-cols-4">
-                                    <Select value={updateStatus} onValueChange={(value) => setUpdateStatus(value as OrderStatus)}>
+                                    <Select value={updateStatus} onValueChange={(value) => setUpdateStatus(value as LaundryOrderStatus)}>
                                         <SelectTrigger>
                                             <SelectValue placeholder="Status" />
                                         </SelectTrigger>
@@ -715,7 +809,7 @@ export function OrderPageClient({
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="none">Tanpa customer</SelectItem>
-                                            {customers.map((customer) => (
+                                            {normalizedCustomers.map((customer) => (
                                                 <SelectItem key={customer.id} value={customer.id}>
                                                     {customer.name}
                                                 </SelectItem>
@@ -865,7 +959,7 @@ export function OrderPageClient({
                                     <SelectValue placeholder="Pilih cabang" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {branches.map((branch) => (
+                                    {normalizedBranches.map((branch) => (
                                         <SelectItem key={branch.id} value={branch.id}>
                                             {branch.name}
                                         </SelectItem>
@@ -889,7 +983,7 @@ export function OrderPageClient({
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="none">Tanpa customer</SelectItem>
-                                    {customers.map((customer) => (
+                                    {normalizedCustomers.map((customer) => (
                                         <SelectItem key={customer.id} value={customer.id}>
                                             {customer.name}
                                         </SelectItem>
@@ -997,6 +1091,15 @@ export function OrderPageClient({
                                                 field.handleChange(next);
                                             }}
                                         />
+                                        <Input
+                                            placeholder="SKU (opsional, untuk stok)"
+                                            value={item.sku ?? ""}
+                                            onChange={(event) => {
+                                                const next = [...field.state.value];
+                                                next[idx] = { ...next[idx], sku: event.target.value };
+                                                field.handleChange(next);
+                                            }}
+                                        />
                                         <div className="grid grid-cols-2 gap-2">
                                             <Input
                                                 type="number"
@@ -1076,6 +1179,15 @@ export function OrderPageClient({
                                 onChange={(event) => {
                                     const next = [...editItems];
                                     next[idx] = { ...next[idx], name: event.target.value };
+                                    setEditItems(next);
+                                }}
+                            />
+                            <Input
+                                placeholder="SKU (opsional, untuk stok)"
+                                value={item.sku ?? ""}
+                                onChange={(event) => {
+                                    const next = [...editItems];
+                                    next[idx] = { ...next[idx], sku: event.target.value };
                                     setEditItems(next);
                                 }}
                             />

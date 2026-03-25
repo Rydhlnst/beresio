@@ -16,7 +16,9 @@
     "hono": "^4.12.3",
     "@beresio/db": "workspace:*",
     "better-auth": "^1.1.20",
-    "drizzle-orm": "^0.45.1"
+    "drizzle-orm": "^0.45.1",
+    "@hono/zod-validator": "^0.5.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",

@@ -1,9 +1,17 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Sparkles, Calendar, ShieldCheck, ArrowRight } from "lucide-react";
 import { PageHero } from "../_components/PageHero";
 import { Section } from "../_components/Section";
 import { Button, Heading, Input, Text } from "@repo/ui";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
+import { generateMetadata as seoMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = seoMetadata({
+    title: "Join Wishlist - Akses Prioritas Beres.io",
+    description: "Daftar wishlist Beres.io untuk mendapatkan akses beta lebih awal, onboarding gratis, dan diskon spesial peluncuran. Slot terbatas!",
+    keywords: ["wishlist software kasir", "early access POS", "beta testing UMKM", "diskon peluncuran"],
+});
 
 const WISHLIST_BENEFITS = [
     {
@@ -71,8 +79,8 @@ export default function WishlistPage() {
                             Tinggalkan kontak utama agar kami bisa mengirim update dan jadwal demo.
                         </Text>
                         <div className="flex flex-col gap-3 text-sm text-muted-foreground">
-                            <span>â€¢ Undangan akses beta dikirim bertahap.</span>
-                            <span>â€¢ Data Anda aman dan hanya digunakan untuk komunikasi produk.</span>
+                            <span>• Undangan akses beta dikirim bertahap.</span>
+                            <span>• Data Anda aman dan hanya digunakan untuk komunikasi produk.</span>
                         </div>
                     </div>
 

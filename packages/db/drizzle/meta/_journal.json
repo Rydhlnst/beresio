@@ -29,6 +29,20 @@
       "when": 1773721077897,
       "tag": "0003_add_rbac_and_branch_members",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1773721077900,
+      "tag": "0008_crm_enhancement",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1774381323775,
+      "tag": "0009_fast_silverclaw",
+      "breakpoints": true
     }
   ]
 }

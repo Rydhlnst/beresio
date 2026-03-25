@@ -12,6 +12,7 @@ export const rbacRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>
 
 const DEFAULT_ROLES = [
     { slug: 'owner', name: 'Owner' },
+    { slug: 'admin', name: 'Admin' },
     { slug: 'branch_manager', name: 'Branch Manager' },
     { slug: 'cashier', name: 'Cashier' },
     { slug: 'staff', name: 'Staff' },

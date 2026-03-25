@@ -55,7 +55,7 @@ export default async function DashboardPage() {
             </div>
 
             {/* Row 2: Charts Section */}
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 items-start">
                 <div className="lg:col-span-2">
                     <RevenueTrendChart />
                 </div>
@@ -65,7 +65,7 @@ export default async function DashboardPage() {
             </div>
 
             {/* Row 3: Operational Panel */}
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 items-start">
                 <div className="lg:col-span-2">
                     <RecentOrdersPanel />
                 </div>

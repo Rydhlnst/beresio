@@ -3,29 +3,26 @@
 import { auth } from "@/lib/auth";
 import { createDbNextjs } from "@beresio/db";
 import { headers } from "next/headers";
+import { z } from "zod";
 
-export async function signInAction(formData: any) {
-    const { email } = formData;
-    const db = createDbNextjs(process.env.DATABASE_URL!);
+const signInSchema = z.object({
+    email: z.string().email(),
+});
 
-    try {
-        const existingUser = await db.query.user.findFirst({
-            where: (users: any, { eq }: any) => eq(users.email, email),
-        });
+const signUpSchema = z.object({
+    name: z.string().min(1),
+    email: z.string().email(),
+    password: z.string().min(8),
+});
 
-        if (!existingUser) {
-            return { success: false, error: "Account not found" };
-        }
-
-        return { success: true };
-    } catch (error: any) {
-        console.error("Sign in error:", error);
-        return { success: false, error: error.message || "An error occurred during account validation" };
-    }
+export async function signInAction(formData: unknown) {
+    signInSchema.parse(formData);
+    // Intentionally return a generic success to avoid account enumeration.
+    return { success: true };
 }
 
-export async function signUpAction(formData: any) {
-    const { name, email, password } = formData;
+export async function signUpAction(formData: unknown) {
+    const { name, email, password } = signUpSchema.parse(formData);
     const db = createDbNextjs(process.env.DATABASE_URL!);
 
     try {

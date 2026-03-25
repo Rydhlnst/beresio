@@ -27,7 +27,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { Loader2, Package, ImageIcon } from "lucide-react";
 import { ProductCategory, Supplier, CreateProductInput, UpdateProductInput } from "../_actions/products";
-import { ImageUpload } from "./image-upload";
+import { ImageUpload } from "@/components/shared/image-upload";
 
 const productSchema = z.object({
   name: z.string().min(1, "Nama produk wajib diisi").max(150),

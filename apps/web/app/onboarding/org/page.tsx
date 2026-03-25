@@ -1,9 +1,17 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Building2, MapPin, Users, ArrowRight } from "lucide-react";
 import { PageHero } from "../../_components/PageHero";
 import { Section } from "../../_components/Section";
 import { Button, Heading, Input, Text } from "@repo/ui";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
+import { generateMetadata as seoMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = seoMetadata({
+    title: "Onboarding - Siapkan Organisasi Anda",
+    description: "Onboarding Beres.io - Lengkapi data organisasi Anda untuk memulai menggunakan platform kasir digital.",
+    noIndex: true, // Onboarding should not be indexed
+});
 
 const ONBOARDING_STEPS = [
     {
@@ -71,8 +79,8 @@ export default function OnboardingOrgPage() {
                             Informasi ini akan membantu kami menyiapkan struktur organisasi dan outlet pertama Anda.
                         </Text>
                         <div className="flex flex-col gap-3 text-sm text-muted-foreground">
-                            <span>â€¢ Anda bisa menambahkan outlet tambahan setelah onboarding selesai.</span>
-                            <span>â€¢ Tim support akan membantu jika ada data yang perlu disesuaikan.</span>
+                            <span>• Anda bisa menambahkan outlet tambahan setelah onboarding selesai.</span>
+                            <span>• Tim support akan membantu jika ada data yang perlu disesuaikan.</span>
                         </div>
                     </div>
 

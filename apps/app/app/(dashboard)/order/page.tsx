@@ -2,9 +2,12 @@ import { Metadata } from "next";
 import { headers } from "next/headers";
 import { apiClient } from "@/lib/api-client";
 import { OrderPageClient } from "./_components/order-page-client";
+import { RetailPosPageClient } from "./_components/retail-pos-page-client";
 import { PageErrorState } from "@/components/dashboard/shared/page-error-state";
 import { ErrorRetryAction } from "@/components/dashboard/shared/error-retry-action";
 import { ErrorToast } from "@/components/dashboard/shared/error-toast";
+import { getActiveOrganizationContext } from "@/lib/organization-context";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
     title: "Order | Beres",
@@ -59,7 +62,16 @@ type OrderDetail = {
 };
 
 type BranchOption = { id: string; name: string };
-type CustomerOption = { id: string; name: string; phone?: string | null; email?: string | null; address?: string | null };
+type CustomerOption = { id: string; name: string; phone: string | null; email: string | null; address: string | null };
+type RecentTransaction = {
+    id: string;
+    amount: number;
+    discountAmount: number;
+    taxAmount: number;
+    paymentMethod: string | null;
+    createdAt: string;
+    customer: { id: string; name: string } | null;
+};
 
 type SearchParams = {
     orderId?: string;
@@ -71,7 +83,7 @@ type SearchParams = {
     dateTo?: string;
 };
 
-export default async function OrderPage({ searchParams }: { searchParams: SearchParams }) {
+async function renderLaundryOrderPage(searchParams: SearchParams) {
     const cookie = (await headers()).get("cookie") || "";
 
     const [ordersRes, branchesRes, customersRes] = await Promise.all([
@@ -158,4 +170,84 @@ export default async function OrderPage({ searchParams }: { searchParams: Search
             }}
         />
     );
+}
+
+async function renderRetailPosPage() {
+    const cookie = (await headers()).get("cookie") || "";
+
+    const [productsRes, branchesRes, customersRes, transactionsRes] = await Promise.all([
+        apiClient.api.dashboard.products.$get(
+            { query: { page: "1", limit: "100" } },
+            { headers: { cookie } }
+        ),
+        apiClient.api.dashboard.branches.mine.$get(undefined, { headers: { cookie } }),
+        apiClient.api.dashboard.customers.$get(undefined, { headers: { cookie } }),
+        apiClient.api.dashboard.transactions.$get(
+            { query: { limit: "5" } },
+            { headers: { cookie } }
+        ),
+    ]);
+
+    if (!productsRes.ok || !branchesRes.ok || !customersRes.ok || !transactionsRes.ok) {
+        if (!productsRes.ok) console.error("Failed to fetch products:", await productsRes.text());
+        if (!branchesRes.ok) console.error("Failed to fetch branches:", await branchesRes.text());
+        if (!customersRes.ok) console.error("Failed to fetch customers:", await customersRes.text());
+        if (!transactionsRes.ok) console.error("Failed to fetch transactions:", await transactionsRes.text());
+        return (
+            <div className="space-y-6">
+                <div>
+                    <h1 className="text-2xl font-semibold text-foreground">POS / Kasir</h1>
+                    <p className="text-sm text-muted-foreground mt-2">
+                        Buat transaksi retail dengan cepat.
+                    </p>
+                </div>
+                <ErrorToast
+                    id="page-retail-pos-error"
+                    title="Gagal memuat POS"
+                    description="Coba muat ulang halaman atau periksa koneksi."
+                />
+                <PageErrorState
+                    title="Gagal memuat POS"
+                    description="Coba muat ulang halaman atau periksa koneksi."
+                    action={<ErrorRetryAction />}
+                />
+            </div>
+        );
+    }
+
+    const productsBody = await productsRes.json();
+    const branchesBody = await branchesRes.json();
+    const customersBody = await customersRes.json();
+    const transactionsBody = await transactionsRes.json();
+
+    const products = (productsBody as { data?: { data?: any[] } }).data?.data ?? [];
+    const branches = (branchesBody as { data?: BranchOption[] }).data ?? [];
+    const customers = (customersBody as { data?: CustomerOption[] }).data ?? [];
+    const recentTransactions = (transactionsBody as { data?: RecentTransaction[] }).data ?? [];
+
+    return (
+        <RetailPosPageClient
+            products={products}
+            branches={branches}
+            customers={customers}
+            recentTransactions={recentTransactions}
+        />
+    );
+}
+
+export default async function OrderPage({ searchParams }: { searchParams: SearchParams }) {
+    const activeOrg = await getActiveOrganizationContext();
+    if (!activeOrg) {
+        redirect("/login");
+    }
+
+    if (activeOrg.businessType === "laundry") {
+        return renderLaundryOrderPage(searchParams);
+    }
+
+    if (activeOrg.businessType === "retail") {
+        return renderRetailPosPage();
+    }
+
+    redirect("/dashboard");
 }

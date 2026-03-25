@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import { authMiddleware } from '../../middleware/auth'
 import { getOrgId, getUserId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
-import { and, asc, desc, eq, ilike, inArray, isNull, or, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, ilike, inArray, isNull, or, sql, ne } from 'drizzle-orm'
 import {
     products,
     productCategories,
@@ -10,6 +10,8 @@ import {
     inventoryProducts,
     inventoryStocks,
     branches,
+    productVariants,
+    inventoryVariantStocks,
 } from '@beresio/db'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
@@ -548,6 +550,242 @@ productsRouter.delete('/:id', authMiddleware, async (c) => {
         return ok(c, { deleted: true })
     } catch (err: any) {
         console.error('[products/delete]', err)
+        return errors.internal(c, err.message)
+    }
+})
+
+// ============================================
+// VARIANTS ENDPOINTS
+// ============================================
+
+// GET /api/dashboard/products/:id/variants
+productsRouter.get('/:id/variants', authMiddleware, async (c) => {
+    try {
+        const db = c.get('db')
+        const orgId = await getOrgId(c)
+        const productId = c.req.param('id')
+
+        const [productRow] = await db
+            .select({ id: products.id })
+            .from(products)
+            .where(and(eq(products.id, productId), eq(products.organizationId, orgId)))
+            .limit(1)
+
+        if (!productRow) return errors.notFound(c, 'Product not found')
+
+        const rows = await db
+            .select({
+                id: productVariants.id,
+                sku: productVariants.sku,
+                barcode: productVariants.barcode,
+                option1: productVariants.option1,
+                option2: productVariants.option2,
+                option3: productVariants.option3,
+                price: productVariants.price,
+                compareAtPrice: productVariants.compareAtPrice,
+                costPrice: productVariants.costPrice,
+                imageUrl: productVariants.imageUrl,
+                sortOrder: productVariants.sortOrder,
+                isActive: productVariants.isActive,
+                createdAt: productVariants.createdAt,
+                updatedAt: productVariants.updatedAt,
+            })
+            .from(productVariants)
+            .where(and(
+                eq(productVariants.organizationId, orgId),
+                eq(productVariants.productId, productId)
+            ))
+            .orderBy(asc(productVariants.sortOrder), asc(productVariants.createdAt))
+
+        return ok(c, { data: rows })
+    } catch (err: any) {
+        console.error('[products/variants/list]', err)
+        return errors.internal(c, err.message)
+    }
+})
+
+// POST /api/dashboard/products/:id/variants
+productsRouter.post('/:id/variants', authMiddleware, async (c) => {
+    try {
+        const db = c.get('db')
+        const orgId = await getOrgId(c)
+        const productId = c.req.param('id')
+        const body = await c.req.json().catch(() => null)
+
+        const [productRow] = await db
+            .select({ id: products.id })
+            .from(products)
+            .where(and(eq(products.id, productId), eq(products.organizationId, orgId)))
+            .limit(1)
+
+        if (!productRow) return errors.notFound(c, 'Product not found')
+
+        const sku = body?.sku?.trim()
+        const barcode = body?.barcode?.trim()
+
+        if (sku) {
+            const [existingSku] = await db
+                .select({ id: productVariants.id })
+                .from(productVariants)
+                .where(and(
+                    eq(productVariants.organizationId, orgId),
+                    eq(productVariants.sku, sku)
+                ))
+                .limit(1)
+            if (existingSku) return errors.badRequest(c, 'SKU varian sudah digunakan')
+        }
+
+        if (barcode) {
+            const [existingBarcode] = await db
+                .select({ id: productVariants.id })
+                .from(productVariants)
+                .where(and(
+                    eq(productVariants.organizationId, orgId),
+                    eq(productVariants.barcode, barcode)
+                ))
+                .limit(1)
+            if (existingBarcode) return errors.badRequest(c, 'Barcode varian sudah digunakan')
+        }
+
+        const [created] = await db
+            .insert(productVariants)
+            .values({
+                organizationId: orgId,
+                productId,
+                sku: sku || null,
+                barcode: barcode || null,
+                option1: body?.option1?.trim() || null,
+                option2: body?.option2?.trim() || null,
+                option3: body?.option3?.trim() || null,
+                price: body?.price !== undefined ? Number(body.price) : null,
+                compareAtPrice: body?.compareAtPrice !== undefined ? Number(body.compareAtPrice) : null,
+                costPrice: body?.costPrice !== undefined ? Number(body.costPrice) : null,
+                imageUrl: body?.imageUrl || null,
+                sortOrder: body?.sortOrder !== undefined ? Number(body.sortOrder) : 0,
+                isActive: body?.isActive !== false,
+            })
+            .returning()
+
+        return ok(c, created)
+    } catch (err: any) {
+        console.error('[products/variants/create]', err)
+        return errors.internal(c, err.message)
+    }
+})
+
+// PATCH /api/dashboard/products/variants/:variantId
+productsRouter.patch('/variants/:variantId', authMiddleware, async (c) => {
+    try {
+        const db = c.get('db')
+        const orgId = await getOrgId(c)
+        const variantId = c.req.param('variantId')
+        const body = await c.req.json().catch(() => null)
+
+        const [existing] = await db
+            .select({
+                id: productVariants.id,
+                sku: productVariants.sku,
+                barcode: productVariants.barcode,
+            })
+            .from(productVariants)
+            .where(and(eq(productVariants.id, variantId), eq(productVariants.organizationId, orgId)))
+            .limit(1)
+
+        if (!existing) return errors.notFound(c, 'Variant not found')
+
+        const newSku = body?.sku?.trim()
+        if (newSku && newSku !== existing.sku) {
+            const [duplicate] = await db
+                .select({ id: productVariants.id })
+                .from(productVariants)
+                .where(and(
+                    eq(productVariants.organizationId, orgId),
+                    eq(productVariants.sku, newSku),
+                    ne(productVariants.id, variantId)
+                ))
+                .limit(1)
+            if (duplicate) return errors.badRequest(c, 'SKU varian sudah digunakan')
+        }
+
+        const newBarcode = body?.barcode?.trim()
+        if (newBarcode && newBarcode !== existing.barcode) {
+            const [duplicate] = await db
+                .select({ id: productVariants.id })
+                .from(productVariants)
+                .where(and(
+                    eq(productVariants.organizationId, orgId),
+                    eq(productVariants.barcode, newBarcode),
+                    ne(productVariants.id, variantId)
+                ))
+                .limit(1)
+            if (duplicate) return errors.badRequest(c, 'Barcode varian sudah digunakan')
+        }
+
+        const updates: any = {}
+        if (body?.sku !== undefined) updates.sku = newSku || null
+        if (body?.barcode !== undefined) updates.barcode = newBarcode || null
+        if (body?.option1 !== undefined) updates.option1 = body.option1?.trim() || null
+        if (body?.option2 !== undefined) updates.option2 = body.option2?.trim() || null
+        if (body?.option3 !== undefined) updates.option3 = body.option3?.trim() || null
+        if (body?.price !== undefined) updates.price = body.price !== null ? Number(body.price) : null
+        if (body?.compareAtPrice !== undefined) updates.compareAtPrice = body.compareAtPrice !== null ? Number(body.compareAtPrice) : null
+        if (body?.costPrice !== undefined) updates.costPrice = body.costPrice !== null ? Number(body.costPrice) : null
+        if (body?.imageUrl !== undefined) updates.imageUrl = body.imageUrl || null
+        if (body?.sortOrder !== undefined) updates.sortOrder = Number(body.sortOrder)
+        if (body?.isActive !== undefined) updates.isActive = body.isActive
+
+        if (Object.keys(updates).length === 0) {
+            return errors.badRequest(c, 'Tidak ada field yang diupdate')
+        }
+
+        const [updated] = await db
+            .update(productVariants)
+            .set(updates)
+            .where(and(eq(productVariants.id, variantId), eq(productVariants.organizationId, orgId)))
+            .returning()
+
+        return ok(c, updated)
+    } catch (err: any) {
+        console.error('[products/variants/update]', err)
+        return errors.internal(c, err.message)
+    }
+})
+
+// DELETE /api/dashboard/products/variants/:variantId
+productsRouter.delete('/variants/:variantId', authMiddleware, async (c) => {
+    try {
+        const db = c.get('db')
+        const orgId = await getOrgId(c)
+        const variantId = c.req.param('variantId')
+
+        const [existing] = await db
+            .select({ id: productVariants.id })
+            .from(productVariants)
+            .where(and(eq(productVariants.id, variantId), eq(productVariants.organizationId, orgId)))
+            .limit(1)
+
+        if (!existing) return errors.notFound(c, 'Variant not found')
+
+        const [stockRow] = await db
+            .select({ quantity: inventoryVariantStocks.quantity })
+            .from(inventoryVariantStocks)
+            .where(and(
+                eq(inventoryVariantStocks.organizationId, orgId),
+                eq(inventoryVariantStocks.variantId, variantId)
+            ))
+            .limit(1)
+
+        if (stockRow && Number(stockRow.quantity ?? 0) > 0) {
+            return errors.badRequest(c, 'Cannot delete variant with existing stock')
+        }
+
+        await db
+            .delete(productVariants)
+            .where(and(eq(productVariants.id, variantId), eq(productVariants.organizationId, orgId)))
+
+        return ok(c, { deleted: true })
+    } catch (err: any) {
+        console.error('[products/variants/delete]', err)
         return errors.internal(c, err.message)
     }
 })

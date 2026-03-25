@@ -21,7 +21,7 @@ export async function RevenueTrendChart() {
         if (!res7d.ok) console.error("Failed to fetch revenue trend (7d):", await res7d.text());
         if (!res30d.ok) console.error("Failed to fetch revenue trend (30d):", await res30d.text());
         return (
-            <SectionCard title="Tren Revenue">
+            <SectionCard title="Tren Revenue" className="h-auto min-h-[320px]">
                 <ErrorToast
                     id="dashboard-revenue-trend-error"
                     title="Gagal memuat data revenue"

@@ -2,8 +2,9 @@ import { Hono } from 'hono'
 import { authMiddleware } from '../../middleware/auth'
 import { getOrgId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
-import { and, eq, gte, lte, sql } from 'drizzle-orm'
+import { and, eq, gte, lte, sql, inArray } from 'drizzle-orm'
 import { branches, orders, payments } from '@beresio/db'
+import { getAccessibleBranchIds, getBranchAccessContext, hasBranchAccess } from '../../lib/branch-access'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
 type Variables = { db: any; user: any; session: any }
@@ -72,6 +73,7 @@ reportsRouter.get('/summary', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
         const orgId = await getOrgId(c)
+        const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId)
         const range = c.req.query('range')
         const dateFrom = c.req.query('dateFrom')
         const dateTo = c.req.query('dateTo')
@@ -79,6 +81,16 @@ reportsRouter.get('/summary', authMiddleware, async (c) => {
 
         const { from, to } = buildRange(range, dateFrom, dateTo)
         if (!from || !to) return errors.badRequest(c, 'Invalid date range')
+        if (branchIds.length === 0) {
+            if (!isOrgWide) return errors.forbidden(c, 'No branch access')
+            if (branchId) return errors.forbidden(c, 'No access to branch')
+            return ok(c, {
+                revenueTotal: 0,
+                completedOrders: 0,
+                cancellationRate: 0,
+                range: { from, to },
+            })
+        }
 
         const paymentConditions = [
             eq(payments.organizationId, orgId),
@@ -86,14 +98,28 @@ reportsRouter.get('/summary', authMiddleware, async (c) => {
             gte(payments.createdAt, from),
             lte(payments.createdAt, to),
         ]
-        if (branchId) paymentConditions.push(eq(payments.branchId, branchId))
+        if (branchId) {
+            if (!hasBranchAccess(branchIds, branchId)) {
+                return errors.forbidden(c, 'No access to branch')
+            }
+            paymentConditions.push(eq(payments.branchId, branchId))
+        } else {
+            paymentConditions.push(inArray(payments.branchId, branchIds))
+        }
 
         const orderConditions = [
             eq(orders.organizationId, orgId),
             gte(orders.createdAt, from),
             lte(orders.createdAt, to),
         ]
-        if (branchId) orderConditions.push(eq(orders.branchId, branchId))
+        if (branchId) {
+            if (!hasBranchAccess(branchIds, branchId)) {
+                return errors.forbidden(c, 'No access to branch')
+            }
+            orderConditions.push(eq(orders.branchId, branchId))
+        } else {
+            orderConditions.push(inArray(orders.branchId, branchIds))
+        }
 
         const [revenueRows, orderRows] = await Promise.all([
             db
@@ -134,6 +160,7 @@ reportsRouter.get('/chart', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
         const orgId = await getOrgId(c)
+        const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId)
         const range = c.req.query('range')
         const dateFrom = c.req.query('dateFrom')
         const dateTo = c.req.query('dateTo')
@@ -141,6 +168,11 @@ reportsRouter.get('/chart', authMiddleware, async (c) => {
 
         const { from, to } = buildRange(range, dateFrom, dateTo)
         if (!from || !to) return errors.badRequest(c, 'Invalid date range')
+        if (branchIds.length === 0) {
+            if (!isOrgWide) return errors.forbidden(c, 'No branch access')
+            if (branchId) return errors.forbidden(c, 'No access to branch')
+            return ok(c, [])
+        }
 
         const paymentConditions = [
             eq(payments.organizationId, orgId),
@@ -148,14 +180,28 @@ reportsRouter.get('/chart', authMiddleware, async (c) => {
             gte(payments.createdAt, from),
             lte(payments.createdAt, to),
         ]
-        if (branchId) paymentConditions.push(eq(payments.branchId, branchId))
+        if (branchId) {
+            if (!hasBranchAccess(branchIds, branchId)) {
+                return errors.forbidden(c, 'No access to branch')
+            }
+            paymentConditions.push(eq(payments.branchId, branchId))
+        } else {
+            paymentConditions.push(inArray(payments.branchId, branchIds))
+        }
 
         const orderConditions = [
             eq(orders.organizationId, orgId),
             gte(orders.createdAt, from),
             lte(orders.createdAt, to),
         ]
-        if (branchId) orderConditions.push(eq(orders.branchId, branchId))
+        if (branchId) {
+            if (!hasBranchAccess(branchIds, branchId)) {
+                return errors.forbidden(c, 'No access to branch')
+            }
+            orderConditions.push(eq(orders.branchId, branchId))
+        } else {
+            orderConditions.push(inArray(orders.branchId, branchIds))
+        }
 
         const paymentDay = sql<string>`date_trunc('day', ${payments.createdAt})`
         const orderDay = sql<string>`date_trunc('day', ${orders.createdAt})`
@@ -215,12 +261,17 @@ reportsRouter.get('/table', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
         const orgId = await getOrgId(c)
+        const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId)
         const range = c.req.query('range')
         const dateFrom = c.req.query('dateFrom')
         const dateTo = c.req.query('dateTo')
 
         const { from, to } = buildRange(range, dateFrom, dateTo)
         if (!from || !to) return errors.badRequest(c, 'Invalid date range')
+        if (branchIds.length === 0) {
+            if (!isOrgWide) return errors.forbidden(c, 'No branch access')
+            return ok(c, [])
+        }
 
         const revenueSub = db
             .select({
@@ -233,6 +284,7 @@ reportsRouter.get('/table', authMiddleware, async (c) => {
                 eq(payments.status, 'SUCCESS'),
                 gte(payments.createdAt, from),
                 lte(payments.createdAt, to),
+                inArray(payments.branchId, branchIds),
             ))
             .groupBy(payments.branchId)
             .as('revenue')
@@ -248,6 +300,7 @@ reportsRouter.get('/table', authMiddleware, async (c) => {
                 eq(orders.organizationId, orgId),
                 gte(orders.createdAt, from),
                 lte(orders.createdAt, to),
+                inArray(orders.branchId, branchIds),
             ))
             .groupBy(orders.branchId)
             .as('orders')
@@ -263,7 +316,10 @@ reportsRouter.get('/table', authMiddleware, async (c) => {
             .from(branches)
             .leftJoin(revenueSub, eq(revenueSub.branchId, branches.id))
             .leftJoin(orderSub, eq(orderSub.branchId, branches.id))
-            .where(eq(branches.organizationId, orgId))
+            .where(and(
+                eq(branches.organizationId, orgId),
+                inArray(branches.id, branchIds)
+            ))
             .orderBy(branches.name)
 
         return ok(c, rows.map((row: any) => {

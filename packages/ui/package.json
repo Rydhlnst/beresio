@@ -32,7 +32,8 @@
     "./sidebar": "./src/sidebar.tsx",
     "./dialog": "./src/dialog.tsx",
     "./alert-dialog": "./src/alert-dialog.tsx",
-    "./checkbox": "./src/checkbox.tsx"
+    "./checkbox": "./src/checkbox.tsx",
+    "./textarea": "./src/textarea.tsx"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",

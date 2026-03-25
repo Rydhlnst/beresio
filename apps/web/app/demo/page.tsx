@@ -1,9 +1,17 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { PlayCircle, ClipboardList, Presentation, ArrowRight } from "lucide-react";
 import { PageHero } from "../_components/PageHero";
 import { Section } from "../_components/Section";
 import { Button, Heading, Text } from "@repo/ui";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
+import { generateMetadata as seoMetadata, pageKeywords } from "@/lib/seo";
+
+export const metadata: Metadata = seoMetadata({
+    title: "Jadwalkan Demo Software Kasir Beres.io",
+    description: "Lihat demo Beres.io dalam aksi. Sesi demo singkat untuk menunjukkan cara kerja POS, inventori, dan laporan keuangan dalam satu platform.",
+    keywords: pageKeywords.demo,
+});
 
 const DEMO_STEPS = [
     {

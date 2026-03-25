@@ -1,6 +1,14 @@
+import type { Metadata } from "next";
 import { PageHero } from "../_components/PageHero"
 import { Pricing } from "../_components/Pricing"
 import { FAQ, FAQItem } from "../_components/FAQ"
+import { generateMetadata as seoMetadata, pageKeywords, generateFAQSchema } from "@/lib/seo";
+
+export const metadata: Metadata = seoMetadata({
+    title: "Harga Paket Software Kasir & ERP UMKM",
+    description: "Pilih paket Beres.io yang sesuai skala bisnis Anda. Harga transparan per organisasi, bukan per outlet. Mulai dari Solo hingga Enterprise dengan fitur lengkap.",
+    keywords: pageKeywords.harga,
+});
 
 const HARGA_FAQS: FAQItem[] = [
     {
@@ -63,10 +71,17 @@ const HARGA_CATEGORIES = [
 
 /**
  * Pricing Page (Server Component)
+ * Includes FAQ schema for SEO
  */
 export default function HargaPage() {
+    const faqSchema = generateFAQSchema(HARGA_FAQS.map(f => ({ question: f.question, answer: f.answer })));
+
     return (
         <>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+            />
             <PageHero
                 badgeLabel="Harga Transparan"
                 title="Pilih Paket yang Cocok untuk"

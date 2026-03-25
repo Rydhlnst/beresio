@@ -36,7 +36,7 @@ describe("rbac routes", () => {
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
         expect(body.data).toMatchObject({
-            rolesInserted: 4,
+            rolesInserted: 5,
             memberUpdated: true,
             roleSlug: "owner",
         });

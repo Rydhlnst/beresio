@@ -1,11 +1,16 @@
 import { Hono } from 'hono'
 import { authMiddleware } from '../../middleware/auth'
-import { getOrgId } from '../../lib/auth-context'
+import { getOrgId, getUserId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
-import { and, desc, eq, ilike, gte, lte } from 'drizzle-orm'
+import { and, desc, eq, ilike, gte, lte, inArray } from 'drizzle-orm'
 import { branches, customers, orderEvents, orderItems, orders } from '@beresio/db'
-import { getUserId } from '../../lib/auth-context'
 import { generateOrderNumber } from '../../lib/order-number'
+import {
+    adjustStockQuantity,
+    recordStockMovement,
+    resolveInventoryBySku,
+} from '../../lib/stock'
+import { getAccessibleBranchIds, getBranchAccessContext, hasBranchAccess } from '../../lib/branch-access'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
 type Variables = { db: any; user: any; session: any }
@@ -32,9 +37,23 @@ ordersRouter.get('/', authMiddleware, async (c) => {
         const dateTo = c.req.query('dateTo')
         const limit = Math.min(Number(c.req.query('limit') ?? 50), 200)
 
+        const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId)
+        if (branchIds.length === 0 && !isOrgWide) return errors.forbidden(c, 'No branch access')
+        if (branchIds.length === 0 && isOrgWide) {
+            if (branchId) return errors.forbidden(c, 'No access to branch')
+            return ok(c, [])
+        }
+
         const conditions = [eq(orders.organizationId, orgId)]
         if (status) conditions.push(eq(orders.status, status))
-        if (branchId) conditions.push(eq(orders.branchId, branchId))
+        if (branchId) {
+            if (!hasBranchAccess(branchIds, branchId)) {
+                return errors.forbidden(c, 'No access to branch')
+            }
+            conditions.push(eq(orders.branchId, branchId))
+        } else {
+            conditions.push(inArray(orders.branchId, branchIds))
+        }
         if (type) conditions.push(eq(orders.type, type))
         if (q) {
             conditions.push(
@@ -102,6 +121,8 @@ ordersRouter.get('/:id', authMiddleware, async (c) => {
         } catch {
             return errors.unauthorized(c, 'No organization context')
         }
+        const branchIds = await getAccessibleBranchIds(c, orgId)
+        if (branchIds.length === 0) return errors.forbidden(c, 'No branch access')
 
         const orderId = c.req.param('id')
 
@@ -134,17 +155,21 @@ ordersRouter.get('/:id', authMiddleware, async (c) => {
             .limit(1)
 
         if (!orderRow) return errors.notFound(c, 'Order not found')
+        if (!hasBranchAccess(branchIds, orderRow.branchId)) {
+            return errors.forbidden(c, 'No access to branch')
+        }
 
-        const [items, events] = await Promise.all([
-            db
-                .select({
-                    id: orderItems.id,
-                    name: orderItems.name,
-                    quantity: orderItems.quantity,
-                    unitPrice: orderItems.unitPrice,
-                    totalPrice: orderItems.totalPrice,
-                    createdAt: orderItems.createdAt,
-                })
+            const [items, events] = await Promise.all([
+                db
+                    .select({
+                        id: orderItems.id,
+                        name: orderItems.name,
+                        sku: orderItems.sku,
+                        quantity: orderItems.quantity,
+                        unitPrice: orderItems.unitPrice,
+                        totalPrice: orderItems.totalPrice,
+                        createdAt: orderItems.createdAt,
+                    })
                 .from(orderItems)
                 .where(eq(orderItems.orderId, orderId)),
             db
@@ -181,6 +206,7 @@ ordersRouter.get('/:id', authMiddleware, async (c) => {
             items: items.map((item: any) => ({
                 id: item.id,
                 name: item.name,
+                sku: item.sku ?? null,
                 quantity: Number(item.quantity ?? 0),
                 unitPrice: Number(item.unitPrice ?? 0),
                 totalPrice: Number(item.totalPrice ?? 0),
@@ -210,6 +236,8 @@ ordersRouter.post('/', authMiddleware, async (c) => {
         } catch {
             return errors.unauthorized(c, 'No organization context')
         }
+        const branchIds = await getAccessibleBranchIds(c, orgId)
+        if (branchIds.length === 0) return errors.forbidden(c, 'No branch access')
 
         const body = await c.req.json().catch(() => null)
         const branchId = body?.branchId
@@ -222,6 +250,7 @@ ordersRouter.post('/', authMiddleware, async (c) => {
         const items = Array.isArray(body?.items) ? body.items : []
 
         if (!branchId) return errors.badRequest(c, 'branchId is required')
+        if (!hasBranchAccess(branchIds, branchId)) return errors.forbidden(c, 'No access to branch')
         if (items.length === 0) return errors.badRequest(c, 'items are required')
 
         const [branchRow] = await db
@@ -245,6 +274,8 @@ ordersRouter.post('/', authMiddleware, async (c) => {
             name: String(item?.name ?? '').trim(),
             quantity: Number(item?.quantity ?? 0),
             unitPrice: Number(item?.unitPrice ?? 0),
+            sku: item?.sku ? String(item.sku).trim() : null,
+            inventoryProductId: item?.inventoryProductId ? String(item.inventoryProductId) : null,
         }))
 
         if (normalizedItems.some((item: any) => !item.name || item.quantity <= 0 || item.unitPrice < 0)) {
@@ -268,6 +299,21 @@ ordersRouter.post('/', authMiddleware, async (c) => {
         })()
 
         const created = await db.transaction(async (tx: any) => {
+            const skuList = normalizedItems
+                .map((item: any) => item.sku)
+                .filter(Boolean) as string[]
+            const skuMap = await resolveInventoryBySku(tx, orgId, Array.from(new Set(skuList)))
+
+            for (const item of normalizedItems) {
+                if (item.sku) {
+                    const mapped = skuMap.get(item.sku)
+                    if (!mapped) {
+                        throw new Error('INVALID_INVENTORY_SKU')
+                    }
+                    item.inventoryProductId = mapped
+                }
+            }
+
             const orderNumber = await generateOrderNumber(tx, orgId)
 
             const [orderRow] = await tx
@@ -300,9 +346,33 @@ ordersRouter.post('/', authMiddleware, async (c) => {
                         quantity: item.quantity,
                         unitPrice: item.unitPrice,
                         totalPrice: item.quantity * item.unitPrice,
+                        inventoryProductId: item.inventoryProductId,
+                        sku: item.sku,
                     }))
                 )
                 .returning()
+
+            if (status !== 'cancelled') {
+                for (const item of normalizedItems) {
+                    if (!item.inventoryProductId) continue
+                    await adjustStockQuantity(tx, {
+                        orgId,
+                        productId: item.inventoryProductId,
+                        branchId,
+                        delta: -item.quantity,
+                    })
+                    await recordStockMovement(tx, {
+                        orgId,
+                        productId: item.inventoryProductId,
+                        branchId,
+                        delta: -item.quantity,
+                        reason: 'order_item_created',
+                        refType: 'order',
+                        refId: orderRow.id,
+                        actorId,
+                    })
+                }
+            }
 
             await tx
                 .insert(orderEvents)
@@ -333,6 +403,7 @@ ordersRouter.post('/', authMiddleware, async (c) => {
             items: created.items.map((item: any) => ({
                 id: item.id,
                 name: item.name,
+                sku: item.sku ?? null,
                 quantity: Number(item.quantity ?? 0),
                 unitPrice: Number(item.unitPrice ?? 0),
                 totalPrice: Number(item.totalPrice ?? 0),
@@ -340,6 +411,12 @@ ordersRouter.post('/', authMiddleware, async (c) => {
         })
     } catch (err: any) {
         console.error('[orders/create]', err)
+        if (err?.message === 'INSUFFICIENT_STOCK') {
+            return errors.badRequest(c, 'Stok tidak mencukupi')
+        }
+        if (err?.message === 'INVALID_INVENTORY_SKU') {
+            return errors.badRequest(c, 'SKU inventory tidak valid')
+        }
         return errors.internal(c, err.message)
     }
 })
@@ -354,6 +431,8 @@ ordersRouter.patch('/:id', authMiddleware, async (c) => {
         } catch {
             return errors.unauthorized(c, 'No organization context')
         }
+        const branchIds = await getAccessibleBranchIds(c, orgId)
+        if (branchIds.length === 0) return errors.forbidden(c, 'No branch access')
 
         const orderId = c.req.param('id')
         const body = await c.req.json().catch(() => null)
@@ -412,6 +491,50 @@ ordersRouter.patch('/:id', authMiddleware, async (c) => {
         })()
 
         const result = await db.transaction(async (tx: any) => {
+            if (body?.status && body.status !== existing.status) {
+                const shouldRestock = body.status === 'cancelled' && existing.status !== 'cancelled'
+                const shouldDeduct = existing.status === 'cancelled' && body.status !== 'cancelled'
+
+                if (shouldRestock || shouldDeduct) {
+                    const [orderRow] = await tx
+                        .select({
+                            branchId: orders.branchId,
+                        })
+                        .from(orders)
+                        .where(and(eq(orders.id, orderId), eq(orders.organizationId, orgId)))
+                        .limit(1)
+
+                    const items = await tx
+                        .select({
+                            inventoryProductId: orderItems.inventoryProductId,
+                            quantity: orderItems.quantity,
+                        })
+                        .from(orderItems)
+                        .where(eq(orderItems.orderId, orderId))
+
+                    for (const item of items) {
+                        if (!item.inventoryProductId) continue
+                        const delta = shouldRestock ? Number(item.quantity ?? 0) : -Number(item.quantity ?? 0)
+                        await adjustStockQuantity(tx, {
+                            orgId,
+                            productId: item.inventoryProductId,
+                            branchId: orderRow.branchId,
+                            delta,
+                        })
+                        await recordStockMovement(tx, {
+                            orgId,
+                            productId: item.inventoryProductId,
+                            branchId: orderRow.branchId,
+                            delta,
+                            reason: shouldRestock ? 'order_cancelled_return' : 'order_reactivated',
+                            refType: 'order',
+                            refId: orderId,
+                            actorId,
+                        })
+                    }
+                }
+            }
+
             const [updated] = await tx
                 .update(orders)
                 .set(updates)
@@ -436,6 +559,9 @@ ordersRouter.patch('/:id', authMiddleware, async (c) => {
         return ok(c, result)
     } catch (err: any) {
         console.error('[orders/update]', err)
+        if (err?.message === 'INSUFFICIENT_STOCK') {
+            return errors.badRequest(c, 'Stok tidak mencukupi')
+        }
         return errors.internal(c, err.message)
     }
 })
@@ -450,6 +576,8 @@ ordersRouter.patch('/:id/items', authMiddleware, async (c) => {
         } catch {
             return errors.unauthorized(c, 'No organization context')
         }
+        const branchIds = await getAccessibleBranchIds(c, orgId)
+        if (branchIds.length === 0) return errors.forbidden(c, 'No branch access')
 
         const orderId = c.req.param('id')
         const body = await c.req.json().catch(() => null)
@@ -461,6 +589,8 @@ ordersRouter.patch('/:id/items', authMiddleware, async (c) => {
             name: String(item?.name ?? '').trim(),
             quantity: Number(item?.quantity ?? 0),
             unitPrice: Number(item?.unitPrice ?? 0),
+            sku: item?.sku ? String(item.sku).trim() : null,
+            inventoryProductId: item?.inventoryProductId ? String(item.inventoryProductId) : null,
         }))
 
         if (normalizedItems.some((item: any) => !item.name || item.quantity <= 0 || item.unitPrice < 0)) {
@@ -472,12 +602,16 @@ ordersRouter.patch('/:id/items', authMiddleware, async (c) => {
                 id: orders.id,
                 discountAmount: orders.discountAmount,
                 taxAmount: orders.taxAmount,
+                branchId: orders.branchId,
             })
             .from(orders)
             .where(and(eq(orders.id, orderId), eq(orders.organizationId, orgId)))
             .limit(1)
 
         if (!orderRow) return errors.notFound(c, 'Order not found')
+        if (!hasBranchAccess(branchIds, orderRow.branchId)) {
+            return errors.forbidden(c, 'No access to branch')
+        }
 
         const subtotalAmount = normalizedItems.reduce(
             (sum: number, item: any) => sum + item.quantity * item.unitPrice,
@@ -497,6 +631,29 @@ ordersRouter.patch('/:id/items', authMiddleware, async (c) => {
         })()
 
         const result = await db.transaction(async (tx: any) => {
+            const skuList = normalizedItems
+                .map((item: any) => item.sku)
+                .filter(Boolean) as string[]
+            const skuMap = await resolveInventoryBySku(tx, orgId, Array.from(new Set(skuList)))
+
+            for (const item of normalizedItems) {
+                if (item.sku) {
+                    const mapped = skuMap.get(item.sku)
+                    if (!mapped) {
+                        throw new Error('INVALID_INVENTORY_SKU')
+                    }
+                    item.inventoryProductId = mapped
+                }
+            }
+
+            const existingItems = await tx
+                .select({
+                    inventoryProductId: orderItems.inventoryProductId,
+                    quantity: orderItems.quantity,
+                })
+                .from(orderItems)
+                .where(eq(orderItems.orderId, orderId))
+
             await tx
                 .delete(orderItems)
                 .where(eq(orderItems.orderId, orderId))
@@ -510,9 +667,25 @@ ordersRouter.patch('/:id/items', authMiddleware, async (c) => {
                         quantity: item.quantity,
                         unitPrice: item.unitPrice,
                         totalPrice: item.quantity * item.unitPrice,
+                        inventoryProductId: item.inventoryProductId,
+                        sku: item.sku,
                     }))
                 )
                 .returning()
+
+            const diffByProduct = new Map<string, number>()
+            for (const row of existingItems) {
+                const productId = row.inventoryProductId
+                if (!productId) continue
+                diffByProduct.set(productId, (diffByProduct.get(productId) ?? 0) - Number(row.quantity ?? 0))
+            }
+            for (const item of normalizedItems) {
+                if (!item.inventoryProductId) continue
+                diffByProduct.set(
+                    item.inventoryProductId,
+                    (diffByProduct.get(item.inventoryProductId) ?? 0) + Number(item.quantity ?? 0)
+                )
+            }
 
             const [updated] = await tx
                 .update(orders)
@@ -522,6 +695,27 @@ ordersRouter.patch('/:id/items', authMiddleware, async (c) => {
                 })
                 .where(and(eq(orders.id, orderId), eq(orders.organizationId, orgId)))
                 .returning()
+
+            for (const [productId, diff] of diffByProduct.entries()) {
+                if (diff === 0) continue
+                const delta = -diff
+                await adjustStockQuantity(tx, {
+                    orgId,
+                    productId,
+                    branchId: orderRow.branchId,
+                    delta,
+                })
+                await recordStockMovement(tx, {
+                    orgId,
+                    productId,
+                    branchId: orderRow.branchId,
+                    delta,
+                    reason: 'order_items_updated',
+                    refType: 'order',
+                    refId: orderId,
+                    actorId,
+                })
+            }
 
             await tx
                 .insert(orderEvents)
@@ -536,12 +730,18 @@ ordersRouter.patch('/:id/items', authMiddleware, async (c) => {
             return { updated, items: insertedItems }
         })
 
-        return ok(c, {
-            order: result.updated,
-            items: result.items,
-        })
+            return ok(c, {
+                order: result.updated,
+                items: result.items,
+            })
     } catch (err: any) {
         console.error('[orders/items]', err)
+        if (err?.message === 'INSUFFICIENT_STOCK') {
+            return errors.badRequest(c, 'Stok tidak mencukupi')
+        }
+        if (err?.message === 'INVALID_INVENTORY_SKU') {
+            return errors.badRequest(c, 'SKU inventory tidak valid')
+        }
         return errors.internal(c, err.message)
     }
 })

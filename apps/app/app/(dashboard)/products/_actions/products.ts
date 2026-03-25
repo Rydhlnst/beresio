@@ -2,6 +2,7 @@
 
 import { apiClient } from "@/lib/api-client";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 
 export type ProductFilters = {
   search?: string;
@@ -58,6 +59,10 @@ export type Supplier = {
   createdAt: string;
 };
 
+async function getAuthHeaders() {
+  return { cookie: (await cookies()).toString() };
+}
+
 export async function getProductsAction(filters: ProductFilters = {}) {
   const params = new URLSearchParams();
   
@@ -72,10 +77,10 @@ export async function getProductsAction(filters: ProductFilters = {}) {
   if (filters.limit) params.set("limit", String(filters.limit));
 
   const queryString = params.toString();
-  const url = `/api/dashboard/products${queryString ? `?${queryString}` : ""}`;
 
   const res = await (apiClient.api.dashboard.products as any).$get(
-    queryString ? { query: Object.fromEntries(params) } : undefined
+    queryString ? { query: Object.fromEntries(params) } : undefined,
+    { headers: await getAuthHeaders() }
   );
 
   if (!res.ok) {
@@ -89,6 +94,8 @@ export async function getProductsAction(filters: ProductFilters = {}) {
 export async function getProductAction(id: string) {
   const res = await (apiClient.api.dashboard.products as any)[":id"].$get({
     param: { id },
+  }, {
+    headers: await getAuthHeaders(),
   });
 
   if (!res.ok) {
@@ -102,6 +109,8 @@ export async function getProductAction(id: string) {
 export async function createProductAction(data: CreateProductInput) {
   const res = await (apiClient.api.dashboard.products as any).$post({
     json: data,
+  }, {
+    headers: await getAuthHeaders(),
   });
 
   if (!res.ok) {
@@ -117,6 +126,8 @@ export async function updateProductAction(id: string, data: UpdateProductInput) 
   const res = await (apiClient.api.dashboard.products as any)[":id"].$patch({
     param: { id },
     json: data,
+  }, {
+    headers: await getAuthHeaders(),
   });
 
   if (!res.ok) {
@@ -132,6 +143,8 @@ export async function updateProductAction(id: string, data: UpdateProductInput) 
 export async function deleteProductAction(id: string) {
   const res = await (apiClient.api.dashboard.products as any)[":id"].$delete({
     param: { id },
+  }, {
+    headers: await getAuthHeaders(),
   });
 
   if (!res.ok) {
@@ -144,7 +157,10 @@ export async function deleteProductAction(id: string) {
 }
 
 export async function getCategoriesAction() {
-  const res = await (apiClient.api.dashboard.products as any).categories.$get();
+  const res = await (apiClient.api.dashboard.products as any).categories.$get(
+    undefined,
+    { headers: await getAuthHeaders() }
+  );
 
   if (!res.ok) {
     const error = await res.text();
@@ -164,6 +180,8 @@ export async function createCategoryAction(data: {
 }) {
   const res = await (apiClient.api.dashboard.products as any).categories.$post({
     json: data,
+  }, {
+    headers: await getAuthHeaders(),
   });
 
   if (!res.ok) {
@@ -176,7 +194,10 @@ export async function createCategoryAction(data: {
 }
 
 export async function getSuppliersAction() {
-  const res = await (apiClient.api.dashboard.products as any).suppliers.$get();
+  const res = await (apiClient.api.dashboard.products as any).suppliers.$get(
+    undefined,
+    { headers: await getAuthHeaders() }
+  );
 
   if (!res.ok) {
     const error = await res.text();
@@ -200,6 +221,8 @@ export async function createSupplierAction(data: {
 }) {
   const res = await (apiClient.api.dashboard.products as any).suppliers.$post({
     json: data,
+  }, {
+    headers: await getAuthHeaders(),
   });
 
   if (!res.ok) {

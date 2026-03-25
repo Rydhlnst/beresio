@@ -34,6 +34,7 @@ export async function RecentOrdersPanel() {
         <SectionCard 
             title="Pesanan Terbaru" 
             description="5 transaksi terakhir dari semua cabang"
+            className="h-auto min-h-[360px]"
             actions={
                 <Link 
                     href="/dashboard/orders" 

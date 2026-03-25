@@ -14,6 +14,7 @@
     "@beresio/backend": "workspace:*",
     "@beresio/db": "workspace:*",
     "@hookform/resolvers": "^3.9.1",
+    "@radix-ui/react-collapsible": "^1.1.12",
     "@repo/ui": "workspace:*",
     "@tanstack/react-form": "^1.28.4",
     "@tanstack/zod-form-adapter": "^0.42.1",

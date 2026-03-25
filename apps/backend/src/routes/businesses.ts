@@ -32,6 +32,17 @@ const NAV_REGISTRY: Record<string, Record<string, NavItem>> = {
             path: '/dashboard',
             permissionsAny: ['dashboard.read'],
         },
+        crm: {
+            id: 'crm',
+            label: 'Pelanggan',
+            icon: 'heart-handshake',
+            path: '/crm',
+            submenu: [
+                { id: 'customers', label: 'Daftar Pelanggan', icon: 'users', path: '/crm', permissionsAny: ['crm.read'] },
+                { id: 'tags', label: 'Tags', icon: 'tags', path: '/crm/tags', permissionsAny: ['crm.manage'] },
+            ],
+            permissionsAny: ['crm.read', 'crm.manage'],
+        },
         order: {
             id: 'order',
             label: 'Order Cucian',
@@ -98,6 +109,17 @@ const NAV_REGISTRY: Record<string, Record<string, NavItem>> = {
             path: '/dashboard',
             permissionsAny: ['dashboard.read'],
         },
+        crm: {
+            id: 'crm',
+            label: 'Pelanggan',
+            icon: 'heart-handshake',
+            path: '/crm',
+            submenu: [
+                { id: 'customers', label: 'Daftar Pelanggan', icon: 'users', path: '/crm', permissionsAny: ['crm.read'] },
+                { id: 'tags', label: 'Tags', icon: 'tags', path: '/crm/tags', permissionsAny: ['crm.manage'] },
+            ],
+            permissionsAny: ['crm.read', 'crm.manage'],
+        },
         order: {
             id: 'order',
             label: 'Order',
@@ -163,6 +185,17 @@ const NAV_REGISTRY: Record<string, Record<string, NavItem>> = {
             path: '/dashboard',
             permissionsAny: ['dashboard.read'],
         },
+        crm: {
+            id: 'crm',
+            label: 'Pelanggan',
+            icon: 'heart-handshake',
+            path: '/crm',
+            submenu: [
+                { id: 'customers', label: 'Daftar Pelanggan', icon: 'users', path: '/crm', permissionsAny: ['crm.read'] },
+                { id: 'tags', label: 'Tags', icon: 'tags', path: '/crm/tags', permissionsAny: ['crm.manage'] },
+            ],
+            permissionsAny: ['crm.read', 'crm.manage'],
+        },
         order: {
             id: 'order',
             label: 'Order',
@@ -227,6 +260,7 @@ const NAV_REGISTRY: Record<string, Record<string, NavItem>> = {
 // ============================================
 const BASE_MODULES = [
     'dashboard',
+    'crm',
     'order',
     'inventory',
     'laporan',

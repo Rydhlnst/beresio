@@ -1,9 +1,17 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { PhoneCall, CalendarCheck, Building2, ArrowRight } from "lucide-react";
 import { PageHero } from "../_components/PageHero";
 import { Section } from "../_components/Section";
 import { Button, Heading, Input, Text } from "@repo/ui";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
+import { generateMetadata as seoMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = seoMetadata({
+    title: "Hubungi Sales - Konsultasi Solusi Bisnis",
+    description: "Hubungi tim sales Beres.io untuk konsultasi gratis, demo produk, dan penawaran khusus untuk bisnis Anda. Kami siap membantu UMKM bertumbuh.",
+    keywords: ["hubungi sales", "konsultasi software kasir", "demo POS Indonesia", "penawaran ERP"],
+});
 
 const SALES_OPTIONS = [
     {
@@ -71,8 +79,8 @@ export default function SalesPage() {
                             Kami akan menghubungi Anda dalam 1-2 hari kerja untuk menyiapkan sesi konsultasi.
                         </Text>
                         <div className="flex flex-col gap-3 text-sm text-muted-foreground">
-                            <span>â€¢ Cocok untuk bisnis single outlet hingga multi-cabang.</span>
-                            <span>â€¢ Tim kami siap bantu migrasi data jika dibutuhkan.</span>
+                            <span>• Cocok untuk bisnis single outlet hingga multi-cabang.</span>
+                            <span>• Tim kami siap bantu migrasi data jika dibutuhkan.</span>
                         </div>
                     </div>
 

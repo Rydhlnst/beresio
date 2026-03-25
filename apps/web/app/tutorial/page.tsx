@@ -1,9 +1,17 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Play, ClipboardCheck, Boxes, ArrowRight } from "lucide-react";
 import { PageHero } from "../_components/PageHero";
 import { Section } from "../_components/Section";
 import { Button, Heading, Text } from "@repo/ui";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
+import { generateMetadata as seoMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = seoMetadata({
+    title: "Video Tutorial - Panduan Penggunaan Beres.io",
+    description: "Pelajari cara menggunakan Beres.io dengan video tutorial singkat. Setup awal, transaksi harian, inventori, dan laporan keuangan dalam video mudah dipahami.",
+    keywords: ["tutorial software kasir", "panduan POS Indonesia", "cara menggunakan kasir digital", "video tutorial UMKM"],
+});
 
 const TUTORIAL_MODULES = [
     {

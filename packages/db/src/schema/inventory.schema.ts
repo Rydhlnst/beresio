@@ -20,6 +20,7 @@ export const inventoryProducts = pgTable("inventory_products", {
     name: varchar("name", { length: 150 }).notNull(),
     sku: varchar("sku", { length: 60 }),
     unit: varchar("unit", { length: 32 }),
+    imageUrl: text("image_url"),
     isActive: boolean("is_active").default(true),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdateFn(() => new Date()),
@@ -43,6 +44,7 @@ export const inventoryStocks = pgTable("inventory_stocks", {
         .notNull()
         .references(() => branches.id, { onDelete: "cascade" }),
     quantity: integer("quantity").notNull().default(0),
+    minThreshold: integer("min_threshold").notNull().default(0),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdateFn(() => new Date()),
 }, (table) => {
@@ -106,5 +108,31 @@ export const inventoryTransfers = pgTable("inventory_transfers", {
         idxInventoryTransfersProduct: index("idx_inventory_transfers_product").on(table.productId),
         idxInventoryTransfersFromBranch: index("idx_inventory_transfers_from_branch").on(table.fromBranchId),
         idxInventoryTransfersToBranch: index("idx_inventory_transfers_to_branch").on(table.toBranchId),
+    };
+});
+
+export const stockMovements = pgTable("stock_movements", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: text("organization_id")
+        .notNull()
+        .references(() => organization.id, { onDelete: "cascade" }),
+    productId: uuid("product_id")
+        .notNull()
+        .references(() => inventoryProducts.id, { onDelete: "cascade" }),
+    branchId: uuid("branch_id")
+        .notNull()
+        .references(() => branches.id, { onDelete: "cascade" }),
+    delta: integer("delta").notNull(),
+    reason: text("reason"),
+    refType: text("ref_type"),
+    refId: text("ref_id"),
+    actorId: text("actor_id").references(() => user.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => {
+    return {
+        idxStockMovementsOrgCreated: index("idx_stock_movements_org_created").on(table.organizationId, table.createdAt),
+        idxStockMovementsBranch: index("idx_stock_movements_branch").on(table.branchId),
+        idxStockMovementsProduct: index("idx_stock_movements_product").on(table.productId),
+        idxStockMovementsRef: index("idx_stock_movements_ref").on(table.refType, table.refId),
     };
 });

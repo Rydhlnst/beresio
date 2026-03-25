@@ -14,7 +14,7 @@ export async function RevenueBranchChart() {
     if (!res.ok) {
         console.error("Failed to fetch revenue per branch:", await res.text());
         return (
-            <SectionCard title="Revenue per Cabang">
+            <SectionCard title="Revenue per Cabang" className="h-auto min-h-[320px]">
                 <ErrorToast
                     id="dashboard-revenue-branch-error"
                     title="Gagal memuat data cabang"

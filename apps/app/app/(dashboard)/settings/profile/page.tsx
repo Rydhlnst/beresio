@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { Metadata } from "next";
 import { Button } from "@repo/ui/button";
-import { Input } from "@repo/ui/input";
-import { SectionCard } from "@/components/dashboard/shared/section-card";
+import { ProfileFormClient } from "./_components/profile-form-client";
 
 export const metadata: Metadata = {
     title: "Profile Settings | Beres",
@@ -24,17 +23,7 @@ export default function SettingsProfilePage() {
                 </Button>
             </div>
 
-            <SectionCard title="Informasi Akun" description="Lengkapi data dasar akun Anda.">
-                <div className="grid gap-4 sm:grid-cols-2">
-                    <Input placeholder="Nama lengkap" />
-                    <Input placeholder="Email" type="email" />
-                    <Input placeholder="Nomor WhatsApp" />
-                    <Input placeholder="Jabatan" />
-                </div>
-                <div className="mt-4">
-                    <Button className="h-9 text-xs font-semibold">Simpan Perubahan</Button>
-                </div>
-            </SectionCard>
+            <ProfileFormClient />
         </div>
     );
 }

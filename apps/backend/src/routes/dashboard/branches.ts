@@ -1,12 +1,38 @@
 import { Hono } from 'hono'
+import { zValidator } from '@hono/zod-validator'
+import { z } from 'zod'
 import { authMiddleware } from '../../middleware/auth'
 import { getOrgId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
 import { and, eq, ne, sql, gte, lte } from 'drizzle-orm'
 import { branchMembers, branches, member, orders, payments } from '@beresio/db'
+import { getAccessibleBranches } from '../../lib/branch-access'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
 type Variables = { db: any; user: any; session: any }
+
+const DEFAULT_LIMIT = 20
+const MAX_LIMIT = 100
+
+// Validation schemas
+const createBranchSchema = z.object({
+    name: z.string().min(1, 'Name is required').max(150, 'Name too long'),
+    code: z.string().min(1, 'Code is required').max(10, 'Code too long'),
+    address: z.string().max(300).nullable().optional(),
+    phone: z.string().max(20).nullable().optional(),
+    isActive: z.boolean().default(true),
+})
+
+const updateBranchSchema = z.object({
+    name: z.string().min(1).max(150).optional(),
+    code: z.string().min(1).max(10).optional(),
+    address: z.string().max(300).nullable().optional(),
+    phone: z.string().max(20).nullable().optional(),
+})
+
+const updateStatusSchema = z.object({
+    isActive: z.boolean(),
+})
 
 export const branchesRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
@@ -14,6 +40,17 @@ branchesRouter.get('/', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
         const orgId = await getOrgId(c)
+
+        // Pagination params
+        const page = Math.max(1, Number(c.req.query('page') || 1))
+        const limit = Math.min(MAX_LIMIT, Math.max(1, Number(c.req.query('limit') || DEFAULT_LIMIT)))
+        const offset = (page - 1) * limit
+
+        // Get total count
+        const [{ count }] = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(branches)
+            .where(eq(branches.organizationId, orgId))
 
         const revenueSub = db
             .select({
@@ -53,10 +90,32 @@ branchesRouter.get('/', authMiddleware, async (c) => {
             .leftJoin(staffSub, eq(staffSub.branchId, branches.id))
             .where(eq(branches.organizationId, orgId))
             .orderBy(branches.name)
+            .limit(limit)
+            .offset(offset)
 
-        return ok(c, rows)
+        return ok(c, {
+            data: rows,
+            meta: {
+                total: Number(count),
+                page,
+                limit,
+                totalPages: Math.ceil(Number(count) / limit),
+            },
+        })
     } catch (err: any) {
         console.error('[branches/list]', err)
+        return errors.internal(c, err.message)
+    }
+})
+
+// GET /api/dashboard/branches/mine
+branchesRouter.get('/mine', authMiddleware, async (c) => {
+    try {
+        const orgId = await getOrgId(c)
+        const rows = await getAccessibleBranches(c, orgId)
+        return ok(c, rows)
+    } catch (err: any) {
+        console.error('[branches/mine]', err)
         return errors.internal(c, err.message)
     }
 })
@@ -82,18 +141,13 @@ branchesRouter.get('/:id', authMiddleware, async (c) => {
     }
 })
 
-branchesRouter.post('/', authMiddleware, async (c) => {
+branchesRouter.post('/', authMiddleware, zValidator('json', createBranchSchema), async (c) => {
     try {
         const db = c.get('db')
         const orgId = await getOrgId(c)
-        const body = await c.req.json().catch(() => null)
+        const body = c.req.valid('json')
 
-        const name = body?.name?.trim()
-        const code = body?.code?.trim()
-
-        if (!name || !code) {
-            return errors.badRequest(c, 'name and code are required')
-        }
+        const { name, code } = body
 
         const [existing] = await db
             .select({ id: branches.id })
@@ -107,11 +161,11 @@ branchesRouter.post('/', authMiddleware, async (c) => {
             .insert(branches)
             .values({
                 organizationId: orgId,
-                name,
-                code,
-                address: body?.address ?? null,
-                phone: body?.phone ?? null,
-                isActive: body?.isActive ?? true,
+                name: name.trim(),
+                code: code.trim(),
+                address: body.address ?? null,
+                phone: body.phone ?? null,
+                isActive: body.isActive,
             })
             .returning()
 
@@ -122,14 +176,14 @@ branchesRouter.post('/', authMiddleware, async (c) => {
     }
 })
 
-branchesRouter.patch('/:id', authMiddleware, async (c) => {
+branchesRouter.patch('/:id', authMiddleware, zValidator('json', updateBranchSchema), async (c) => {
     try {
         const db = c.get('db')
         const orgId = await getOrgId(c)
         const branchId = c.req.param('id')
-        const body = await c.req.json().catch(() => null)
+        const body = c.req.valid('json')
 
-        if (body?.code) {
+        if (body.code) {
             const [existing] = await db
                 .select({ id: branches.id })
                 .from(branches)
@@ -143,14 +197,19 @@ branchesRouter.patch('/:id', authMiddleware, async (c) => {
             if (existing) return errors.badRequest(c, 'Branch code already exists')
         }
 
+        const updates: Record<string, unknown> = {}
+        if (body.name !== undefined) updates.name = body.name.trim()
+        if (body.code !== undefined) updates.code = body.code.trim()
+        if (body.address !== undefined) updates.address = body.address
+        if (body.phone !== undefined) updates.phone = body.phone
+
+        if (Object.keys(updates).length === 0) {
+            return errors.badRequest(c, 'No fields to update')
+        }
+
         const updated = await db
             .update(branches)
-            .set({
-                name: body?.name,
-                code: body?.code,
-                address: body?.address,
-                phone: body?.phone,
-            })
+            .set(updates)
             .where(and(eq(branches.id, branchId), eq(branches.organizationId, orgId)))
             .returning()
 
@@ -163,16 +222,12 @@ branchesRouter.patch('/:id', authMiddleware, async (c) => {
     }
 })
 
-branchesRouter.patch('/:id/status', authMiddleware, async (c) => {
+branchesRouter.patch('/:id/status', authMiddleware, zValidator('json', updateStatusSchema), async (c) => {
     try {
         const db = c.get('db')
         const orgId = await getOrgId(c)
         const branchId = c.req.param('id')
-        const body = await c.req.json().catch(() => null)
-
-        if (typeof body?.isActive !== 'boolean') {
-            return errors.badRequest(c, 'isActive must be boolean')
-        }
+        const body = c.req.valid('json')
 
         const updated = await db
             .update(branches)

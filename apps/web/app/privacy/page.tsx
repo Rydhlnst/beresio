@@ -1,9 +1,17 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ShieldCheck, Lock, FileText, ArrowRight } from "lucide-react";
 import { PageHero } from "../_components/PageHero";
 import { Section } from "../_components/Section";
 import { Button, Heading, Text } from "@repo/ui";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
+import { generateMetadata as seoMetadata, pageKeywords } from "@/lib/seo";
+
+export const metadata: Metadata = seoMetadata({
+    title: "Kebijakan Privasi - Perlindungan Data Bisnis Anda",
+    description: "Kebijakan privasi Beres.io. Pelajari bagaimana kami mengelola data bisnis Anda dengan aman, enkripsi terkini, dan kontrol akses ketat.",
+    keywords: pageKeywords.privacy,
+});
 
 const PRIVACY_POINTS = [
     {
