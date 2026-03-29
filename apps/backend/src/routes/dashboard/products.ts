@@ -1,8 +1,8 @@
 import { Hono } from 'hono'
 import { authMiddleware } from '../../middleware/auth'
-import { getOrgId, getUserId } from '../../lib/auth-context'
+import { getOrgId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
-import { and, asc, desc, eq, ilike, inArray, isNull, or, sql, ne } from 'drizzle-orm'
+import { and, asc, desc, eq, ilike, inArray, sql, ne } from 'drizzle-orm'
 import {
     products,
     productCategories,
@@ -49,13 +49,12 @@ productsRouter.get('/', authMiddleware, async (c) => {
         const conditions = [eq(products.organizationId, orgId)]
         
         if (search) {
-            conditions.push(
-                or(
-                    ilike(products.name, `%${search}%`),
-                    ilike(products.sku, `%${search}%`),
-                    ilike(products.barcode, `%${search}%`)
-                )
-            )
+            const q = `%${search}%`
+            conditions.push(sql`(
+                ${products.name} ilike ${q}
+                or ${products.sku} ilike ${q}
+                or coalesce(${products.barcode}, '') ilike ${q}
+            )`)
         }
         
         if (categoryId) {
@@ -208,127 +207,6 @@ productsRouter.get('/', authMiddleware, async (c) => {
         })
     } catch (err: any) {
         console.error('[products/list]', err)
-        return errors.internal(c, err.message)
-    }
-})
-
-// GET /api/dashboard/products/:id
-// Get single product detail
-productsRouter.get('/:id', authMiddleware, async (c) => {
-    try {
-        const db = c.get('db')
-        const orgId = await getOrgId(c)
-        const productId = c.req.param('id')
-
-        const [row] = await db
-            .select({
-                id: products.id,
-                name: products.name,
-                sku: products.sku,
-                barcode: products.barcode,
-                basePrice: products.basePrice,
-                salePrice: products.salePrice,
-                costPrice: products.costPrice,
-                description: products.description,
-                shortDescription: products.shortDescription,
-                weight: products.weight,
-                dimensions: products.dimensions,
-                imageUrl: products.imageUrl,
-                images: products.images,
-                isActive: products.isActive,
-                isFeatured: products.isFeatured,
-                soldCount: products.soldCount,
-                metaTitle: products.metaTitle,
-                metaDescription: products.metaDescription,
-                inventoryProductId: products.inventoryProductId,
-                categoryId: products.categoryId,
-                supplierId: products.supplierId,
-                slug: products.slug,
-                createdAt: products.createdAt,
-                updatedAt: products.updatedAt,
-                categoryName: productCategories.name,
-                supplierName: suppliers.name,
-            })
-            .from(products)
-            .leftJoin(productCategories, eq(products.categoryId, productCategories.id))
-            .leftJoin(suppliers, eq(products.supplierId, suppliers.id))
-            .where(and(
-                eq(products.id, productId),
-                eq(products.organizationId, orgId)
-            ))
-            .limit(1)
-
-        if (!row) {
-            return errors.notFound(c, 'Product not found')
-        }
-
-        // Get stock details if linked to inventory
-        let stockDetails = null
-        if (row.inventoryProductId) {
-            const stocks = await db
-                .select({
-                    branchId: inventoryStocks.branchId,
-                    branchName: branches.name,
-                    quantity: inventoryStocks.quantity,
-                })
-                .from(inventoryStocks)
-                .leftJoin(branches, eq(inventoryStocks.branchId, branches.id))
-                .where(eq(inventoryStocks.productId, row.inventoryProductId))
-
-            const totalQuantity = stocks.reduce((sum: number, s: any) => sum + Number(s.quantity), 0)
-            
-            stockDetails = {
-                totalQuantity,
-                byBranch: stocks.map((s: any) => ({
-                    branchId: s.branchId,
-                    branchName: s.branchName,
-                    quantity: Number(s.quantity),
-                })),
-            }
-        }
-
-        return ok(c, {
-            id: row.id,
-            name: row.name,
-            sku: row.sku,
-            barcode: row.barcode,
-            slug: row.slug,
-            description: row.description,
-            shortDescription: row.shortDescription,
-            pricing: {
-                basePrice: Number(row.basePrice || 0),
-                salePrice: row.salePrice ? Number(row.salePrice) : null,
-                costPrice: row.costPrice ? Number(row.costPrice) : null,
-            },
-            physical: {
-                weight: row.weight,
-                dimensions: row.dimensions,
-            },
-            media: {
-                imageUrl: row.imageUrl,
-                images: row.images || [],
-            },
-            seo: {
-                metaTitle: row.metaTitle,
-                metaDescription: row.metaDescription,
-            },
-            stock: stockDetails,
-            isActive: row.isActive,
-            isFeatured: row.isFeatured,
-            soldCount: Number(row.soldCount || 0),
-            category: row.categoryId ? {
-                id: row.categoryId,
-                name: row.categoryName,
-            } : null,
-            supplier: row.supplierId ? {
-                id: row.supplierId,
-                name: row.supplierName,
-            } : null,
-            createdAt: row.createdAt,
-            updatedAt: row.updatedAt,
-        })
-    } catch (err: any) {
-        console.error('[products/detail]', err)
         return errors.internal(c, err.message)
     }
 })
@@ -949,6 +827,127 @@ productsRouter.post('/suppliers', authMiddleware, async (c) => {
         })
     } catch (err: any) {
         console.error('[products/suppliers/create]', err)
+        return errors.internal(c, err.message)
+    }
+})
+
+// GET /api/dashboard/products/:id
+// Get single product detail
+productsRouter.get('/:id', authMiddleware, async (c) => {
+    try {
+        const db = c.get('db')
+        const orgId = await getOrgId(c)
+        const productId = c.req.param('id')
+
+        const [row] = await db
+            .select({
+                id: products.id,
+                name: products.name,
+                sku: products.sku,
+                barcode: products.barcode,
+                basePrice: products.basePrice,
+                salePrice: products.salePrice,
+                costPrice: products.costPrice,
+                description: products.description,
+                shortDescription: products.shortDescription,
+                weight: products.weight,
+                dimensions: products.dimensions,
+                imageUrl: products.imageUrl,
+                images: products.images,
+                isActive: products.isActive,
+                isFeatured: products.isFeatured,
+                soldCount: products.soldCount,
+                metaTitle: products.metaTitle,
+                metaDescription: products.metaDescription,
+                inventoryProductId: products.inventoryProductId,
+                categoryId: products.categoryId,
+                supplierId: products.supplierId,
+                slug: products.slug,
+                createdAt: products.createdAt,
+                updatedAt: products.updatedAt,
+                categoryName: productCategories.name,
+                supplierName: suppliers.name,
+            })
+            .from(products)
+            .leftJoin(productCategories, eq(products.categoryId, productCategories.id))
+            .leftJoin(suppliers, eq(products.supplierId, suppliers.id))
+            .where(and(
+                eq(products.id, productId),
+                eq(products.organizationId, orgId)
+            ))
+            .limit(1)
+
+        if (!row) {
+            return errors.notFound(c, 'Product not found')
+        }
+
+        // Get stock details if linked to inventory
+        let stockDetails = null
+        if (row.inventoryProductId) {
+            const stocks = await db
+                .select({
+                    branchId: inventoryStocks.branchId,
+                    branchName: branches.name,
+                    quantity: inventoryStocks.quantity,
+                })
+                .from(inventoryStocks)
+                .leftJoin(branches, eq(inventoryStocks.branchId, branches.id))
+                .where(eq(inventoryStocks.productId, row.inventoryProductId))
+
+            const totalQuantity = stocks.reduce((sum: number, s: any) => sum + Number(s.quantity), 0)
+
+            stockDetails = {
+                totalQuantity,
+                byBranch: stocks.map((s: any) => ({
+                    branchId: s.branchId,
+                    branchName: s.branchName,
+                    quantity: Number(s.quantity),
+                })),
+            }
+        }
+
+        return ok(c, {
+            id: row.id,
+            name: row.name,
+            sku: row.sku,
+            barcode: row.barcode,
+            slug: row.slug,
+            description: row.description,
+            shortDescription: row.shortDescription,
+            pricing: {
+                basePrice: Number(row.basePrice || 0),
+                salePrice: row.salePrice ? Number(row.salePrice) : null,
+                costPrice: row.costPrice ? Number(row.costPrice) : null,
+            },
+            physical: {
+                weight: row.weight,
+                dimensions: row.dimensions,
+            },
+            media: {
+                imageUrl: row.imageUrl,
+                images: row.images || [],
+            },
+            seo: {
+                metaTitle: row.metaTitle,
+                metaDescription: row.metaDescription,
+            },
+            stock: stockDetails,
+            isActive: row.isActive,
+            isFeatured: row.isFeatured,
+            soldCount: Number(row.soldCount || 0),
+            category: row.categoryId ? {
+                id: row.categoryId,
+                name: row.categoryName,
+            } : null,
+            supplier: row.supplierId ? {
+                id: row.supplierId,
+                name: row.supplierName,
+            } : null,
+            createdAt: row.createdAt,
+            updatedAt: row.updatedAt,
+        })
+    } catch (err: any) {
+        console.error('[products/detail]', err)
         return errors.internal(c, err.message)
     }
 })

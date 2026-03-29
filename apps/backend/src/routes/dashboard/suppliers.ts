@@ -150,6 +150,33 @@ suppliersRouter.get('/', authMiddleware, async (c) => {
     }
 })
 
+// GET /api/dashboard/suppliers/cities
+// Get all unique cities for filter
+suppliersRouter.get('/cities', authMiddleware, async (c) => {
+    try {
+        const db = c.get('db')
+        const orgId = await getOrgId(c)
+
+        const rows = await db
+            .selectDistinct({
+                city: suppliers.city,
+            })
+            .from(suppliers)
+            .where(and(
+                eq(suppliers.organizationId, orgId),
+                sql`${suppliers.city} IS NOT NULL`
+            ))
+            .orderBy(asc(suppliers.city))
+
+        return ok(c, {
+            data: rows.map((r: any) => r.city).filter(Boolean)
+        })
+    } catch (err: any) {
+        console.error('[suppliers/cities]', err)
+        return errors.internal(c, err.message)
+    }
+})
+
 // GET /api/dashboard/suppliers/:id
 // Get single supplier detail
 suppliersRouter.get('/:id', authMiddleware, async (c) => {
@@ -403,29 +430,3 @@ suppliersRouter.delete('/:id', authMiddleware, async (c) => {
     }
 })
 
-// GET /api/dashboard/suppliers/cities
-// Get all unique cities for filter
-suppliersRouter.get('/cities', authMiddleware, async (c) => {
-    try {
-        const db = c.get('db')
-        const orgId = await getOrgId(c)
-
-        const rows = await db
-            .selectDistinct({
-                city: suppliers.city,
-            })
-            .from(suppliers)
-            .where(and(
-                eq(suppliers.organizationId, orgId),
-                sql`${suppliers.city} IS NOT NULL`
-            ))
-            .orderBy(asc(suppliers.city))
-
-        return ok(c, { 
-            data: rows.map((r: any) => r.city).filter(Boolean) 
-        })
-    } catch (err: any) {
-        console.error('[suppliers/cities]', err)
-        return errors.internal(c, err.message)
-    }
-})

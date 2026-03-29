@@ -114,6 +114,63 @@ inventoryRouter.get('/products', authMiddleware, async (c) => {
     }
 })
 
+// POST /api/dashboard/inventory/products
+inventoryRouter.post('/products', authMiddleware, async (c) => {
+    try {
+        const db = c.get('db')
+        const orgId = await getOrgId(c)
+        const body = await c.req.json().catch(() => null)
+
+        const name = body?.name?.trim()
+        const sku = body?.sku?.trim()
+        const unit = body?.unit?.trim() || 'pcs'
+
+        if (!name) {
+            return errors.badRequest(c, 'name is required')
+        }
+
+        if (sku) {
+            const [existing] = await db
+                .select({ id: inventoryProducts.id })
+                .from(inventoryProducts)
+                .where(and(
+                    eq(inventoryProducts.organizationId, orgId),
+                    eq(inventoryProducts.sku, sku)
+                ))
+                .limit(1)
+
+            if (existing) {
+                return errors.badRequest(c, 'SKU already exists')
+            }
+        }
+
+        const [created] = await db
+            .insert(inventoryProducts)
+            .values({
+                organizationId: orgId,
+                name,
+                sku: sku || null,
+                unit,
+                imageUrl: body?.imageUrl || null,
+                isActive: body?.isActive !== false,
+            })
+            .returning()
+
+        return ok(c, {
+            id: created.id,
+            name: created.name,
+            sku: created.sku,
+            unit: created.unit,
+            imageUrl: created.imageUrl,
+            isActive: created.isActive,
+            createdAt: created.createdAt,
+        })
+    } catch (err: any) {
+        console.error('[inventory/products/create]', err)
+        return errors.internal(c, err.message)
+    }
+})
+
 // DELETE /api/dashboard/inventory/products/:id
 inventoryRouter.delete('/products/:id', authMiddleware, async (c) => {
     try {
