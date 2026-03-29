@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import { authMiddleware } from '../../middleware/auth'
 import { getOrgId, getUserId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
-import { and, desc, eq, ilike, or, sql } from 'drizzle-orm'
+import { and, desc, eq, sql } from 'drizzle-orm'
 import {
     branches,
     branchMembers,
@@ -12,11 +12,13 @@ import {
     roles,
     user,
 } from '@beresio/db'
+import { getMemberRoleSlugs, hasOrgWideRoleSlug } from '../../lib/branch-access'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
 type Variables = { db: any; user: any; session: any }
 
 const DEFAULT_LIMIT = 50
+const INSUFFICIENT_ROLE_MESSAGE = 'insufficient role/permission'
 
 function normalizeSlug(input: string) {
     return input
@@ -28,10 +30,28 @@ function normalizeSlug(input: string) {
 
 export const teamRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
+async function resolveOrgId(c: any): Promise<string | null> {
+    try {
+        return await getOrgId(c)
+    } catch {
+        return null
+    }
+}
+
+async function ensureAdminRole(c: any, orgId: string) {
+    const roleSlugs = await getMemberRoleSlugs(c, orgId)
+    const hasAdminRole = roleSlugs.some((roleSlug) => hasOrgWideRoleSlug(roleSlug))
+    if (!hasAdminRole) {
+        return errors.forbidden(c, INSUFFICIENT_ROLE_MESSAGE)
+    }
+    return null
+}
+
 teamRouter.get('/members', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
+        const orgId = await resolveOrgId(c)
+        if (!orgId) return errors.unauthorized(c, 'No organization context')
 
         const search = c.req.query('search')?.trim()
         const roleId = c.req.query('roleId')
@@ -51,13 +71,13 @@ teamRouter.get('/members', authMiddleware, async (c) => {
 
         if (search) {
             const q = `%${search}%`
-            conditions.push(or(
-                ilike(user.name, q),
-                ilike(user.email, q),
-                ilike(member.role, q),
-                ilike(roles.name, q),
-                ilike(roles.slug, q),
-            ))
+            conditions.push(sql`(
+                ${user.name} ilike ${q}
+                or ${user.email} ilike ${q}
+                or coalesce(${member.role}, '') ilike ${q}
+                or coalesce(${roles.name}, '') ilike ${q}
+                or coalesce(${roles.slug}, '') ilike ${q}
+            )`)
         }
 
         if (branchId) {
@@ -117,7 +137,10 @@ teamRouter.get('/members', authMiddleware, async (c) => {
 teamRouter.patch('/members/:id/role', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
+        const orgId = await resolveOrgId(c)
+        if (!orgId) return errors.unauthorized(c, 'No organization context')
+        const deny = await ensureAdminRole(c, orgId)
+        if (deny) return deny
         const memberId = c.req.param('id')
         const body = await c.req.json().catch(() => null)
 
@@ -158,7 +181,10 @@ teamRouter.patch('/members/:id/role', authMiddleware, async (c) => {
 teamRouter.patch('/members/:id/status', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
+        const orgId = await resolveOrgId(c)
+        if (!orgId) return errors.unauthorized(c, 'No organization context')
+        const deny = await ensureAdminRole(c, orgId)
+        if (deny) return deny
         const memberId = c.req.param('id')
         const body = await c.req.json().catch(() => null)
 
@@ -188,7 +214,10 @@ teamRouter.patch('/members/:id/status', authMiddleware, async (c) => {
 teamRouter.post('/members/:id/branches', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
+        const orgId = await resolveOrgId(c)
+        if (!orgId) return errors.unauthorized(c, 'No organization context')
+        const deny = await ensureAdminRole(c, orgId)
+        if (deny) return deny
         const memberId = c.req.param('id')
         const body = await c.req.json().catch(() => null)
 
@@ -274,7 +303,8 @@ teamRouter.post('/members/:id/branches', authMiddleware, async (c) => {
 teamRouter.get('/roles', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
+        const orgId = await resolveOrgId(c)
+        if (!orgId) return errors.unauthorized(c, 'No organization context')
 
         const rows = await db
             .select({
@@ -302,7 +332,8 @@ teamRouter.get('/roles', authMiddleware, async (c) => {
 teamRouter.get('/roles/:id', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
+        const orgId = await resolveOrgId(c)
+        if (!orgId) return errors.unauthorized(c, 'No organization context')
         const roleId = c.req.param('id')
 
         const [row] = await db
@@ -331,7 +362,8 @@ teamRouter.get('/roles/:id', authMiddleware, async (c) => {
 teamRouter.get('/roles/:id/permissions', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
+        const orgId = await resolveOrgId(c)
+        if (!orgId) return errors.unauthorized(c, 'No organization context')
         const roleId = c.req.param('id')
 
         const [roleRow] = await db
@@ -360,7 +392,10 @@ teamRouter.get('/roles/:id/permissions', authMiddleware, async (c) => {
 teamRouter.post('/roles', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
+        const orgId = await resolveOrgId(c)
+        if (!orgId) return errors.unauthorized(c, 'No organization context')
+        const deny = await ensureAdminRole(c, orgId)
+        if (deny) return deny
         const body = await c.req.json().catch(() => null)
 
         const name = body?.name?.trim()
@@ -414,7 +449,10 @@ teamRouter.post('/roles', authMiddleware, async (c) => {
 teamRouter.put('/roles/:id/permissions', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
+        const orgId = await resolveOrgId(c)
+        if (!orgId) return errors.unauthorized(c, 'No organization context')
+        const deny = await ensureAdminRole(c, orgId)
+        if (deny) return deny
         const roleId = c.req.param('id')
         const body = await c.req.json().catch(() => null)
 
@@ -456,7 +494,8 @@ teamRouter.put('/roles/:id/permissions', authMiddleware, async (c) => {
 teamRouter.get('/invitations', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
+        const orgId = await resolveOrgId(c)
+        if (!orgId) return errors.unauthorized(c, 'No organization context')
 
         const rows = await db
             .select({
@@ -498,7 +537,10 @@ teamRouter.get('/invitations', authMiddleware, async (c) => {
 teamRouter.post('/invitations', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
+        const orgId = await resolveOrgId(c)
+        if (!orgId) return errors.unauthorized(c, 'No organization context')
+        const deny = await ensureAdminRole(c, orgId)
+        if (deny) return deny
         const inviterId = getUserId(c)
         const body = await c.req.json().catch(() => null)
 
@@ -558,7 +600,10 @@ teamRouter.post('/invitations', authMiddleware, async (c) => {
 teamRouter.post('/invitations/:id/resend', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
+        const orgId = await resolveOrgId(c)
+        if (!orgId) return errors.unauthorized(c, 'No organization context')
+        const deny = await ensureAdminRole(c, orgId)
+        if (deny) return deny
         const inviteId = c.req.param('id')
 
         const updated = await db
@@ -579,7 +624,10 @@ teamRouter.post('/invitations/:id/resend', authMiddleware, async (c) => {
 teamRouter.post('/invitations/:id/cancel', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
+        const orgId = await resolveOrgId(c)
+        if (!orgId) return errors.unauthorized(c, 'No organization context')
+        const deny = await ensureAdminRole(c, orgId)
+        if (deny) return deny
         const inviteId = c.req.param('id')
 
         const updated = await db

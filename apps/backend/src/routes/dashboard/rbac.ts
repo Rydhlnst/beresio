@@ -4,11 +4,22 @@ import { getOrgId, getUserId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
 import { sql, and, eq, desc } from 'drizzle-orm'
 import { member, invitation, activityLogs, user, roles } from '@beresio/db'
+import { getMemberRoleSlugs, hasOrgWideRoleSlug } from '../../lib/branch-access'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
 type Variables = { db: any; user: any; session: any }
 
 export const rbacRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>()
+const INSUFFICIENT_ROLE_MESSAGE = 'insufficient role/permission'
+
+async function ensureAdminRole(c: any, orgId: string) {
+    const roleSlugs = await getMemberRoleSlugs(c, orgId)
+    const hasAdminRole = roleSlugs.some((roleSlug) => hasOrgWideRoleSlug(roleSlug))
+    if (!hasAdminRole) {
+        return errors.forbidden(c, INSUFFICIENT_ROLE_MESSAGE)
+    }
+    return null
+}
 
 const DEFAULT_ROLES = [
     { slug: 'owner', name: 'Owner' },
@@ -29,6 +40,8 @@ rbacRouter.post('/bootstrap', authMiddleware, async (c) => {
         } catch {
             return errors.unauthorized(c, 'No organization context')
         }
+        const deny = await ensureAdminRole(c, orgId)
+        if (deny) return deny
 
         const userId = getUserId(c)
 
