@@ -14,10 +14,42 @@ vi.mock("../../lib/auth-context", () => ({
     getUserId: vi.fn(() => "user-1"),
 }));
 
+const { getMemberRoleSlugsMock } = vi.hoisted(() => ({
+    getMemberRoleSlugsMock: vi.fn(async () => ["owner"]),
+}));
+vi.mock("../../lib/branch-access", () => ({
+    getMemberRoleSlugs: getMemberRoleSlugsMock,
+    hasOrgWideRoleSlug: (roleSlug: string) =>
+        new Set([
+            "owner",
+            "admin",
+            "administrator",
+            "super_admin",
+            "superadmin",
+            "org_admin",
+            "organization_admin",
+        ]).has(roleSlug),
+}));
+
 import { teamRouter } from "./team";
 const createTeamApp = (db: any) => createTestApp(teamRouter, "/api/dashboard/team", db);
 
 describe("team routes", () => {
+    it("PATCH /members/:id/role rejects non-admin role", async () => {
+        getMemberRoleSlugsMock.mockResolvedValueOnce(["cashier"]);
+        const app = createTeamApp(createDbMock());
+        const res = await app.request("/api/dashboard/team/members/mem-1/role", {
+            method: "PATCH",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ roleId: "role-1" }),
+        });
+
+        const body = await res.json();
+        expect(res.status).toBe(403);
+        expect(body.success).toBe(false);
+        expect(body.error.message).toBe("insufficient role/permission");
+    });
+
     it("GET /members maps member response", async () => {
         const db = createDbMock({
             selectResults: [[

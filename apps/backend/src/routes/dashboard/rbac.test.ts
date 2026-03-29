@@ -14,10 +14,38 @@ vi.mock("../../lib/auth-context", () => ({
     getUserId: vi.fn(() => "user-1"),
 }));
 
+const { getMemberRoleSlugsMock } = vi.hoisted(() => ({
+    getMemberRoleSlugsMock: vi.fn(async () => ["owner"]),
+}));
+vi.mock("../../lib/branch-access", () => ({
+    getMemberRoleSlugs: getMemberRoleSlugsMock,
+    hasOrgWideRoleSlug: (roleSlug: string) =>
+        new Set([
+            "owner",
+            "admin",
+            "administrator",
+            "super_admin",
+            "superadmin",
+            "org_admin",
+            "organization_admin",
+        ]).has(roleSlug),
+}));
+
 import { rbacRouter } from "./rbac";
 const createRbacApp = (db: any) => createTestApp(rbacRouter, "/api/dashboard/rbac", db);
 
 describe("rbac routes", () => {
+    it("POST /bootstrap rejects non-admin role", async () => {
+        getMemberRoleSlugsMock.mockResolvedValueOnce(["cashier"]);
+        const app = createRbacApp(createDbMock());
+        const res = await app.request("/api/dashboard/rbac/bootstrap", { method: "POST" });
+        const body = await res.json();
+
+        expect(res.status).toBe(403);
+        expect(body.success).toBe(false);
+        expect(body.error.message).toBe("insufficient role/permission");
+    });
+
     it("POST /bootstrap seeds roles and updates member roleId", async () => {
         const db = createDbMock({
             selectResults: [
@@ -70,7 +98,7 @@ describe("rbac routes", () => {
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
         expect(body.data).toMatchObject({
-            rolesInserted: 0,
+            rolesInserted: 4,
             memberUpdated: false,
             roleSlug: "owner",
         });

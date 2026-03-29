@@ -61,8 +61,8 @@ describe("products routes", () => {
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
-            expect(body.data).toHaveLength(1);
-            expect(body.data[0]).toMatchObject({
+            expect(body.data.data).toHaveLength(1);
+            expect(body.data.data[0]).toMatchObject({
                 id: "prod-1",
                 name: "Test Product",
                 pricing: {
@@ -75,7 +75,7 @@ describe("products routes", () => {
                     status: "ok",
                 },
             });
-            expect(body.meta).toMatchObject({
+            expect(body.data.meta).toMatchObject({
                 total: 2,
                 page: 1,
                 limit: 10,
@@ -116,7 +116,7 @@ describe("products routes", () => {
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
-            expect(body.data[0].name).toBe("iPhone 14");
+            expect(body.data.data[0].name).toBe("iPhone 14");
         });
 
         it("filters by stock status", async () => {
@@ -153,7 +153,7 @@ describe("products routes", () => {
             const body = await res.json();
 
             expect(res.status).toBe(200);
-            expect(body.data[0].stock.status).toBe("low");
+            expect(body.data.data[0].stock.status).toBe("low");
         });
 
         it("returns empty array when no products", async () => {
@@ -170,8 +170,8 @@ describe("products routes", () => {
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
-            expect(body.data).toHaveLength(0);
-            expect(body.meta.total).toBe(0);
+            expect(body.data.data).toHaveLength(0);
+            expect(body.data.meta.total).toBe(0);
         });
     });
 
@@ -466,8 +466,8 @@ describe("products routes", () => {
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
-            expect(body.data).toHaveLength(2);
-            expect(body.data[0].name).toBe("Electronics");
+            expect(body.data.data).toHaveLength(2);
+            expect(body.data.data[0].name).toBe("Electronics");
         });
     });
 
@@ -488,7 +488,7 @@ describe("products routes", () => {
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
-            expect(body.data).toHaveLength(2);
+            expect(body.data.data).toHaveLength(2);
         });
     });
 });

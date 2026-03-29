@@ -13,6 +13,15 @@ type Bindings = {
 }
 type Variables = { db: any; user: any; session: any }
 
+type CloudinaryUploadResponse = {
+    secure_url: string
+    public_id: string
+    width?: number
+    height?: number
+    format?: string
+    bytes?: number
+}
+
 export const uploadRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
 // Cloudinary upload using unsigned upload
@@ -25,6 +34,10 @@ uploadRouter.post('/image', authMiddleware, async (c) => {
         const env = c.env
         const orgId = await getOrgId(c)
         const body = await c.req.json().catch(() => null)
+
+        if (!env?.CLOUDINARY_CLOUD_NAME || !env?.CLOUDINARY_UPLOAD_PRESET) {
+            return errors.internal(c, 'Cloudinary configuration is incomplete')
+        }
 
         const imageBase64 = body?.image
         const folder = body?.folder || 'products'
@@ -57,7 +70,7 @@ uploadRouter.post('/image', authMiddleware, async (c) => {
             return errors.internal(c, 'Failed to upload image to cloud storage')
         }
 
-        const result = await response.json()
+        const result = await response.json() as CloudinaryUploadResponse
 
         return ok(c, {
             url: result.secure_url,
@@ -80,6 +93,10 @@ uploadRouter.post('/multiple', authMiddleware, async (c) => {
         const env = c.env
         const orgId = await getOrgId(c)
         const body = await c.req.json().catch(() => null)
+
+        if (!env?.CLOUDINARY_CLOUD_NAME || !env?.CLOUDINARY_UPLOAD_PRESET) {
+            return errors.internal(c, 'Cloudinary configuration is incomplete')
+        }
 
         const images: string[] = body?.images || []
         const folder = body?.folder || 'products'
@@ -109,7 +126,7 @@ uploadRouter.post('/multiple', authMiddleware, async (c) => {
                 throw new Error(`Failed to upload image at index ${index}`)
             }
 
-            const result = await response.json()
+            const result = await response.json() as CloudinaryUploadResponse
 
             return {
                 url: result.secure_url,

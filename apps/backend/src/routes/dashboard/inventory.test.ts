@@ -15,6 +15,16 @@ vi.mock("../../lib/auth-context", () => ({
     getUserId: vi.fn(async () => "user-1"),
 }));
 
+vi.mock("../../lib/branch-access", () => ({
+    getBranchAccessContext: vi.fn(async () => ({
+        branchIds: ["br-1", "br-2"],
+        isOrgWide: false,
+    })),
+    getAccessibleBranchIds: vi.fn(async () => ["br-1", "br-2"]),
+    hasBranchAccess: (branchIds: string[], branchId?: string | null) =>
+        Boolean(branchId && branchIds.includes(branchId)),
+}));
+
 import { inventoryRouter } from "./inventory";
 const createInventoryApp = (db: any) =>
     createTestApp(inventoryRouter, "/api/dashboard/inventory", db);
@@ -413,6 +423,8 @@ describe("inventory routes", () => {
                     [{ id: "stock-2", quantity: 20 }], // To branch stock
                 ],
                 updateResults: [
+                    [],
+                    [],
                     [
                         {
                             id: "xfer-1",

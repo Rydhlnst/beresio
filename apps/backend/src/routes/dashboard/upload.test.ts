@@ -16,7 +16,7 @@ vi.mock("../../lib/auth-context", () => ({
 
 import { uploadRouter } from "./upload";
 const createUploadApp = (db: any, env: any = {}) =>
-    createTestApp(uploadRouter, "/api/dashboard/upload", db);
+    createTestApp(uploadRouter, "/api/dashboard/upload", db, env);
 
 describe("upload routes", () => {
     const mockEnv = {

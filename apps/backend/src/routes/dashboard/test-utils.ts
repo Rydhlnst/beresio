@@ -9,6 +9,7 @@ export class QueryMock<T> implements PromiseLike<T> {
     orderBy() { return this; }
     groupBy() { return this; }
     limit() { return this; }
+    offset() { return this; }
     values() { return this; }
     set() { return this; }
     returning() { return this; }
@@ -34,12 +35,14 @@ export function createDbMock(options?: {
 
     return {
         select: () => new QueryMock(selectQueue.shift() ?? []),
+        selectDistinct: () => new QueryMock(selectQueue.shift() ?? []),
         insert: () => new QueryMock(insertQueue.shift() ?? []),
         update: () => new QueryMock(updateQueue.shift() ?? []),
         delete: () => new QueryMock(deleteQueue.shift() ?? []),
         transaction: async (fn: (tx: any) => Promise<unknown>) => {
             return fn({
                 select: () => new QueryMock(selectQueue.shift() ?? []),
+                selectDistinct: () => new QueryMock(selectQueue.shift() ?? []),
                 insert: () => new QueryMock(insertQueue.shift() ?? []),
                 update: () => new QueryMock(updateQueue.shift() ?? []),
                 delete: () => new QueryMock(deleteQueue.shift() ?? []),
@@ -48,10 +51,16 @@ export function createDbMock(options?: {
     };
 }
 
-export function createTestApp(router: any, basePath: string, db: any) {
+export function createTestApp(router: any, basePath: string, db: any, env: Record<string, unknown> = {}) {
     const app = new Hono();
     app.use("*", async (c, next) => {
-        c.set("db", db);
+        if (Object.keys(env).length > 0) {
+            if (!(c as any).env) {
+                (c as any).env = {};
+            }
+            Object.assign((c as any).env, env);
+        }
+        (c as any).set("db", db);
         await next();
     });
     app.route(basePath, router);

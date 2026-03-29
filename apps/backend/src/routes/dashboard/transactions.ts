@@ -6,6 +6,7 @@ import { and, desc, eq, gte, inArray, lte } from 'drizzle-orm'
 import {
     branches,
     customers,
+    customerAnalytics,
     inventoryStocks,
     products,
     stockMovements,
@@ -46,6 +47,69 @@ async function recordStockMovement(tx: any, input: {
 }
 
 export const transactionsRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>()
+
+type CustomerInput = {
+    name?: string | null
+    phone?: string | null
+    email?: string | null
+    address?: string | null
+}
+
+async function resolveOrCreateCustomerId(
+    tx: any,
+    orgId: string,
+    input: CustomerInput
+): Promise<string> {
+    const name = String(input?.name ?? "").trim()
+    const phone = String(input?.phone ?? "").trim()
+    const email = input?.email ? String(input.email).trim() : null
+    const address = input?.address ? String(input.address).trim() : null
+
+    if (!name || !phone) {
+        throw new Error("INVALID_CUSTOMER_PAYLOAD")
+    }
+
+    const [byPhone] = await tx
+        .select({ id: customers.id })
+        .from(customers)
+        .where(and(eq(customers.organizationId, orgId), eq(customers.phone, phone)))
+        .limit(1)
+    if (byPhone) return byPhone.id
+
+    if (email) {
+        const [byEmail] = await tx
+            .select({ id: customers.id })
+            .from(customers)
+            .where(and(eq(customers.organizationId, orgId), eq(customers.email, email)))
+            .limit(1)
+        if (byEmail) return byEmail.id
+    }
+
+    const [created] = await tx
+        .insert(customers)
+        .values({
+            organizationId: orgId,
+            name,
+            phone,
+            email,
+            address,
+            status: "active",
+            loyaltyPoints: 0,
+            loyaltyTier: "regular",
+            totalSpentRp: 0,
+        })
+        .returning()
+
+    await tx.insert(customerAnalytics).values({
+        organizationId: orgId,
+        customerId: created.id,
+        totalOrders: 0,
+        totalSpent: 0,
+        averageOrderValue: 0,
+    })
+
+    return created.id
+}
 
 // GET /api/dashboard/transactions
 transactionsRouter.get('/', authMiddleware, async (c) => {
@@ -225,6 +289,7 @@ transactionsRouter.post('/', authMiddleware, async (c) => {
 
         const branchId = body?.branchId
         const customerId = body?.customerId ?? null
+        const customerInput = body?.customer ?? null
         const status = body?.status ?? 'paid'
         const type = body?.type ?? 'sale'
         const paymentMethod = body?.paymentMethod ?? null
@@ -288,8 +353,8 @@ transactionsRouter.post('/', authMiddleware, async (c) => {
         }
 
         const inventoryIds = productRows
-            .map((p) => p.inventoryProductId)
-            .filter((id): id is string => Boolean(id))
+            .map((product: { inventoryProductId: string | null }) => product.inventoryProductId)
+            .filter((inventoryId: string | null): inventoryId is string => Boolean(inventoryId))
 
         const stockMap = new Map<string, number>()
         if (inventoryIds.length > 0) {
@@ -334,12 +399,17 @@ transactionsRouter.post('/', authMiddleware, async (c) => {
         const amount = Math.max(0, subtotal - discountAmount + taxAmount)
 
         const created = await db.transaction(async (tx: any) => {
+            let resolvedCustomerId = customerId
+            if (!resolvedCustomerId && customerInput) {
+                resolvedCustomerId = await resolveOrCreateCustomerId(tx, orgId, customerInput)
+            }
+
             const [transaction] = await tx
                 .insert(transactions)
                 .values({
                     organizationId: orgId,
                     branchId,
-                    customerId,
+                    customerId: resolvedCustomerId,
                     paymentMethod,
                     discountAmount,
                     taxAmount,
@@ -432,6 +502,9 @@ transactionsRouter.post('/', authMiddleware, async (c) => {
         })
     } catch (err: any) {
         console.error('[transactions/create]', err)
+        if (err?.message === 'INVALID_CUSTOMER_PAYLOAD') {
+            return errors.badRequest(c, 'Data customer tidak valid')
+        }
         if (err?.message === 'INSUFFICIENT_STOCK') {
             return errors.badRequest(c, 'Insufficient stock')
         }

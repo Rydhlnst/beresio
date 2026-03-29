@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import { authMiddleware } from '../../middleware/auth'
 import { getOrgId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
-import { and, eq, ilike, or, desc } from 'drizzle-orm'
+import { and, eq, desc, sql } from 'drizzle-orm'
 import { customers, customerNotes, customerTagLinks, customerTags } from '@beresio/db'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
@@ -27,11 +27,12 @@ customersRouter.get('/', authMiddleware, async (c) => {
 
         const conditions = [eq(customers.organizationId, orgId)]
         if (q) {
-            conditions.push(or(
-                ilike(customers.name, `%${q}%`),
-                ilike(customers.phone, `%${q}%`),
-                ilike(customers.email, `%${q}%`)
-            ))
+            const query = `%${q}%`
+            conditions.push(sql`(
+                ${customers.name} ilike ${query}
+                or ${customers.phone} ilike ${query}
+                or coalesce(${customers.email}, '') ilike ${query}
+            )`)
         }
 
         const rows = await db
