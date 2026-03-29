@@ -21,16 +21,19 @@ export type BusinessType = 'laundry' | 'fnb' | 'retail';
  * Module Keys - Available modules per business type
  */
 export type ModuleKey = 
-    | 'order' 
-    | 'tracking' 
-    | 'inventory' 
-    | 'customer' 
-    | 'report' 
-    | 'payment' 
-    | 'staff' 
-    | 'analytics' 
-    | 'promo' 
-    | 'settings';
+    | 'dashboard'
+    | 'crm'
+    | 'order'
+    | 'inventory'
+    | 'laporan'
+    | 'cabang'
+    | 'tim'
+    | 'pengaturan'
+    | 'pickup'
+    | 'meja'
+    | 'menu'
+    | 'products'
+    | 'suppliers';
 
 /**
  * User Role in Business
@@ -289,9 +292,9 @@ export interface ModuleConfigByBusinessType {
  * Default modules for each business type
  */
 export const DEFAULT_MODULES_BY_TYPE: ModuleConfigByBusinessType = {
-    laundry: ['order', 'tracking', 'inventory', 'customer', 'report'],
-    fnb: ['order', 'inventory', 'customer', 'report', 'payment'],
-    retail: ['order', 'inventory', 'customer', 'report', 'payment'],
+    laundry: ['dashboard', 'crm', 'order', 'inventory', 'laporan', 'cabang', 'tim', 'pengaturan', 'pickup'],
+    fnb: ['dashboard', 'crm', 'order', 'inventory', 'laporan', 'cabang', 'tim', 'pengaturan', 'meja', 'menu'],
+    retail: ['dashboard', 'crm', 'order', 'inventory', 'laporan', 'cabang', 'tim', 'pengaturan', 'products', 'suppliers'],
 };
 
 // ============================================
@@ -316,7 +319,8 @@ export function isValidBusinessType(type: string): type is BusinessType {
  */
 export function isValidModuleKey(key: string): key is ModuleKey {
     return [
-        'order', 'tracking', 'inventory', 'customer', 'report',
-        'payment', 'staff', 'analytics', 'promo', 'settings'
+        'dashboard', 'crm', 'order', 'inventory', 'laporan',
+        'cabang', 'tim', 'pengaturan', 'pickup', 'meja',
+        'menu', 'products', 'suppliers'
     ].includes(key);
 }

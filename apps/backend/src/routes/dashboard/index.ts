@@ -20,6 +20,7 @@ import { productsRouter } from './products'
 import { suppliersRouter } from './suppliers'
 import { transactionsRouter } from './transactions'
 import { crmRouter } from './crm'
+import { fnbRouter } from './fnb'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
 type Variables = { db: any; user: any; session: any }
@@ -47,3 +48,4 @@ dashboardRouter.route('/products', productsRouter)
 dashboardRouter.route('/suppliers', suppliersRouter)
 dashboardRouter.route('/transactions', transactionsRouter)
 dashboardRouter.route('/crm', crmRouter)
+dashboardRouter.route('/fnb', fnbRouter)

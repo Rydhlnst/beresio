@@ -11,6 +11,8 @@ import {
 import { organization, user } from "./auth.schema";
 import { branches, customers } from "./core.schema";
 import { inventoryProducts } from "./inventory.schema";
+import { products } from "./products.schema";
+import { fnbTables } from "./fnb.schema";
 
 export const orders = pgTable("orders", {
     id: uuid("id").primaryKey().defaultRandom(),
@@ -35,6 +37,13 @@ export const orders = pgTable("orders", {
     paymentStatus: text("payment_status").notNull().default("pending"), // pending | paid | refunded | failed
     paymentMethod: text("payment_method"),
     notes: text("notes"),
+    serviceMode: text("service_mode").notNull().default("walk_in"), // walk_in | dine_in | pickup | delivery | take_away
+    tableId: uuid("table_id").references(() => fnbTables.id, { onDelete: "set null" }),
+    guestCount: integer("guest_count").notNull().default(1),
+    holdState: text("hold_state").notNull().default("none"), // none | held | resumed | released
+    heldAt: timestamp("held_at"),
+    splitFromOrderId: uuid("split_from_order_id"),
+    mergedIntoOrderId: uuid("merged_into_order_id"),
 
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdateFn(() => new Date()),
@@ -47,6 +56,9 @@ export const orders = pgTable("orders", {
         idxOrdersOrgCreated: index("idx_orders_org_created").on(table.organizationId, table.createdAt),
         idxOrdersBranch: index("idx_orders_branch").on(table.branchId),
         idxOrdersCustomer: index("idx_orders_customer").on(table.customerId),
+        idxOrdersServiceMode: index("idx_orders_service_mode").on(table.organizationId, table.serviceMode),
+        idxOrdersTable: index("idx_orders_table").on(table.tableId),
+        idxOrdersHoldState: index("idx_orders_hold_state").on(table.organizationId, table.holdState),
         uqOrdersOrgNumber: uniqueIndex("uq_orders_org_number").on(table.organizationId, table.orderNumber),
     };
 });
@@ -58,6 +70,7 @@ export const orderItems = pgTable("order_items", {
         .references(() => orders.id, { onDelete: "cascade" }),
     inventoryProductId: uuid("inventory_product_id")
         .references(() => inventoryProducts.id, { onDelete: "set null" }),
+    productId: uuid("product_id").references(() => products.id, { onDelete: "set null" }),
     sku: varchar("sku", { length: 60 }),
     name: text("name").notNull(),
     quantity: integer("quantity").notNull(),
@@ -67,6 +80,7 @@ export const orderItems = pgTable("order_items", {
 }, (table) => {
     return {
         idxOrderItemsOrder: index("idx_order_items_order").on(table.orderId),
+        idxOrderItemsProduct: index("idx_order_items_product").on(table.productId),
     };
 });
 
@@ -97,4 +111,28 @@ export const orderSequences = pgTable("order_sequences", {
         .references(() => organization.id, { onDelete: "cascade" }),
     lastNumber: integer("last_number").notNull().default(0),
     updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdateFn(() => new Date()),
+});
+
+export const orderBillParts = pgTable("order_bill_parts", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: text("organization_id")
+        .notNull()
+        .references(() => organization.id, { onDelete: "cascade" }),
+    orderId: uuid("order_id")
+        .notNull()
+        .references(() => orders.id, { onDelete: "cascade" }),
+    partLabel: varchar("part_label", { length: 60 }).notNull(),
+    amount: integer("amount").notNull(),
+    paymentMethod: text("payment_method"),
+    paymentStatus: text("payment_status").notNull().default("pending"), // pending | paid | failed | refunded
+    notes: text("notes"),
+    createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdateFn(() => new Date()),
+}, (table) => {
+    return {
+        idxOrderBillPartsOrg: index("idx_order_bill_parts_org").on(table.organizationId),
+        idxOrderBillPartsOrder: index("idx_order_bill_parts_order").on(table.orderId),
+        idxOrderBillPartsOrgStatus: index("idx_order_bill_parts_org_status").on(table.organizationId, table.paymentStatus),
+    };
 });
