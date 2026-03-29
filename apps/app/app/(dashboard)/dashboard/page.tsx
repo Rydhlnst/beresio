@@ -8,7 +8,7 @@ import { RevenueBranchChart } from "@/components/dashboard/performance/revenue-b
 import { RecentOrdersPanel } from "@/components/dashboard/operations/recent-orders-panel";
 import { AlertsPanel } from "@/components/dashboard/operations/alerts-panel";
 import { OperationsStatusCard } from "@/components/dashboard/operations/operations-status-card";
-import { RBACOverviewCard } from "@/components/dashboard/rbac-overview/rbac-overview-card";
+// import { RBACOverviewCard } from "@/components/dashboard/rbac-overview/rbac-overview-card";
 
 export const metadata: Metadata = {
     title: "Dashboard | Beres",
@@ -43,6 +43,7 @@ export default async function DashboardPage() {
     });
     
     const userName = session?.user?.name ?? "Owner";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const activeOrganizationId = (session as any)?.activeOrganizationId ?? null;
 
     return (

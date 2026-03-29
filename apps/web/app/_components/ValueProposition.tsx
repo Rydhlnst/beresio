@@ -13,21 +13,10 @@ import {
     ArrowRight
 } from "lucide-react"
 import { cn } from "@repo/ui/lib/utils"
-import { Button, Heading, Text } from "@repo/ui"
+import { Button } from "@repo/ui"
 import { SectionClient } from "./SectionClient"
-import { SectionCTAClient } from "./SectionCTAClient"
 
-// --- HELPERS ---
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-    return (
-        <Text variant="overline" className="mb-6">
-            {children}
-        </Text>
-    )
-}
-
-// --- CAROUSEL COMPONENT ---
+// --- FEATURES DATA ---
 
 const FEATURES = [
     {
@@ -80,6 +69,8 @@ const FEATURES = [
     }
 ]
 
+// --- CAROUSEL COMPONENT ---
+
 function ValueCarousel() {
     const [activeIndex, setActiveIndex] = useState(0)
     const [isPaused, setIsPaused] = useState(false)
@@ -109,7 +100,7 @@ function ValueCarousel() {
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => setIsPaused(false)}
         >
-            <div className="flex flex-col lg:flex-row gap-8 lg:gap-20 items-center">
+            <div className="flex flex-col lg:flex-row gap-8 lg:gap-16 items-start">
                 {/* Visual Side */}
                 <div className="flex-1 w-full relative">
                     <AnimatePresence mode="wait">
@@ -119,15 +110,14 @@ function ValueCarousel() {
                             animate={{ opacity: 1, scale: 1, x: 0 }}
                             exit={{ opacity: 0, scale: 0.98, x: -10 }}
                             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                            /* fluid height instead of brittle aspect ratio swaps */
-                            className="w-full min-h-[clamp(280px,38vw,520px)] bg-muted/20 rounded-[32px] border border-border/40 flex flex-col items-center justify-center p-8 md:p-12"
+                            className="w-full min-h-[clamp(280px,38vw,480px)] bg-muted/20 rounded-3xl border border-border/40 flex flex-col items-center justify-center p-8 md:p-12"
                         >
-                            <div className="h-16 w-16 rounded-xl bg-background border border-border/40 flex items-center justify-center mb-10 shadow-sm">
+                            <div className="h-16 w-16 rounded-2xl bg-background border border-border/40 flex items-center justify-center mb-8 shadow-sm">
                                 <Icon className="h-8 w-8 text-primary" />
                             </div>
 
-                            <div className="flex flex-col items-center mb-10">
-                                <span className="text-[clamp(2.5rem,6vw,3.75rem)] font-bold tracking-tighter text-foreground leading-none">
+                            <div className="flex flex-col items-center mb-8">
+                                <span className="text-[clamp(2.5rem,6vw,3.5rem)] font-bold tracking-tighter text-foreground leading-none">
                                     {activeFeature.stats}
                                 </span>
                                 <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mt-3">
@@ -149,9 +139,10 @@ function ValueCarousel() {
                     </AnimatePresence>
                 </div>
 
-                {/* Content Side */}
-                <div className="flex-1 w-full flex flex-col justify-center">
-                    <div className="flex gap-2 mb-10">
+                {/* Content Side - align start */}
+                <div className="flex-1 w-full flex flex-col justify-center items-start">
+                    {/* Progress Indicators */}
+                    <div className="flex gap-2 mb-8">
                         {FEATURES.map((_, i) => (
                             <button
                                 key={i}
@@ -173,16 +164,16 @@ function ValueCarousel() {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -15 }}
                             transition={{ duration: 0.4 }}
-                            className="space-y-6"
+                            className="space-y-6 text-left"
                         >
-                            <Heading as="h3" className="text-[clamp(1.75rem,4vw,3.25rem)] font-black tracking-tight leading-[1.1]">
+                            <h3 className="text-[clamp(1.5rem,3.5vw,2.5rem)] font-black tracking-tight leading-[1.15] text-foreground">
                                 {activeFeature.title}
-                            </Heading>
-                            <Text variant="muted" className="text-[15px]">
+                            </h3>
+                            <p className="text-muted-foreground text-base lg:text-lg leading-relaxed">
                                 {activeFeature.description}
-                            </Text>
+                            </p>
 
-                            <div className="pt-4 grid grid-cols-1 gap-4">
+                            <div className="pt-2 grid grid-cols-1 gap-4">
                                 {activeFeature.items.map((item, i) => (
                                     <div key={i} className="flex items-center gap-3">
                                         <div className="h-1.5 w-1.5 rounded-full bg-primary/40 shrink-0" />
@@ -193,13 +184,14 @@ function ValueCarousel() {
                         </motion.div>
                     </AnimatePresence>
 
-                    <div className="pt-12 flex gap-3">
+                    {/* Navigation Buttons */}
+                    <div className="pt-10 flex gap-3">
                         <Button
                             variant="outline"
                             size="icon"
                             onClick={prev}
                             aria-label="Previous feature"
-                            className="rounded-sm h-12 w-12 border-border/40 hover:bg-muted/50 hover:text-primary transition-all active:scale-95"
+                            className="rounded-xl h-12 w-12 border-border/40 hover:bg-muted/50 hover:text-primary transition-all active:scale-95"
                         >
                             <ChevronLeft className="h-5 w-5" />
                         </Button>
@@ -208,7 +200,7 @@ function ValueCarousel() {
                             size="icon"
                             onClick={next}
                             aria-label="Next feature"
-                            className="rounded-sm h-12 w-12 border-border/40 hover:bg-muted/50 hover:text-primary transition-all active:scale-95"
+                            className="rounded-xl h-12 w-12 border-border/40 hover:bg-muted/50 hover:text-primary transition-all active:scale-95"
                         >
                             <ChevronRight className="h-5 w-5" />
                         </Button>
@@ -231,29 +223,43 @@ function ComparisonSection() {
     ]
 
     return (
-        <div className="mt-[clamp(4rem,8vw,12rem)]">
-            <div className="max-w-2xl mb-12">
-                <SectionLabel>EFEKTIVITAS OPERASIONAL</SectionLabel>
-                <Heading as="h4" className="text-[clamp(1.25rem,3vw,2rem)] tracking-tight leading-tight">
-                    Transformasi Bisnis Kamu <br /> Bersama Platform Beres.
-                </Heading>
+        <div className="mt-[clamp(4rem,8vw,8rem)]">
+            {/* Header - align start */}
+            <div className="max-w-2xl mb-10">
+                <span className="inline-block text-[11px] font-extrabold uppercase tracking-[0.2em] text-primary mb-4">
+                    Efektivitas Operasional
+                </span>
+                <h4 className="text-[clamp(1.5rem,3vw,2.25rem)] font-black tracking-tight leading-tight text-foreground">
+                    Transformasi Bisnis Kamu Bersama Platform Beres.
+                </h4>
             </div>
 
-            <div className="bg-muted/10 border border-border/40 rounded-[32px] overflow-hidden backdrop-blur-sm">
+            {/* Table */}
+            <div className="bg-muted/10 border border-border/40 rounded-3xl overflow-hidden backdrop-blur-sm">
                 <div className="overflow-x-auto">
                     <table className="w-full border-collapse">
                         <thead>
                             <tr className="border-b border-border/30 bg-muted/20">
-                                <th className="py-6 px-[clamp(1rem,3vw,2rem)] text-left text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">Item Pekerjaan</th>
-                                <th className="py-6 px-[clamp(1rem,3vw,2rem)] text-left text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 italic">Tanpa Beres</th>
-                                <th className="py-6 px-[clamp(1rem,3vw,2rem)] text-left text-[10px] font-bold uppercase tracking-widest text-primary">Bersama Beres</th>
+                                <th className="py-5 px-[clamp(1rem,3vw,2rem)] text-left text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
+                                    Item Pekerjaan
+                                </th>
+                                <th className="py-5 px-[clamp(1rem,3vw,2rem)] text-left text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 italic">
+                                    Tanpa Beres
+                                </th>
+                                <th className="py-5 px-[clamp(1rem,3vw,2rem)] text-left text-[10px] font-bold uppercase tracking-widest text-primary">
+                                    Bersama Beres
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border/20">
                             {data.map((row, i) => (
                                 <tr key={i} className="hover:bg-muted/20 transition-colors group">
-                                    <td className="py-5 px-[clamp(1rem,3vw,2rem)] text-sm font-semibold text-foreground/80">{row.label}</td>
-                                    <td className="py-5 px-[clamp(1rem,3vw,2rem)] text-sm text-muted-foreground/50 line-through decoration-muted-foreground/30">{row.before}</td>
+                                    <td className="py-5 px-[clamp(1rem,3vw,2rem)] text-sm font-semibold text-foreground/80">
+                                        {row.label}
+                                    </td>
+                                    <td className="py-5 px-[clamp(1rem,3vw,2rem)] text-sm text-muted-foreground/50 line-through decoration-muted-foreground/30">
+                                        {row.before}
+                                    </td>
                                     <td className="py-5 px-[clamp(1rem,3vw,2rem)] text-sm font-bold text-foreground">
                                         <div className="flex items-center gap-3">
                                             <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
@@ -272,25 +278,65 @@ function ComparisonSection() {
     )
 }
 
+// --- CTA SECTION ---
+
+function ValueCTA() {
+    return (
+        <div className="mt-[clamp(4rem,8vw,8rem)] flex flex-col items-start">
+            <div className="max-w-2xl">
+                <h3 className="text-[clamp(1.5rem,3vw,2.25rem)] font-black tracking-tight leading-tight text-foreground mb-4">
+                    Saatnya Berhenti Sibuk Mengurus, Mulai Bebas Memimpin.
+                </h3>
+                <p className="text-muted-foreground text-base lg:text-lg leading-relaxed mb-8">
+                    Otomatisasi operasional Anda hari ini dan amankan keunggulan kompetitif. 
+                    Bergabunglah dengan ratusan pengusaha modern yang memilih cara pintar.
+                </p>
+            </div>
+            <div className="flex flex-wrap gap-4">
+                <Button
+                    size="lg"
+                    className="rounded-full px-8 h-12 font-bold text-base bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-105 transition-all shadow-lg shadow-primary/20"
+                    asChild
+                >
+                    <a href="/wishlist">
+                        Dapatkan Akses Awal
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                    </a>
+                </Button>
+                <Button
+                    variant="outline"
+                    size="lg"
+                    className="rounded-full px-8 h-12 font-semibold text-base border-border/60 hover:bg-muted/50 transition-all"
+                    asChild
+                >
+                    <a href="#features">Pelajari Fitur</a>
+                </Button>
+            </div>
+        </div>
+    )
+}
+
 // --- MAIN COMPONENT ---
 
 export function ValueProposition() {
     return (
         <SectionClient id="value-proposition">
-            {/* Header */}
-            <div className="max-w-4xl mb-[clamp(3rem,6vw,8rem)]">
+            {/* Header - align start */}
+            <div className="max-w-3xl mb-[clamp(2.5rem,6vw,4rem)]">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.5 }}
                 >
-                    <SectionLabel>BEYOND JUST AN APP</SectionLabel>
-                    <Heading as="h2" className="text-[clamp(1.75rem,4.5vw,3.25rem)] mb-8 tracking-tighter leading-tight max-w-3xl">
+                    <span className="inline-block text-[11px] font-extrabold uppercase tracking-[0.2em] text-primary mb-4">
+                        Beyond Just An App
+                    </span>
+                    <h2 className="text-[clamp(1.75rem,4vw,3rem)] font-black tracking-tight leading-[1.1] text-foreground mb-6">
                         Beres Bukan Sekadar Aplikasi — <br />
                         <span className="text-primary">Ini Adalah Cara Bisnis Kamu Tumbuh.</span>
-                    </Heading>
-                    <p className="text-muted-foreground text-lg leading-relaxed max-w-2xl">
+                    </h2>
+                    <p className="text-muted-foreground text-base lg:text-lg leading-relaxed max-w-2xl">
                         Banyak UMKM berhenti tumbuh bukan karena produknya buruk, tapi karena ownernya tenggelam dalam operasional manual. Kami hadir untuk mengubah itu.
                     </p>
                 </motion.div>
@@ -302,18 +348,8 @@ export function ValueProposition() {
             {/* Comparison Table */}
             <ComparisonSection />
 
-            <SectionCTAClient
-                title="Saatnya Berhenti Sibuk Mengurus, Mulai Bebas Memimpin."
-                description="Otomatisasi operasional Anda hari ini dan amankan keunggulan kompetitif. Bergabunglah dengan ratusan pengusaha modern yang memilih cara pintar."
-                primaryLabel="Dapatkan Akses Awal"
-                primaryHref="/wishlist"
-                secondaryLabel="Pelajari Fitur"
-                secondaryHref="#features"
-            />
+            {/* CTA */}
+            <ValueCTA />
         </SectionClient>
     )
 }
-
-
-
-

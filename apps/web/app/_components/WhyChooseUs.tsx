@@ -6,11 +6,10 @@ import {
     ArrowRight,
 } from "lucide-react"
 import { cn } from "@repo/ui/lib/utils"
-import { Heading, Text } from "@repo/ui"
+import { Button } from "@repo/ui"
 import { Section } from "./Section"
-import { SectionCTA } from "./SectionCTA"
 
-// --- ICONS & ASSETS ---
+// --- LOGO COMPONENT ---
 
 function BeresLogo({ className }: { className?: string }) {
     return (
@@ -23,19 +22,16 @@ function BeresLogo({ className }: { className?: string }) {
     )
 }
 
-
-// --- MINI MOCKUP COMPONENTS ---
+// --- MOCKUP COMPONENTS ---
 
 function EnterpriseSearchMockup() {
     return (
         <div className="w-full h-full bg-[#F06A50] flex flex-col items-center justify-start pt-12">
             <div className="w-[90%] bg-background rounded-t-2xl shadow-2xl p-6 pb-20 relative overflow-hidden flex flex-col gap-6">
-                {/* Search Badge */}
                 <div className="absolute top-4 right-4 bg-muted/30 text-[9px] font-bold px-3 py-1 rounded-full text-foreground/60 backdrop-blur-sm">
                     top customer requests this quarter
                 </div>
 
-                {/* Sub Header */}
                 <div className="flex items-center gap-3 text-muted-foreground/40 mt-6 text-left">
                     <div className="h-4 w-4 rounded-sm bg-primary/10 flex items-center justify-center p-0.5 shadow-sm">
                         <TrendingUp className="h-full w-full text-primary" strokeWidth={3} />
@@ -81,16 +77,14 @@ function EnterpriseSearchMockup() {
                                 <p className="text-[10px] font-black uppercase tracking-tight text-foreground">Peringatan Stok</p>
                             </div>
                             <p className="text-[10px] text-foreground/60 leading-relaxed italic">
-                                "Stok biji kopi Robusta di <span className="font-bold text-foreground">Gudang Menteng</span> tersisa <span className="font-bold text-amber-600">5kg</span>. Estimasi habis dalam 3 hari."
+                                &ldquo;Stok biji kopi Robusta di <span className="font-bold text-foreground">Gudang Menteng</span> tersisa <span className="font-bold text-amber-600">5kg</span>. Estimasi habis dalam 3 hari.&rdquo;
                             </p>
                         </div>
                     </div>
                 </div>
 
-                {/* Bottom App Bar */}
                 <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex items-center justify-center pb-6 w-full px-6">
                     <div className="flex items-center gap-2 p-1.5 bg-background/60 backdrop-blur-xl rounded-3xl border border-border/60 shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
-                        {/* Center Logo - Beres */}
                         <div className="h-16 w-16 bg-background rounded-[24px] border border-border/60 flex items-center justify-center p-3 shadow-[0_12px_24px_-8px_rgba(238,72,34,0.35)] relative z-10">
                             <BeresLogo className="h-full w-full" />
                         </div>
@@ -112,7 +106,7 @@ function FinanceMockup() {
                     </div>
                 </div>
                 <div className="space-y-1">
-                    <Heading as="h4" className="text-2xl font-black text-foreground">Rp 45.850.000</Heading>
+                    <h4 className="text-2xl font-black text-foreground">Rp 45.850.000</h4>
                     <p className="text-[10px] text-emerald-500 font-bold flex items-center gap-1">
                         <ArrowRight className="h-2 w-2 -rotate-45" /> +12.5% dibanding bulan lalu
                     </p>
@@ -252,7 +246,6 @@ export function WhyChooseUs() {
             title: "Cari Semuanya Dalam Sekali Klik.",
             description: "Akses data transaksi, stok, pelanggan, dan laporan dari seluruh ekosistem bisnis Anda dalam satu bar pencarian cerdas.",
             mockup: <EnterpriseSearchMockup />,
-            // Full row on md+, one col on mobile
             className: "col-span-1 md:col-span-6 min-h-[clamp(320px,40vw,520px)]"
         },
         {
@@ -288,21 +281,20 @@ export function WhyChooseUs() {
     return (
         <Section id="features" className="relative overflow-hidden bg-background">
             {/* Background elements */}
-            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
 
-            {/* Header */}
+            {/* Header - align start */}
             <div className="max-w-3xl mb-[clamp(2rem,5vw,4rem)] text-left relative z-10">
-                <div className="flex flex-col gap-6">
-                    <Text variant="overline">Key Performance Grid</Text>
-                    <Heading as="h3" className="text-[clamp(1.75rem,4vw,3rem)] tracking-tight leading-[1.15]">
-                        Satu Platform. <br />
-                        <span className="text-muted-foreground tracking-tight">Semua Urusan Jadi Beres.</span>
-                    </Heading>
-                    <Text variant="lead">
-                        Beres.io bukan hanya kasir. Kami adalah ekosistem lengkap untuk pertumbuhan bisnis Anda, dari operasional meja hingga laporan keuangan.
-                    </Text>
-                </div>
+                <span className="inline-block text-[11px] font-extrabold uppercase tracking-[0.2em] text-primary mb-4">
+                    Key Performance Grid
+                </span>
+                <h2 className="text-[clamp(1.75rem,4vw,3rem)] font-black tracking-tight leading-[1.1] text-foreground mb-6">
+                    Satu Platform. <br />
+                    <span className="text-muted-foreground">Semua Urusan Jadi Beres.</span>
+                </h2>
+                <p className="text-muted-foreground text-base lg:text-lg leading-relaxed max-w-2xl">
+                    Beres.io bukan hanya kasir. Kami adalah ekosistem lengkap untuk pertumbuhan bisnis Anda, dari operasional meja hingga laporan keuangan.
+                </p>
             </div>
 
             {/* Bento Grid */}
@@ -311,21 +303,22 @@ export function WhyChooseUs() {
                     <div
                         key={card.title}
                         className={cn(
-                            "group bg-card rounded-[40px] border border-border/60 flex flex-col hover:shadow-3xl hover:shadow-primary/5 transition-all duration-500 overflow-hidden",
+                            "group bg-card rounded-3xl border border-border/60 flex flex-col hover:shadow-xl hover:shadow-primary/5 transition-all duration-500 overflow-hidden",
                             card.className
                         )}
                     >
-                        <div className="text-left pt-[clamp(1.5rem,4vw,3rem)] px-[clamp(1.25rem,4vw,2.5rem)] mb-8 flex flex-col items-start gap-4">
-                            <Text variant="overline" className="tracking-[0.2em]">{card.tag}</Text>
-                            <Heading as="h4" className="text-[clamp(1.25rem,2.5vw,1.875rem)] tracking-tight font-black leading-[1.1]">
+                        <div className="text-left pt-[clamp(1.5rem,4vw,2.5rem)] px-[clamp(1.25rem,4vw,2rem)] mb-6 flex flex-col items-start gap-3">
+                            <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-primary">
+                                {card.tag}
+                            </span>
+                            <h3 className="text-[clamp(1.25rem,2.5vw,1.75rem)] tracking-tight font-black leading-[1.1] text-foreground">
                                 {card.title}
-                            </Heading>
-                            <Text variant="muted" className="text-[15px] max-w-[400px]">
+                            </h3>
+                            <p className="text-muted-foreground text-sm max-w-[400px]">
                                 {card.description}
-                            </Text>
+                            </p>
                         </div>
 
-                        {/* Mockup visualization filling the rest of the space at the bottom */}
                         <div className="relative w-full flex-1 flex items-stretch">
                             {card.mockup}
                         </div>
@@ -333,14 +326,37 @@ export function WhyChooseUs() {
                 ))}
             </div>
 
-            <SectionCTA
-                title="Siap Tumbuh Lebih Terorganisir?"
-                description="Daftar wishlist sekarang dan amankan slot VIP Anda. Bergabunglah dengan ratusan pengusaha yang siap mengotomatisasi operasional mereka."
-                primaryLabel="Ingatkan Saya Saat Launching"
-                primaryHref="/wishlist"
-                secondaryLabel="Lihat Jadwal Demo"
-                secondaryHref="/demo"
-            />
+            {/* CTA Section - align start */}
+            <div className="flex flex-col items-start">
+                <div className="max-w-2xl mb-6">
+                    <h3 className="text-[clamp(1.5rem,3vw,2.25rem)] font-black tracking-tight leading-tight text-foreground mb-4">
+                        Siap Tumbuh Lebih Terorganisir?
+                    </h3>
+                    <p className="text-muted-foreground text-base lg:text-lg leading-relaxed">
+                        Daftar wishlist sekarang dan amankan slot VIP Anda. Bergabunglah dengan ratusan pengusaha yang siap mengotomatisasi operasional mereka.
+                    </p>
+                </div>
+                <div className="flex flex-wrap gap-4">
+                    <Button
+                        size="lg"
+                        className="rounded-full px-8 h-12 font-bold text-base bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-105 transition-all shadow-lg shadow-primary/20"
+                        asChild
+                    >
+                        <a href="/wishlist">
+                            Ingatkan Saya Saat Launching
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                        </a>
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="lg"
+                        className="rounded-full px-8 h-12 font-semibold text-base border-border/60 hover:bg-muted/50 transition-all"
+                        asChild
+                    >
+                        <a href="/demo">Lihat Jadwal Demo</a>
+                    </Button>
+                </div>
+            </div>
         </Section>
     )
 }

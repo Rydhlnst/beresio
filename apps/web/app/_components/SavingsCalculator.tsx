@@ -10,7 +10,6 @@ import {
 } from "lucide-react"
 import { cn } from "@repo/ui/lib/utils"
 import { Button } from "@repo/ui/button"
-import { Heading, Text } from "@repo/ui"
 import { SectionClient } from "./SectionClient"
 
 const FEATURES = [
@@ -56,46 +55,45 @@ export function SavingsCalculator() {
 
     return (
         <SectionClient id="calculator" className="relative overflow-hidden bg-background">
-            {/* Background decorative elements matching WhyChooseUs */}
-            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-border/60 to-transparent" />
+            {/* Background decorative elements */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
 
-            {/* Header matching WhyChooseUs standards */}
-            <div className="max-w-3xl mb-16 text-start relative z-10">
+            {/* Header - align start */}
+            <div className="max-w-3xl mb-[clamp(2rem,5vw,4rem)] text-left relative z-10">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.5 }}
                 >
-                    <Text variant="overline" className="mb-6">
+                    <span className="inline-block text-[11px] font-extrabold uppercase tracking-[0.2em] text-primary mb-4">
                         Kalkulator ROI Beres.io
-                    </Text>
-                    <Heading as="h3" className="mb-6 text-foreground">
-                        Hitung Potensi Efisiensi<br />
-                        <span className="text-primary-foreground/90 text-sm font-medium">Berapapun penghematanmu, pastikan operasionalmu sudah Beres.</span>
-                    </Heading>
-                    <Text variant="lead">
+                    </span>
+                    <h2 className="text-[clamp(1.75rem,4vw,3rem)] font-black tracking-tight leading-[1.1] text-foreground mb-4">
+                        Hitung Potensi Efisiensi
+                    </h2>
+                    <p className="text-muted-foreground text-base lg:text-lg leading-relaxed max-w-2xl">
                         Pilih fitur yang Anda butuhkan dan tentukan skala tim Anda untuk melihat seberapa banyak waktu dan biaya yang dapat dihemat setiap tahun.
-                    </Text>
+                    </p>
                 </motion.div>
             </div>
 
-            <div className="bg-muted/5 border border-border/40 backdrop-blur-sm rounded-[32px] p-8 md:p-12 shadow-2xl shadow-primary/5 space-y-12 transition-all duration-300">
-                {/* Top: Checkbox Grid (Notion Layout) */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-x-10 gap-y-6">
+            {/* Calculator Card */}
+            <div className="bg-muted/5 border border-border/40 backdrop-blur-sm rounded-3xl p-6 md:p-10 lg:p-12 shadow-xl shadow-primary/5 space-y-10 transition-all duration-300 relative z-10">
+                {/* Features Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-5">
                     {FEATURES.map((feature) => {
                         const isSelected = selectedFeatures.includes(feature.id)
                         return (
                             <button
                                 key={feature.id}
                                 onClick={() => toggleFeature(feature.id)}
-                                className="flex items-center gap-4 text-left group transition-all"
+                                className="flex items-center gap-3 text-left group transition-all"
                             >
                                 <div className={cn(
-                                    "w-5 h-5 rounded-md border transition-all flex items-center justify-center",
+                                    "w-5 h-5 rounded-md border transition-all flex items-center justify-center flex-shrink-0",
                                     isSelected
-                                        ? "bg-primary border-primary shadow-lg shadow-primary/20"
+                                        ? "bg-primary border-primary shadow-md shadow-primary/20"
                                         : "bg-background border-border group-hover:border-primary/50"
                                 )}>
                                     <AnimatePresence>
@@ -110,14 +108,14 @@ export function SavingsCalculator() {
                                         )}
                                     </AnimatePresence>
                                 </div>
-                                <div className="flex flex-col">
+                                <div className="flex flex-col min-w-0">
                                     <span className={cn(
-                                        "text-sm font-bold tracking-tight transition-colors",
+                                        "text-sm font-semibold tracking-tight transition-colors truncate",
                                         isSelected ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"
                                     )}>
                                         {feature.name}
                                     </span>
-                                    <span className="text-[11px] text-muted-foreground/60 italic font-medium">
+                                    <span className="text-[11px] text-muted-foreground/60">
                                         {formatCurrency(feature.savingPerUser)}/tim
                                     </span>
                                 </div>
@@ -126,19 +124,21 @@ export function SavingsCalculator() {
                     })}
                 </div>
 
-                {/* Bottom Result Banner (Notion Style with project colors) */}
-                <div className="bg-muted/20 border border-border/40 rounded-[32px] p-[clamp(1.5rem,4vw,2.5rem)] grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8 xl:gap-12 items-start xl:items-center">
+                {/* Results Section */}
+                <div className="bg-muted/20 border border-border/40 rounded-3xl p-6 md:p-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 items-start">
                     {/* Team Size */}
-                    <div className="space-y-4 sm:col-span-2 lg:col-span-1 border-b sm:border-b-0 sm:border-r border-border/20 md:border-border/40 pb-6 sm:pb-0 sm:pr-8 lg:border-r-0 lg:pr-0">
-                        <label htmlFor="team-size" className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-primary">Team Size</label>
-                        <div className="flex items-center gap-4 bg-background border border-border/60 rounded-2xl p-4 shadow-sm w-full max-w-[220px] group transition-all hover:border-primary/40">
+                    <div className="space-y-3 sm:border-r sm:border-border/20 sm:pr-8">
+                        <label htmlFor="team-size" className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-primary">
+                            Team Size
+                        </label>
+                        <div className="flex items-center gap-3 bg-background border border-border/60 rounded-2xl p-3 shadow-sm w-full max-w-[200px] group transition-all hover:border-primary/40">
                             <input
                                 id="team-size"
                                 aria-label="Team size"
                                 type="number"
                                 value={teamSize}
                                 onChange={(e) => setTeamSize(Math.max(1, parseInt(e.target.value) || 1))}
-                                className="w-full bg-transparent border-none focus:ring-0 text-3xl font-black p-0 tracking-tighter text-foreground"
+                                className="w-full bg-transparent border-none focus:ring-0 text-2xl font-black p-0 tracking-tighter text-foreground"
                             />
                             <div className="flex flex-col border-l border-border/60 pl-3">
                                 <button
@@ -160,31 +160,40 @@ export function SavingsCalculator() {
                     </div>
 
                     {/* Monthly Savings */}
-                    <div className="space-y-4 border-b border-border/20 md:border-border/40 pb-6 sm:pb-0 sm:border-b-0">
-                        <label className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-primary">Monthly Savings</label>
-                        <div className="text-[clamp(1.5rem,4vw,2.5rem)] font-black tracking-tighter text-foreground tabular-nums break-words">
+                    <div className="space-y-3 sm:border-r sm:border-border/20 sm:pr-8">
+                        <label className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-primary">
+                            Monthly Savings
+                        </label>
+                        <div className="text-[clamp(1.25rem,3vw,2rem)] font-black tracking-tighter text-foreground tabular-nums">
                             {formatCurrency(monthlySavings)}
                         </div>
                     </div>
 
                     {/* Annual Savings */}
-                    <div className="space-y-4">
-                        <label className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-primary">Annual Savings</label>
-                        <div className="text-[clamp(2rem,5vw,3.5rem)] font-black tracking-tighter text-primary drop-shadow-sm tabular-nums break-words">
+                    <div className="space-y-3">
+                        <label className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-primary">
+                            Annual Savings
+                        </label>
+                        <div className="text-[clamp(1.5rem,4vw,2.5rem)] font-black tracking-tighter text-primary tabular-nums">
                             {formatCurrency(monthlySavings * 12)}
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="mt-16 flex flex-col items-center gap-6">
-                <Button size="lg" className="rounded-2xl px-14 h-16 font-extrabold text-lg bg-primary text-primary-foreground hover:scale-105 hover:shadow-2xl hover:shadow-primary/20 transition-all duration-300" asChild>
+            {/* CTA - align start */}
+            <div className="mt-12 flex flex-col items-start gap-4 relative z-10">
+                <Button 
+                    size="lg" 
+                    className="rounded-full px-10 h-14 font-bold text-lg bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-105 hover:shadow-xl hover:shadow-primary/20 transition-all duration-300" 
+                    asChild
+                >
                     <a href="/wishlist">
                         Amankan Posisi Wishlist Anda
                         <ArrowRight className="ml-3 h-5 w-5" />
                     </a>
                 </Button>
-                <p className="text-xs text-muted-foreground font-semibold flex items-center gap-2">
+                <p className="text-xs text-muted-foreground font-medium flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                     Estimasi berdasarkan data efisiensi operasional 1000+ mitra bisnis.
                 </p>
@@ -192,4 +201,3 @@ export function SavingsCalculator() {
         </SectionClient>
     )
 }
-
