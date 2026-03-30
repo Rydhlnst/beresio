@@ -12,7 +12,7 @@ export type UpdateCustomerInput = {
 
 export async function updateCustomerAction(customerId: string, input: UpdateCustomerInput) {
     const cookie = (await cookies()).toString();
-    const res = await (apiClient as any).api.dashboard.customers[":id"].$patch(
+    const res = await apiClient.api.dashboard.customers[":id"].$patch(
         { param: { id: customerId }, json: input },
         { headers: { cookie } }
     );

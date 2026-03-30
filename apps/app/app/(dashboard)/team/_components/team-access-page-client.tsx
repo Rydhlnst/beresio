@@ -121,9 +121,7 @@ export function TeamAccessPageClient({
     invites,
     branches,
 }: TeamAccessPageClientProps) {
-    const normalizedBranches = Array.isArray(branches)
-        ? branches
-        : (branches as unknown as { data?: BranchRecord[] })?.data ?? [];
+    const normalizedBranches = branches;
     const [isPending, startTransition] = useTransition();
     const [inviteOpen, setInviteOpen] = useState(false);
     const [memberQuery, setMemberQuery] = useState("");

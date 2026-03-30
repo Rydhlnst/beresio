@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createDbMock, createTestApp } from "./test-utils";
+import { createDbMock, createTestApp, readJson } from "./test-utils";
 
 // Mock auth middleware
 vi.mock("../../middleware/auth", () => ({
@@ -57,7 +57,7 @@ describe("products routes", () => {
             const app = createProductsApp(db);
 
             const res = await app.request("/api/dashboard/products?page=1&limit=10");
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
@@ -112,7 +112,7 @@ describe("products routes", () => {
             const app = createProductsApp(db);
 
             const res = await app.request("/api/dashboard/products?search=iphone");
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
@@ -150,7 +150,7 @@ describe("products routes", () => {
             const app = createProductsApp(db);
 
             const res = await app.request("/api/dashboard/products?stockStatus=low");
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(200);
             expect(body.data.data[0].stock.status).toBe("low");
@@ -166,7 +166,7 @@ describe("products routes", () => {
             const app = createProductsApp(db);
 
             const res = await app.request("/api/dashboard/products");
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
@@ -218,7 +218,7 @@ describe("products routes", () => {
             const app = createProductsApp(db);
 
             const res = await app.request("/api/dashboard/products/prod-1");
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
@@ -247,7 +247,7 @@ describe("products routes", () => {
             const app = createProductsApp(db);
 
             const res = await app.request("/api/dashboard/products/non-existent");
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(404);
             expect(body.success).toBe(false);
@@ -296,7 +296,7 @@ describe("products routes", () => {
                     description: "Description",
                 }),
             });
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
@@ -320,7 +320,7 @@ describe("products routes", () => {
                     basePrice: 10000,
                 }),
             });
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(400);
             expect(body.success).toBe(false);
@@ -339,7 +339,7 @@ describe("products routes", () => {
                     basePrice: 10000,
                 }),
             });
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(400);
             expect(body.success).toBe(false);
@@ -385,7 +385,7 @@ describe("products routes", () => {
                     isFeatured: true,
                 }),
             });
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
@@ -404,7 +404,7 @@ describe("products routes", () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ name: "New Name" }),
             });
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(404);
             expect(body.success).toBe(false);
@@ -426,7 +426,7 @@ describe("products routes", () => {
             const res = await app.request("/api/dashboard/products/prod-1", {
                 method: "DELETE",
             });
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
@@ -442,7 +442,7 @@ describe("products routes", () => {
             const res = await app.request("/api/dashboard/products/non-existent", {
                 method: "DELETE",
             });
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(404);
             expect(body.success).toBe(false);
@@ -462,7 +462,7 @@ describe("products routes", () => {
             const app = createProductsApp(db);
 
             const res = await app.request("/api/dashboard/products/categories");
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
@@ -484,7 +484,7 @@ describe("products routes", () => {
             const app = createProductsApp(db);
 
             const res = await app.request("/api/dashboard/products/suppliers");
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);

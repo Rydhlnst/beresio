@@ -158,9 +158,7 @@ export function InventoryPageClient({
     transfers,
     adjustments,
 }: InventoryPageClientProps) {
-    const normalizedBranches = Array.isArray(branches)
-        ? branches
-        : (branches as unknown as { data?: InventoryBranch[] })?.data ?? [];
+    const normalizedBranches = branches;
     const { refresh } = useTransitionRouter();
     const [activeTab, setActiveTab] = useState("overview");
     const [selectedProduct, setSelectedProduct] = useState<ProductStock | null>(null);

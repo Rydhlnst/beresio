@@ -10,7 +10,7 @@ export async function RecentOrdersPanel() {
     const reqHeaders = await headers();
     const cookie = reqHeaders.get('cookie') || '';
     
-    const res = await (apiClient.api.dashboard.orders as any).$get({
+    const res = await apiClient.api.dashboard.orders.$get({
         query: { limit: "5" }
     }, {
         headers: { cookie }

@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 export default async function CabangPage() {
     const cookie = (await headers()).get("cookie") || "";
-    const res = await (apiClient as any).api.dashboard.branches.$get(undefined, {
+    const res = await apiClient.api.dashboard.branches.$get(undefined, {
         headers: { cookie },
     });
 

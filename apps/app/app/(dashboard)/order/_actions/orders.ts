@@ -48,7 +48,7 @@ export type UpdateOrderInput = {
 
 export async function createOrderAction(input: CreateOrderInput) {
     const cookie = (await cookies()).toString();
-    const res = await (apiClient as any).api.dashboard.orders.$post(
+    const res = await apiClient.api.dashboard.orders.$post(
         { json: input },
         { headers: { cookie } }
     );
@@ -64,7 +64,7 @@ export async function createOrderAction(input: CreateOrderInput) {
 
 export async function updateOrderAction(orderId: string, input: UpdateOrderInput) {
     const cookie = (await cookies()).toString();
-    const res = await (apiClient as any).api.dashboard.orders[":id"].$patch(
+    const res = await apiClient.api.dashboard.orders[":id"].$patch(
         { param: { id: orderId }, json: input },
         { headers: { cookie } }
     );
@@ -80,7 +80,7 @@ export async function updateOrderAction(orderId: string, input: UpdateOrderInput
 
 export async function updateOrderItemsAction(orderId: string, items: OrderItemInput[]) {
     const cookie = (await cookies()).toString();
-    const res = await (apiClient as any).api.dashboard.orders[":id"].items.$patch(
+    const res = await apiClient.api.dashboard.orders[":id"].items.$patch(
         { param: { id: orderId }, json: { items, eventNote: "Item order diperbarui" } },
         { headers: { cookie } }
     );

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createDbMock, createTestApp } from "./test-utils";
+import { createDbMock, createTestApp, readJson } from "./test-utils";
 
 // Mock auth middleware
 vi.mock("../../middleware/auth", () => ({
@@ -50,7 +50,7 @@ describe("upload routes", () => {
                     folder: "products",
                 }),
             });
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
@@ -68,7 +68,7 @@ describe("upload routes", () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ folder: "products" }),
             });
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(400);
             expect(body.success).toBe(false);
@@ -87,7 +87,7 @@ describe("upload routes", () => {
                     folder: "products",
                 }),
             });
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(400);
             expect(body.success).toBe(false);
@@ -110,7 +110,7 @@ describe("upload routes", () => {
                     image: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ...",
                 }),
             });
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(500);
             expect(body.success).toBe(false);
@@ -153,7 +153,7 @@ describe("upload routes", () => {
                     folder: "products",
                 }),
             });
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
@@ -171,7 +171,7 @@ describe("upload routes", () => {
                     images: Array(6).fill("data:image/jpeg;base64,/9j..."),
                 }),
             });
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(400);
             expect(body.success).toBe(false);
@@ -187,7 +187,7 @@ describe("upload routes", () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ images: [] }),
             });
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(400);
             expect(body.success).toBe(false);
@@ -204,7 +204,7 @@ describe("upload routes", () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ publicId: "test/image" }),
             });
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(400);
             expect(body.success).toBe(false);

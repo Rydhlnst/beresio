@@ -22,6 +22,24 @@ export class QueryMock<T> implements PromiseLike<T> {
     }
 }
 
+export type TestApiError = {
+    message?: string;
+    code?: string;
+    details?: unknown;
+};
+
+export type TestApiResponse<T = unknown> = {
+    success?: boolean;
+    data?: T;
+    meta?: Record<string, unknown>;
+    error?: TestApiError | null;
+    [key: string]: unknown;
+};
+
+export async function readJson<T = TestApiResponse>(res: Response): Promise<T> {
+    return (await res.json()) as T;
+}
+
 export function createDbMock(options?: {
     selectResults?: unknown[];
     insertResults?: unknown[];

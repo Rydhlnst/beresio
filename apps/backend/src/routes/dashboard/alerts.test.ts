@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createDbMock, createTestApp } from "./test-utils";
+import { createDbMock, createTestApp, readJson } from "./test-utils";
 
 // Mock auth middleware
 vi.mock("../../middleware/auth", () => ({
@@ -31,7 +31,7 @@ describe("alerts routes", () => {
             const app = createAlertsApp(db);
 
             const res = await app.request("/api/dashboard/alerts");
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
@@ -53,7 +53,7 @@ describe("alerts routes", () => {
             const app = createAlertsApp(db);
 
             const res = await app.request("/api/dashboard/alerts");
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
@@ -69,7 +69,7 @@ describe("alerts routes", () => {
             const app = createAlertsApp(db);
 
             const res = await app.request("/api/dashboard/alerts");
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(body.data[0].actionUrl).toBe("/dashboard/orders?status=pending");
             expect(body.data[0].actionLabel).toBe("Lihat Pesanan");
@@ -84,7 +84,7 @@ describe("alerts routes", () => {
             const app = createAlertsApp(db);
 
             const res = await app.request("/api/dashboard/alerts");
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(500);
             expect(body.success).toBe(false);

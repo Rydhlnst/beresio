@@ -78,7 +78,7 @@ export async function getProductsAction(filters: ProductFilters = {}) {
 
   const queryString = params.toString();
 
-  const res = await (apiClient.api.dashboard.products as any).$get(
+  const res = await apiClient.api.dashboard.products.$get(
     queryString ? { query: Object.fromEntries(params) } : undefined,
     { headers: await getAuthHeaders() }
   );
@@ -92,7 +92,7 @@ export async function getProductsAction(filters: ProductFilters = {}) {
 }
 
 export async function getProductAction(id: string) {
-  const res = await (apiClient.api.dashboard.products as any)[":id"].$get({
+  const res = await apiClient.api.dashboard.products[":id"].$get({
     param: { id },
   }, {
     headers: await getAuthHeaders(),
@@ -107,7 +107,7 @@ export async function getProductAction(id: string) {
 }
 
 export async function createProductAction(data: CreateProductInput) {
-  const res = await (apiClient.api.dashboard.products as any).$post({
+  const res = await apiClient.api.dashboard.products.$post({
     json: data,
   }, {
     headers: await getAuthHeaders(),
@@ -123,7 +123,7 @@ export async function createProductAction(data: CreateProductInput) {
 }
 
 export async function updateProductAction(id: string, data: UpdateProductInput) {
-  const res = await (apiClient.api.dashboard.products as any)[":id"].$patch({
+  const res = await apiClient.api.dashboard.products[":id"].$patch({
     param: { id },
     json: data,
   }, {
@@ -141,7 +141,7 @@ export async function updateProductAction(id: string, data: UpdateProductInput) 
 }
 
 export async function deleteProductAction(id: string) {
-  const res = await (apiClient.api.dashboard.products as any)[":id"].$delete({
+  const res = await apiClient.api.dashboard.products[":id"].$delete({
     param: { id },
   }, {
     headers: await getAuthHeaders(),
@@ -157,7 +157,7 @@ export async function deleteProductAction(id: string) {
 }
 
 export async function getCategoriesAction() {
-  const res = await (apiClient.api.dashboard.products as any).categories.$get(
+  const res = await apiClient.api.dashboard.products.categories.$get(
     undefined,
     { headers: await getAuthHeaders() }
   );
@@ -178,7 +178,7 @@ export async function createCategoryAction(data: {
   parentId?: string;
   sortOrder?: number;
 }) {
-  const res = await (apiClient.api.dashboard.products as any).categories.$post({
+  const res = await apiClient.api.dashboard.products.categories.$post({
     json: data,
   }, {
     headers: await getAuthHeaders(),
@@ -194,7 +194,7 @@ export async function createCategoryAction(data: {
 }
 
 export async function getSuppliersAction() {
-  const res = await (apiClient.api.dashboard.products as any).suppliers.$get(
+  const res = await apiClient.api.dashboard.products.suppliers.$get(
     undefined,
     { headers: await getAuthHeaders() }
   );
@@ -219,7 +219,7 @@ export async function createSupplierAction(data: {
   province?: string;
   postalCode?: string;
 }) {
-  const res = await (apiClient.api.dashboard.products as any).suppliers.$post({
+  const res = await apiClient.api.dashboard.products.suppliers.$post({
     json: data,
   }, {
     headers: await getAuthHeaders(),

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createDbMock, createTestApp } from "./test-utils";
+import { createDbMock, createTestApp, readJson } from "./test-utils";
 
 vi.mock("../../middleware/auth", () => ({
     authMiddleware: async (c: any, next: any) => {
@@ -39,7 +39,7 @@ describe("rbac routes", () => {
         getMemberRoleSlugsMock.mockResolvedValueOnce(["cashier"]);
         const app = createRbacApp(createDbMock());
         const res = await app.request("/api/dashboard/rbac/bootstrap", { method: "POST" });
-        const body = await res.json();
+        const body = await readJson<any>(res);
 
         expect(res.status).toBe(403);
         expect(body.success).toBe(false);
@@ -59,7 +59,7 @@ describe("rbac routes", () => {
 
         const app = createRbacApp(db);
         const res = await app.request("/api/dashboard/rbac/bootstrap", { method: "POST" });
-        const body = await res.json();
+        const body = await readJson<any>(res);
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
@@ -77,7 +77,7 @@ describe("rbac routes", () => {
 
         const app = createRbacApp(db);
         const res = await app.request("/api/dashboard/rbac/bootstrap", { method: "POST" });
-        const body = await res.json();
+        const body = await readJson<any>(res);
 
         expect(res.status).toBe(403);
         expect(body.success).toBe(false);
@@ -93,7 +93,7 @@ describe("rbac routes", () => {
 
         const app = createRbacApp(db);
         const res = await app.request("/api/dashboard/rbac/bootstrap", { method: "POST" });
-        const body = await res.json();
+        const body = await readJson<any>(res);
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);

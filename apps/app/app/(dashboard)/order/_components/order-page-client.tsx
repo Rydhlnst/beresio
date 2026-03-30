@@ -287,12 +287,8 @@ export function OrderPageClient({
     selectedOrder: selectedOrderInput,
     filters,
 }: OrderPageClientProps) {
-    const normalizedBranches = Array.isArray(branches)
-        ? branches
-        : (branches as unknown as { data?: BranchOption[] })?.data ?? [];
-    const normalizedCustomers = Array.isArray(customers)
-        ? customers
-        : (customers as unknown as { data?: CustomerOption[] })?.data ?? [];
+    const normalizedBranches = branches;
+    const normalizedCustomers = customers;
     const { refresh, replace } = useTransitionRouter();
     const orders = useMemo(() => {
         return ordersInput.map((order) => ({

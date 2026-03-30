@@ -34,8 +34,8 @@ app.get('/me', authMiddleware, (c) => {
 })
 
 // Mount dashboard API routes
-const routes = app.route('/api/dashboard', dashboardRouter).route('/api/businesses', businessesRouter)
+app.route('/api/dashboard', dashboardRouter).route('/api/businesses', businessesRouter)
 
-export type AppType = typeof routes
+export type AppType = typeof app
 
 export default app

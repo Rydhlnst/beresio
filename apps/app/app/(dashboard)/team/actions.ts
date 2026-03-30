@@ -4,6 +4,23 @@ import { headers } from "next/headers";
 import { apiClient } from "@/lib/api-client";
 
 type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string };
+type MemberMutationPayload = {
+    id: string;
+    roleId?: string | null;
+    role?: string | null;
+    roleName?: string | null;
+    status?: string | null;
+};
+
+type InviteMutationPayload = {
+    id: string;
+    email: string;
+    status?: string | null;
+    sentAt?: string | Date | null;
+    role?: string | null;
+    roleName?: string | null;
+    branch?: { id: string; name: string } | null;
+};
 
 async function getCookieHeader() {
     return (await headers()).get("cookie") || "";
@@ -22,7 +39,7 @@ async function parseResult<T>(res: Response): Promise<ActionResult<T>> {
 
 export async function updateMemberRoleAction(memberId: string, roleId: string) {
     const cookie = await getCookieHeader();
-    const res = await (apiClient as any).api.dashboard.team.members[":id"].role.$patch(
+    const res = await apiClient.api.dashboard.team.members[":id"].role.$patch(
         {
             param: { id: memberId },
             json: { roleId },
@@ -32,7 +49,7 @@ export async function updateMemberRoleAction(memberId: string, roleId: string) {
         }
     );
 
-    return parseResult(res);
+    return parseResult<MemberMutationPayload>(res);
 }
 
 // ============================================
@@ -46,7 +63,7 @@ export async function createRoleAction(input: {
     permissions?: string[];
 }) {
     const cookie = await getCookieHeader();
-    const res = await (apiClient as any).api.dashboard.team.roles.$post(
+    const res = await apiClient.api.dashboard.team.roles.$post(
         {
             json: {
                 name: input.name,
@@ -60,12 +77,12 @@ export async function createRoleAction(input: {
         }
     );
 
-    return parseResult(res);
+    return parseResult<Record<string, unknown>>(res);
 }
 
 export async function updateMemberStatusAction(memberId: string, status: "active" | "inactive") {
     const cookie = await getCookieHeader();
-    const res = await (apiClient as any).api.dashboard.team.members[":id"].status.$patch(
+    const res = await apiClient.api.dashboard.team.members[":id"].status.$patch(
         {
             param: { id: memberId },
             json: { status },
@@ -75,12 +92,12 @@ export async function updateMemberStatusAction(memberId: string, status: "active
         }
     );
 
-    return parseResult(res);
+    return parseResult<MemberMutationPayload>(res);
 }
 
 export async function resendInviteAction(inviteId: string) {
     const cookie = await getCookieHeader();
-    const res = await (apiClient as any).api.dashboard.team.invitations[":id"].resend.$post(
+    const res = await apiClient.api.dashboard.team.invitations[":id"].resend.$post(
         {
             param: { id: inviteId },
         },
@@ -89,12 +106,12 @@ export async function resendInviteAction(inviteId: string) {
         }
     );
 
-    return parseResult(res);
+    return parseResult<InviteMutationPayload>(res);
 }
 
 export async function cancelInviteAction(inviteId: string) {
     const cookie = await getCookieHeader();
-    const res = await (apiClient as any).api.dashboard.team.invitations[":id"].cancel.$post(
+    const res = await apiClient.api.dashboard.team.invitations[":id"].cancel.$post(
         {
             param: { id: inviteId },
         },
@@ -103,7 +120,7 @@ export async function cancelInviteAction(inviteId: string) {
         }
     );
 
-    return parseResult(res);
+    return parseResult<InviteMutationPayload>(res);
 }
 
 export async function createInviteAction(input: {
@@ -112,7 +129,7 @@ export async function createInviteAction(input: {
     branchId?: string;
 }) {
     const cookie = await getCookieHeader();
-    const res = await (apiClient as any).api.dashboard.team.invitations.$post(
+    const res = await apiClient.api.dashboard.team.invitations.$post(
         {
             json: {
                 email: input.email,
@@ -125,7 +142,7 @@ export async function createInviteAction(input: {
         }
     );
 
-    return parseResult(res);
+    return parseResult<InviteMutationPayload>(res);
 }
 
 export async function assignMemberToBranchAction(input: {
@@ -135,7 +152,7 @@ export async function assignMemberToBranchAction(input: {
     remove?: boolean;
 }) {
     const cookie = await getCookieHeader();
-    const res = await (apiClient as any).api.dashboard.team.members[":id"].branches.$post(
+    const res = await apiClient.api.dashboard.team.members[":id"].branches.$post(
         {
             param: { id: input.memberId },
             json: {
@@ -149,5 +166,5 @@ export async function assignMemberToBranchAction(input: {
         }
     );
 
-    return parseResult(res);
+    return parseResult<Record<string, unknown>>(res);
 }

@@ -101,12 +101,8 @@ export function RetailPosPageClient({
     customers,
     recentTransactions,
 }: RetailPosPageClientProps) {
-    const normalizedBranches = Array.isArray(branches)
-        ? branches
-        : (branches as unknown as { data?: BranchOption[] })?.data ?? [];
-    const normalizedCustomers = Array.isArray(customers)
-        ? customers
-        : (customers as unknown as { data?: CustomerOption[] })?.data ?? [];
+    const normalizedBranches = branches;
+    const normalizedCustomers = customers;
 
     const [search, setSearch] = useState("");
     const [branchId, setBranchId] = useState(normalizedBranches[0]?.id ?? "");

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createDbMock, createTestApp } from "./test-utils";
+import { createDbMock, createTestApp, readJson } from "./test-utils";
 
 // Mock auth middleware
 vi.mock("../../middleware/auth", () => ({
@@ -65,7 +65,7 @@ describe("inventory routes", () => {
             const app = createInventoryApp(db);
 
             const res = await app.request("/api/dashboard/inventory/products");
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
@@ -98,7 +98,7 @@ describe("inventory routes", () => {
             const app = createInventoryApp(db);
 
             const res = await app.request("/api/dashboard/inventory/products?search=indomie");
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(200);
             expect(body.data[0].name).toBe("Indomie Goreng");
@@ -164,7 +164,7 @@ describe("inventory routes", () => {
                     unit: "pcs",
                 }),
             });
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
@@ -187,7 +187,7 @@ describe("inventory routes", () => {
                     sku: "EXISTING-001",
                 }),
             });
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(400);
             expect(body.error.message).toContain("SKU already exists");
@@ -204,7 +204,7 @@ describe("inventory routes", () => {
                     sku: "NO-NAME",
                 }),
             });
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(400);
         });
@@ -233,7 +233,7 @@ describe("inventory routes", () => {
             const app = createInventoryApp(db);
 
             const res = await app.request("/api/dashboard/inventory/adjustments");
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
@@ -278,7 +278,7 @@ describe("inventory routes", () => {
                     reason: "Restock",
                 }),
             });
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
@@ -304,7 +304,7 @@ describe("inventory routes", () => {
                     reason: "Damaged",
                 }),
             });
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(400);
             expect(body.error.message).toContain("Stok tidak mencukupi");
@@ -335,7 +335,7 @@ describe("inventory routes", () => {
             const app = createInventoryApp(db);
 
             const res = await app.request("/api/dashboard/inventory/transfers");
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
@@ -379,7 +379,7 @@ describe("inventory routes", () => {
                     note: "Restock cabang",
                 }),
             });
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
@@ -400,7 +400,7 @@ describe("inventory routes", () => {
                     quantity: 50,
                 }),
             });
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(400);
             expect(body.error.message).toContain("must differ");
@@ -442,7 +442,7 @@ describe("inventory routes", () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ status: "approved" }),
             });
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
@@ -458,7 +458,7 @@ describe("inventory routes", () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ status: "invalid-status" }),
             });
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(400);
         });

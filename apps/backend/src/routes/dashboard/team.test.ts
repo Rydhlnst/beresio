@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createDbMock, createTestApp } from "./test-utils";
+import { createDbMock, createTestApp, readJson } from "./test-utils";
 
 vi.mock("../../middleware/auth", () => ({
     authMiddleware: async (c: any, next: any) => {
@@ -44,7 +44,7 @@ describe("team routes", () => {
             body: JSON.stringify({ roleId: "role-1" }),
         });
 
-        const body = await res.json();
+        const body = await readJson<any>(res);
         expect(res.status).toBe(403);
         expect(body.success).toBe(false);
         expect(body.error.message).toBe("insufficient role/permission");
@@ -72,7 +72,7 @@ describe("team routes", () => {
 
         const app = createTeamApp(db);
         const res = await app.request("/api/dashboard/team/members");
-        const body = await res.json();
+        const body = await readJson<any>(res);
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
@@ -96,7 +96,7 @@ describe("team routes", () => {
         });
 
         expect(res.status).toBe(400);
-        const body = await res.json();
+        const body = await readJson<any>(res);
         expect(body.success).toBe(false);
     });
 
@@ -113,7 +113,7 @@ describe("team routes", () => {
             body: JSON.stringify({ roleId: "role-1" }),
         });
 
-        const body = await res.json();
+        const body = await readJson<any>(res);
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
     });
@@ -130,7 +130,7 @@ describe("team routes", () => {
             body: JSON.stringify({ roleId: "role-missing" }),
         });
 
-        const body = await res.json();
+        const body = await readJson<any>(res);
         expect(res.status).toBe(404);
         expect(body.success).toBe(false);
     });
@@ -148,7 +148,7 @@ describe("team routes", () => {
             body: JSON.stringify({ roleId: "role-1" }),
         });
 
-        const body = await res.json();
+        const body = await readJson<any>(res);
         expect(res.status).toBe(404);
         expect(body.success).toBe(false);
     });
@@ -162,7 +162,7 @@ describe("team routes", () => {
         });
 
         expect(res.status).toBe(400);
-        const body = await res.json();
+        const body = await readJson<any>(res);
         expect(body.success).toBe(false);
     });
 
@@ -178,7 +178,7 @@ describe("team routes", () => {
             body: JSON.stringify({ status: "inactive" }),
         });
 
-        const body = await res.json();
+        const body = await readJson<any>(res);
         expect(res.status).toBe(404);
         expect(body.success).toBe(false);
     });
@@ -193,7 +193,7 @@ describe("team routes", () => {
         });
 
         expect(res.status).toBe(400);
-        const body = await res.json();
+        const body = await readJson<any>(res);
         expect(body.success).toBe(false);
     });
 
@@ -210,7 +210,7 @@ describe("team routes", () => {
         });
 
         expect(res.status).toBe(404);
-        const body = await res.json();
+        const body = await readJson<any>(res);
         expect(body.success).toBe(false);
     });
 
@@ -227,7 +227,7 @@ describe("team routes", () => {
         });
 
         expect(res.status).toBe(404);
-        const body = await res.json();
+        const body = await readJson<any>(res);
         expect(body.success).toBe(false);
     });
 
@@ -243,7 +243,7 @@ describe("team routes", () => {
             body: JSON.stringify({ email: "new@beres.io" }),
         });
 
-        const body = await res.json();
+        const body = await readJson<any>(res);
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
         expect(body.data.email).toBe("new@beres.io");
@@ -259,7 +259,7 @@ describe("team routes", () => {
         });
 
         expect(res.status).toBe(400);
-        const body = await res.json();
+        const body = await readJson<any>(res);
         expect(body.success).toBe(false);
     });
 
@@ -276,7 +276,7 @@ describe("team routes", () => {
         });
 
         expect(res.status).toBe(404);
-        const body = await res.json();
+        const body = await readJson<any>(res);
         expect(body.success).toBe(false);
     });
 
@@ -293,7 +293,7 @@ describe("team routes", () => {
         });
 
         expect(res.status).toBe(404);
-        const body = await res.json();
+        const body = await readJson<any>(res);
         expect(body.success).toBe(false);
     });
 
@@ -307,7 +307,7 @@ describe("team routes", () => {
             method: "POST",
         });
 
-        const body = await res.json();
+        const body = await readJson<any>(res);
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
     });
@@ -322,7 +322,7 @@ describe("team routes", () => {
             method: "POST",
         });
 
-        const body = await res.json();
+        const body = await readJson<any>(res);
         expect(res.status).toBe(404);
         expect(body.success).toBe(false);
     });
@@ -337,7 +337,7 @@ describe("team routes", () => {
             method: "POST",
         });
 
-        const body = await res.json();
+        const body = await readJson<any>(res);
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
     });
@@ -352,7 +352,7 @@ describe("team routes", () => {
             method: "POST",
         });
 
-        const body = await res.json();
+        const body = await readJson<any>(res);
         expect(res.status).toBe(404);
         expect(body.success).toBe(false);
     });

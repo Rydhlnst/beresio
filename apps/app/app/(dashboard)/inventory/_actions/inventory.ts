@@ -24,7 +24,7 @@ type UpdateProductInput = {
 
 export async function createProductAction(input: CreateProductInput) {
     const cookie = (await cookies()).toString();
-    const res = await (apiClient as any).api.dashboard.inventory.products.$post(
+    const res = await apiClient.api.dashboard.inventory.products.$post(
         { json: input },
         { headers: { cookie } }
     );
@@ -40,7 +40,7 @@ export async function createProductAction(input: CreateProductInput) {
 
 export async function updateProductAction(productId: string, input: UpdateProductInput) {
     const cookie = (await cookies()).toString();
-    const res = await (apiClient as any).api.dashboard.inventory.products[":id"].$patch(
+    const res = await apiClient.api.dashboard.inventory.products[":id"].$patch(
         { param: { id: productId }, json: input },
         { headers: { cookie } }
     );
@@ -56,7 +56,7 @@ export async function updateProductAction(productId: string, input: UpdateProduc
 
 export async function deleteProductAction(productId: string) {
     const cookie = (await cookies()).toString();
-    const res = await (apiClient as any).api.dashboard.inventory.products[":id"].$delete(
+    const res = await apiClient.api.dashboard.inventory.products[":id"].$delete(
         { param: { id: productId } },
         { headers: { cookie } }
     );
@@ -91,7 +91,7 @@ type TransferInput = {
 
 export async function createInventoryAdjustmentAction(input: AdjustmentInput) {
     const cookie = (await cookies()).toString();
-    const res = await (apiClient as any).api.dashboard.inventory.adjustments.$post(
+    const res = await apiClient.api.dashboard.inventory.adjustments.$post(
         { json: input },
         { headers: { cookie } }
     );
@@ -107,7 +107,7 @@ export async function createInventoryAdjustmentAction(input: AdjustmentInput) {
 
 export async function createInventoryTransferAction(input: TransferInput) {
     const cookie = (await cookies()).toString();
-    const res = await (apiClient as any).api.dashboard.inventory.transfers.$post(
+    const res = await apiClient.api.dashboard.inventory.transfers.$post(
         { json: input },
         { headers: { cookie } }
     );
@@ -126,7 +126,7 @@ export async function updateInventoryTransferStatusAction(
     status: "approved" | "rejected" | "cancelled"
 ) {
     const cookie = (await cookies()).toString();
-    const res = await (apiClient as any).api.dashboard.inventory.transfers[":id"].$patch(
+    const res = await apiClient.api.dashboard.inventory.transfers[":id"].$patch(
         { param: { id: transferId }, json: { status } },
         { headers: { cookie } }
     );

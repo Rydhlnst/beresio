@@ -10,7 +10,7 @@ export async function AlertsPanel() {
     const reqHeaders = await headers();
     const cookie = reqHeaders.get('cookie') || '';
     
-    const res = await (apiClient.api.dashboard.alerts as any).$get({}, {
+    const res = await apiClient.api.dashboard.alerts.$get({}, {
         headers: { cookie }
     });
     

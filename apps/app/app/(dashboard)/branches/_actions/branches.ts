@@ -13,7 +13,7 @@ type CreateBranchInput = {
 
 export async function createBranchAction(input: CreateBranchInput) {
     const cookie = (await cookies()).toString();
-    const res = await (apiClient as any).api.dashboard.branches.$post(
+    const res = await apiClient.api.dashboard.branches.$post(
         { json: input },
         { headers: { cookie } }
     );

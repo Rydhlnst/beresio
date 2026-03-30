@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createDbMock, createTestApp } from "./test-utils";
+import { createDbMock, createTestApp, readJson } from "./test-utils";
 
 vi.mock("../../middleware/auth", () => ({
     authMiddleware: async (c: any, next: any) => {
@@ -42,7 +42,7 @@ describe("branches routes", () => {
         const app = createBranchesApp(db);
 
         const res = await app.request("/api/dashboard/branches");
-        const body = await res.json();
+        const body = await readJson<any>(res);
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
@@ -62,7 +62,7 @@ describe("branches routes", () => {
         const app = createBranchesApp(db);
 
         const res = await app.request("/api/dashboard/branches/br-x");
-        const body = await res.json();
+        const body = await readJson<any>(res);
 
         expect(res.status).toBe(404);
         expect(body.success).toBe(false);
@@ -75,7 +75,7 @@ describe("branches routes", () => {
         const app = createBranchesApp(db);
 
         const res = await app.request("/api/dashboard/branches/br-1");
-        const body = await res.json();
+        const body = await readJson<any>(res);
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
@@ -91,7 +91,7 @@ describe("branches routes", () => {
         });
 
         expect(res.status).toBe(400);
-        const body = await res.json();
+        const body = await readJson<any>(res);
         expect(body.success).toBe(false);
     });
 
@@ -108,7 +108,7 @@ describe("branches routes", () => {
         });
 
         expect(res.status).toBe(400);
-        const body = await res.json();
+        const body = await readJson<any>(res);
         expect(body.success).toBe(false);
     });
 
@@ -125,7 +125,7 @@ describe("branches routes", () => {
             body: JSON.stringify({ name: "Kemang", code: "KMG" }),
         });
 
-        const body = await res.json();
+        const body = await readJson<any>(res);
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
         expect(body.data.id).toBe("br-2");
@@ -140,7 +140,7 @@ describe("branches routes", () => {
         });
 
         expect(res.status).toBe(400);
-        const body = await res.json();
+        const body = await readJson<any>(res);
         expect(body.success).toBe(false);
     });
 
@@ -157,7 +157,7 @@ describe("branches routes", () => {
         });
 
         expect(res.status).toBe(404);
-        const body = await res.json();
+        const body = await readJson<any>(res);
         expect(body.success).toBe(false);
     });
 
@@ -174,7 +174,7 @@ describe("branches routes", () => {
         });
 
         expect(res.status).toBe(400);
-        const body = await res.json();
+        const body = await readJson<any>(res);
         expect(body.success).toBe(false);
     });
 
@@ -192,7 +192,7 @@ describe("branches routes", () => {
         });
 
         expect(res.status).toBe(200);
-        const body = await res.json();
+        const body = await readJson<any>(res);
         expect(body.success).toBe(true);
         expect(body.data.name).toBe("Kemang");
     });
@@ -211,7 +211,7 @@ describe("branches routes", () => {
         });
 
         expect(res.status).toBe(404);
-        const body = await res.json();
+        const body = await readJson<any>(res);
         expect(body.success).toBe(false);
     });
 });

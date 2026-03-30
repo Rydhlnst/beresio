@@ -23,7 +23,7 @@ export type CreateTransactionInput = {
 
 export async function createTransactionAction(input: CreateTransactionInput) {
     const cookie = (await cookies()).toString();
-    const res = await (apiClient as any).api.dashboard.transactions.$post(
+    const res = await apiClient.api.dashboard.transactions.$post(
         { json: input },
         { headers: { cookie } }
     );

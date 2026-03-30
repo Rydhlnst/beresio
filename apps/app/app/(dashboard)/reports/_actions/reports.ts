@@ -7,7 +7,7 @@ type ReportRange = "today" | "7d" | "30d" | "month" | "custom";
 
 export async function getReportCatalogAction() {
     const cookie = (await cookies()).toString();
-    const res = await (apiClient as any).api.dashboard.reports.catalog.$get(undefined, {
+    const res = await apiClient.api.dashboard.reports.catalog.$get(undefined, {
         headers: { cookie },
     });
 
@@ -27,7 +27,7 @@ export async function getReportSummaryAction(params: {
     branchId?: string;
 }) {
     const cookie = (await cookies()).toString();
-    const res = await (apiClient as any).api.dashboard.reports.summary.$get(
+    const res = await apiClient.api.dashboard.reports.summary.$get(
         {
             query: {
                 range: params.range,
@@ -54,7 +54,7 @@ export async function getReportTableAction(params: {
     dateTo?: string;
 }) {
     const cookie = (await cookies()).toString();
-    const res = await (apiClient as any).api.dashboard.reports.table.$get(
+    const res = await apiClient.api.dashboard.reports.table.$get(
         {
             query: {
                 range: params.range,

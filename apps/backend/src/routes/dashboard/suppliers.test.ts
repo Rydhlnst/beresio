@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createDbMock, createTestApp } from "./test-utils";
+import { createDbMock, createTestApp, readJson } from "./test-utils";
 
 vi.mock("../../middleware/auth", () => ({
     authMiddleware: async (c: any, next: any) => {
@@ -30,7 +30,7 @@ describe("suppliers routes", () => {
 
         const app = createSuppliersApp(db);
         const res = await app.request("/api/dashboard/suppliers/cities");
-        const body = await res.json();
+        const body = await readJson<any>(res);
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);

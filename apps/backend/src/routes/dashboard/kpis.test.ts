@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createDbMock, createTestApp } from "./test-utils";
+import { createDbMock, createTestApp, readJson } from "./test-utils";
 
 // Mock auth middleware
 vi.mock("../../middleware/auth", () => ({
@@ -39,7 +39,7 @@ describe("kpis routes", () => {
             const app = createKpisApp(db);
 
             const res = await app.request("/api/dashboard/kpis");
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
@@ -64,7 +64,7 @@ describe("kpis routes", () => {
             const app = createKpisApp(db);
 
             const res = await app.request("/api/dashboard/kpis");
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(200);
             expect(body.data.omzetHariIni).toBe(0);
@@ -80,7 +80,7 @@ describe("kpis routes", () => {
             const app = createKpisApp(db);
 
             const res = await app.request("/api/dashboard/kpis");
-            const body = await res.json();
+            const body = await readJson<any>(res);
 
             expect(res.status).toBe(500);
             expect(body.success).toBe(false);
