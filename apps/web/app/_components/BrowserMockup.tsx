@@ -1,5 +1,3 @@
-"use client"
-
 import { Wifi } from "lucide-react"
 import { cn } from "@repo/ui/lib/utils"
 
@@ -26,11 +24,11 @@ export function BrowserMockup({
                 <div className="flex gap-1.5">
                     <div className="h-3 w-3 rounded-full bg-destructive/70" />
                     <div className="h-3 w-3 rounded-full bg-amber-400/70" />
-                    <div className="h-3 w-3 rounded-full bg-primary/70" />
+                    <div className="h-3 w-3 rounded-full bg-brand/70" />
                 </div>
-                <div className="flex h-6 flex-1 items-center gap-2 rounded-md bg-background border border-border/60 px-3">
+                <div className="flex h-6 min-w-0 flex-1 items-center gap-2 rounded-md border border-border/60 bg-background px-3">
                     <Wifi className="h-3 w-3 text-muted-foreground/60" />
-                    <span className="text-[11px] text-muted-foreground">{url}</span>
+                    <span className="truncate text-[11px] text-muted-foreground">{url}</span>
                 </div>
             </div>
 

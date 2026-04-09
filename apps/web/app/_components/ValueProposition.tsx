@@ -123,7 +123,7 @@ function ValueCarousel() {
                             className="w-full min-h-[clamp(280px,38vw,520px)] bg-muted/20 rounded-[32px] border border-border/40 flex flex-col items-center justify-center p-8 md:p-12"
                         >
                             <div className="h-16 w-16 rounded-xl bg-background border border-border/40 flex items-center justify-center mb-10 shadow-sm">
-                                <Icon className="h-8 w-8 text-primary" />
+                                <Icon className="h-8 w-8 text-brand" />
                             </div>
 
                             <div className="flex flex-col items-center mb-10">
@@ -138,8 +138,8 @@ function ValueCarousel() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-md">
                                 {activeFeature.items.slice(0, 2).map((item, i) => (
                                     <div key={i} className="bg-background/40 backdrop-blur-sm border border-border/30 p-4 rounded-xl flex items-center gap-3 shadow-sm">
-                                        <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                                            <Check className="h-3 w-3 text-primary" />
+                                        <div className="h-5 w-5 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
+                                            <Check className="h-3 w-3 text-brand" />
                                         </div>
                                         <p className="text-[10px] font-semibold text-foreground leading-tight">{item}</p>
                                     </div>
@@ -152,15 +152,15 @@ function ValueCarousel() {
                 {/* Content Side */}
                 <div className="flex-1 w-full flex flex-col justify-center">
                     <div className="flex gap-2 mb-10">
-                        {FEATURES.map((_, i) => (
+                        {FEATURES.map((feature, i) => (
                             <button
                                 key={i}
                                 onClick={() => setActiveIndex(i)}
-                                aria-label={`Select feature ${i + 1}: ${FEATURES[i].title}`}
+                                aria-label={`Select feature ${i + 1}: ${feature.title}`}
                                 aria-current={i === activeIndex}
                                 className={cn(
                                     "h-1.5 transition-all duration-500 rounded-full",
-                                    i === activeIndex ? "w-10 bg-primary" : "w-1.5 bg-muted-foreground/20 hover:bg-muted-foreground/40"
+                                    i === activeIndex ? "w-10 bg-brand" : "w-1.5 bg-muted-foreground/20 hover:bg-muted-foreground/40"
                                 )}
                             />
                         ))}
@@ -185,7 +185,7 @@ function ValueCarousel() {
                             <div className="pt-4 grid grid-cols-1 gap-4">
                                 {activeFeature.items.map((item, i) => (
                                     <div key={i} className="flex items-center gap-3">
-                                        <div className="h-1.5 w-1.5 rounded-full bg-primary/40 shrink-0" />
+                                        <div className="h-1.5 w-1.5 rounded-full bg-brand/40 shrink-0" />
                                         <span className="text-sm font-medium text-foreground/80 leading-snug">{item}</span>
                                     </div>
                                 ))}
@@ -199,7 +199,7 @@ function ValueCarousel() {
                             size="icon"
                             onClick={prev}
                             aria-label="Previous feature"
-                            className="rounded-sm h-12 w-12 border-border/40 hover:bg-muted/50 hover:text-primary transition-all active:scale-95"
+                            className="rounded-sm h-12 w-12 border-border/40 hover:bg-muted/50 hover:text-brand transition-all active:scale-95"
                         >
                             <ChevronLeft className="h-5 w-5" />
                         </Button>
@@ -208,7 +208,7 @@ function ValueCarousel() {
                             size="icon"
                             onClick={next}
                             aria-label="Next feature"
-                            className="rounded-sm h-12 w-12 border-border/40 hover:bg-muted/50 hover:text-primary transition-all active:scale-95"
+                            className="rounded-sm h-12 w-12 border-border/40 hover:bg-muted/50 hover:text-brand transition-all active:scale-95"
                         >
                             <ChevronRight className="h-5 w-5" />
                         </Button>
@@ -246,7 +246,7 @@ function ComparisonSection() {
                             <tr className="border-b border-border/30 bg-muted/20">
                                 <th className="py-6 px-[clamp(1rem,3vw,2rem)] text-left text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">Item Pekerjaan</th>
                                 <th className="py-6 px-[clamp(1rem,3vw,2rem)] text-left text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 italic">Tanpa Beres</th>
-                                <th className="py-6 px-[clamp(1rem,3vw,2rem)] text-left text-[10px] font-bold uppercase tracking-widest text-primary">Bersama Beres</th>
+                                <th className="py-6 px-[clamp(1rem,3vw,2rem)] text-left text-[10px] font-bold uppercase tracking-widest text-brand">Bersama Beres</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border/20">
@@ -256,8 +256,8 @@ function ComparisonSection() {
                                     <td className="py-5 px-[clamp(1rem,3vw,2rem)] text-sm text-muted-foreground/50 line-through decoration-muted-foreground/30">{row.before}</td>
                                     <td className="py-5 px-[clamp(1rem,3vw,2rem)] text-sm font-bold text-foreground">
                                         <div className="flex items-center gap-3">
-                                            <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                                                <Check className="h-3 w-3 text-primary" />
+                                            <div className="h-5 w-5 rounded-full bg-brand/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                                                <Check className="h-3 w-3 text-brand" />
                                             </div>
                                             {row.after}
                                         </div>
@@ -288,7 +288,7 @@ export function ValueProposition() {
                     <SectionLabel>BEYOND JUST AN APP</SectionLabel>
                     <Heading as="h2" className="text-[clamp(1.75rem,4.5vw,3.25rem)] mb-8 tracking-tighter leading-tight max-w-3xl">
                         Beres Bukan Sekadar Aplikasi — <br />
-                        <span className="text-primary">Ini Adalah Cara Bisnis Kamu Tumbuh.</span>
+                        <span className="text-brand">Ini Adalah Cara Bisnis Kamu Tumbuh.</span>
                     </Heading>
                     <p className="text-muted-foreground text-lg leading-relaxed max-w-2xl">
                         Banyak UMKM berhenti tumbuh bukan karena produknya buruk, tapi karena ownernya tenggelam dalam operasional manual. Kami hadir untuk mengubah itu.

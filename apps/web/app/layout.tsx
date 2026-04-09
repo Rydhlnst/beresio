@@ -1,15 +1,23 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { DM_Sans, Instrument_Serif } from "next/font/google";
+import { Suspense } from "react";
 import "./globals.css";
-import { Navbar } from "./_components/Navbar";
-import { Footer } from "./_components/Footer";
 import { Toaster } from "@repo/ui";
 import { LayoutProvider } from "./_components/LayoutProvider";
 import { Analytics } from "./_components/Analytics";
+import { RouteLoadingIndicator } from "./_components/RouteLoadingIndicator";
 
-const jakarta = Plus_Jakarta_Sans({
+const dmSans = DM_Sans({
     subsets: ["latin"],
     variable: "--font-jakarta",
+    display: "swap",
+    preload: true,
+});
+
+const instrumentSerif = Instrument_Serif({
+    subsets: ["latin"],
+    weight: "400",
+    variable: "--font-beres-instrument-serif",
     display: "swap",
     preload: true,
 });
@@ -78,7 +86,6 @@ export const metadata: Metadata = {
         site: "@beresio",
     },
     alternates: {
-        canonical: siteUrl,
         languages: { "id-ID": siteUrl },
     },
     icons: {
@@ -148,13 +155,12 @@ export default function RootLayout({
                     dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
                 />
             </head>
-            <body className={`${jakarta.variable} font-sans antialiased bg-background relative overflow-x-hidden`}>
+            <body className={`${dmSans.variable} ${instrumentSerif.variable} font-sans antialiased bg-background relative overflow-x-hidden`}>
                 <LayoutProvider>
-                    <Navbar />
-                    <main className="min-h-screen w-full bg-background relative z-10">
-                        {children}
-                    </main>
-                    <Footer />
+                    <Suspense fallback={null}>
+                        <RouteLoadingIndicator />
+                    </Suspense>
+                    {children}
                     <Toaster />
                     <Analytics />
                 </LayoutProvider>

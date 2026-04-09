@@ -1,7 +1,6 @@
 import * as React from "react"
-import Link from "next/link"
 import { Button } from "./button"
-import { Home, ArrowLeft } from "lucide-react"
+import { Home } from "lucide-react"
 import { cn } from "./lib/utils"
 
 interface NotFoundProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -19,6 +18,8 @@ export function NotFound({
     className,
     ...props
 }: NotFoundProps) {
+    const resolvedHomeUrl = typeof homeUrl === "string" ? homeUrl : String(homeUrl)
+
     return (
         <div 
             className={cn(
@@ -51,10 +52,10 @@ export function NotFound({
                     size="lg"
                     className="h-12 rounded-2xl bg-primary px-8 text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:scale-105 hover:shadow-xl active:scale-95 gap-2"
                 >
-                    <Link href={homeUrl}>
+                    <a href={resolvedHomeUrl}>
                         <Home className="h-4 w-4" />
                         {backButtonText}
-                    </Link>
+                    </a>
                 </Button>
             </div>
 

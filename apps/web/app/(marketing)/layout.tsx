@@ -1,17 +1,18 @@
-import { Navbar } from "../_components/Navbar";
-import { Footer } from "../_components/Footer";
+import type { ReactNode } from "react";
+import { Navbar } from "@/app/_components/Navbar";
+import { Footer } from "@/app/_components/Footer";
 
 export default function MarketingLayout({
     children,
 }: {
-    children: React.ReactNode;
+    children: ReactNode;
 }) {
     return (
         <>
             <Navbar />
-            <div className="mx-auto max-w-[1400px] border-x border-border/50 min-h-screen bg-background relative shadow-sm">
-                <main>{children}</main>
-            </div>
+            <main className="min-h-screen w-full bg-background relative z-10">
+                {children}
+            </main>
             <Footer />
         </>
     );

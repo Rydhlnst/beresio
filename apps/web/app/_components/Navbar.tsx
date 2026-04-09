@@ -1,7 +1,8 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import Link from "next/link"
+import Link from "next/link";
+import type React from "react";
+import dynamic from "next/dynamic";
 import {
     NavigationMenu,
     NavigationMenuContent,
@@ -10,541 +11,341 @@ import {
     NavigationMenuList,
     NavigationMenuTrigger,
     navigationMenuTriggerStyle,
-} from "@repo/ui/navigation-menu"
-import { Button } from "@repo/ui/button"
+} from "@repo/ui/navigation-menu";
+import { Button } from "@repo/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@repo/ui/sheet";
+import { cn } from "@repo/ui/lib/utils";
 import {
-    Sheet,
-    SheetContent,
-    SheetHeader,
-    SheetTitle,
-    SheetTrigger,
-} from "@repo/ui/sheet"
-import { cn } from "@repo/ui/lib/utils"
-import {
-    LucideIcon,
-    ShoppingCart,
-    Package,
+    ArrowRight,
     BarChart3,
-    Truck,
+    BookOpen,
+    Building2,
+    ChevronRight,
+    CircleHelp,
     GitBranch,
+    Menu,
+    Package,
+    PlayCircle,
+    Scissors,
+    ShoppingCart,
+    Store,
+    Truck,
     Users,
     WashingMachine,
-    UtensilsCrossed,
-    Store,
-    Scissors,
-    Building2,
-    BookOpen,
-    Newspaper,
-    PlayCircle,
-    FileText,
-    MessageCircle,
-    ArrowRight,
-    ChevronRight,
-    Play,
-    Menu,
-} from "lucide-react"
-import Image from "next/image"
-import { Banner } from "./Banner"
-import { useSession } from "@/lib/auth-client"
-import ProfileDropdown from "./ProfileDropdown"
-import { useShowLayout } from "./LayoutProvider"
+} from "lucide-react";
+import { BrandMark } from "./BrandMark";
+import { APP_CONTENT_WIDTH, APP_CONTENT_WIDTH_INNER } from "./layout-width";
 
-// ─── TYPES ───────────────────────────────────────────────────────────────────
+const NavbarAuthIsland = dynamic(
+    () => import("./NavbarAuthIsland").then((m) => m.NavbarAuthIsland),
+    {
+        ssr: false,
+        loading: () => <div className="hidden h-10 w-24 animate-pulse bg-secondary md:block" />,
+    }
+);
 
-interface NavItem {
-    title: string
-    description: string
-    href: string
-    icon: LucideIcon
-}
+type NavItem = {
+    title: string;
+    description: string;
+    href: string;
+    icon: React.ComponentType<{ className?: string }>;
+};
 
-// ─── DATA ────────────────────────────────────────────────────────────────────
-
-const coreFeatures: NavItem[] = [
+const CORE_FEATURES: NavItem[] = [
     {
         title: "Kasir Digital (POS)",
-        description: "Transaksi cepat, multi-payment, cetak struk otomatis.",
+        description: "Transaksi cepat dengan multi payment dan struk otomatis.",
         href: "/fitur/kasir",
         icon: ShoppingCart,
     },
     {
         title: "Manajemen Inventori",
-        description: "Pantau stok real-time, alert otomatis saat stok menipis.",
+        description: "Stok realtime lintas cabang dengan alert stok menipis.",
         href: "/fitur/inventori",
         icon: Package,
     },
     {
         title: "Laporan & Analitik",
-        description: "Dashboard performa bisnis, P&L, dan arus kas instan.",
+        description: "Pantau penjualan, margin, dan performa harian bisnis.",
         href: "/fitur/laporan",
         icon: BarChart3,
     },
-]
+];
 
-const advancedFeatures: NavItem[] = [
+const ADVANCED_FEATURES: NavItem[] = [
     {
         title: "Manajemen Pengiriman",
-        description: "Driver sendiri + Gojek/Grab dalam satu platform.",
+        description: "Kelola driver internal dan partner logistik dalam satu flow.",
         href: "/fitur/pengiriman",
         icon: Truck,
     },
     {
-        title: "Multi-Cabang",
-        description: "Kelola semua cabang dari satu dashboard terpusat.",
+        title: "Multi Cabang",
+        description: "Kontrol operasional semua outlet dari satu command center.",
         href: "/fitur/multi-cabang",
         icon: GitBranch,
     },
     {
         title: "Manajemen Tim",
-        description: "Atur akses staff per cabang dengan role yang fleksibel.",
+        description: "Atur role dan akses staff dengan struktur yang aman.",
         href: "/fitur/tim",
         icon: Users,
     },
-]
+];
 
-const solutions: NavItem[] = [
-    {
-        title: "Laundry",
-        description: "Order masuk, tracking cucian, notifikasi siap ambil.",
-        href: "/solusi/laundry",
-        icon: WashingMachine,
-    },
-    {
-        title: "F&B",
-        description: "Dine-in, takeaway, delivery — semua terkelola rapi.",
-        href: "/solusi/fnb",
-        icon: UtensilsCrossed,
-    },
-    {
-        title: "Retail",
-        description: "Barcode scan, varian produk, retur & penukaran barang.",
-        href: "/solusi/retail",
-        icon: Store,
-    },
-    {
-        title: "Salon & Spa",
-        description: "Booking jadwal, assign stylist, paket layanan.",
-        href: "/solusi/salon",
-        icon: Scissors,
-    },
-    {
-        title: "Franchise",
-        description: "Standardisasi operasional di semua gerai franchise.",
-        href: "/solusi/franchise",
-        icon: Building2,
-    },
-]
+const SOLUTIONS: NavItem[] = [
+    { title: "Laundry", description: "Tracking order cucian dan WA otomatis.", href: "/solusi/laundry", icon: WashingMachine },
+    { title: "F&B", description: "Dine-in, takeaway, delivery terintegrasi.", href: "/solusi/fnb", icon: Store },
+    { title: "Retail", description: "POS barcode dan stok multi-cabang.", href: "/solusi/retail", icon: Store },
+    { title: "Salon & Spa", description: "Booking jadwal dan produktivitas stylist.", href: "/solusi/salon", icon: Scissors },
+    { title: "Franchise", description: "Standarisasi SOP dan performa seluruh gerai.", href: "/solusi/franchise", icon: Building2 },
+];
 
-const resources = [
-    { icon: BookOpen, label: "Dokumentasi", href: "/docs" },
-    { icon: PlayCircle, label: "Video Tutorial", href: "/tutorial" },
-    { icon: FileText, label: "Changelog", href: "/changelog" },
-]
+const RESOURCES: NavItem[] = [
+    { title: "Dokumentasi", description: "Panduan penggunaan Beres dari dasar.", href: "/docs", icon: BookOpen },
+    { title: "Video Tutorial", description: "Belajar setup cepat dalam hitungan menit.", href: "/tutorial", icon: PlayCircle },
+    { title: "Changelog", description: "Update fitur terbaru yang sudah dirilis.", href: "/changelog", icon: CircleHelp },
+];
 
-const company = [
-    { label: "Tentang Kami", href: "/about" },
-    { label: "Blog", href: "/blog" },
-    { label: "Karir", href: "/careers" },
-]
-
-// ─── LOGO ─────────────────────────────────────────────────────────────────────
-
-function BeresLogo() {
-    return (
-        <Link href="/" className="flex items-center gap-2 group">
-            <Image
-                src="/logo.svg"
-                alt="Beres logo"
-                width={32}
-                height={32}
-            />
-        </Link>
-    )
-}
-
-function MegaMenuSidebar() {
-    return (
-        <div className="space-y-4">
-            <div className="rounded-lg bg-muted/40 p-4 border border-border/50">
-                <div className="aspect-video rounded bg-background/50 flex items-center justify-center border border-border/40">
-                    <Play className="size-6 text-muted-foreground/40" />
-                </div>
-                <div className="mt-3 space-y-2">
-                    <h4 className="font-semibold text-[13px]">Mulai Cepat</h4>
-                    <p className="text-muted-foreground text-[11px] leading-relaxed">
-                        Pelajari dasar-dasar Beres dalam waktu kurang dari 5 menit.
-                    </p>
-                    <Button className="w-full h-8 text-[11px] rounded-sm" size="sm" asChild>
-                        <Link href="/tutorial">
-                            Tonton Tutorial
-                            <ArrowRight className="ml-1 size-3" />
-                        </Link>
-                    </Button>
-                </div>
-            </div>
-            <div className="rounded-lg bg-primary/5 p-4 border border-primary/10">
-                <h4 className="font-semibold text-[13px]">Butuh Bantuan?</h4>
-                <p className="mt-1 text-muted-foreground text-[11px] leading-relaxed">
-                    Bicara dengan tim ahli kami untuk solusi bisnis Anda.
-                </p>
-                <Button className="mt-3 w-full h-8 text-[11px] rounded-sm" size="sm" variant="outline" asChild>
-                    <Link href="/sales">Hubungi Sales</Link>
-                </Button>
-            </div>
-        </div>
-    )
-}
-
-// ─── LIST ITEM ────────────────────────────────────────────────────────────────
-
-interface ListItemProps {
-    title: string
-    description: string
-    href: string
-    icon: LucideIcon
-    className?: string
-}
-
-function ListItem({ title, description, href, icon: Icon, className }: ListItemProps) {
+function DesktopListItem({ title, description, href, icon: Icon }: NavItem) {
     return (
         <NavigationMenuLink asChild>
             <Link
                 href={href}
-                className={cn(
-                    "group flex select-none items-start gap-4 rounded-md p-3 outline-none transition-all duration-200",
-                    "hover:bg-muted focus:bg-muted",
-                    className
-                )}
+                className="group flex items-start gap-3 border border-transparent px-3 py-2.5 transition-colors hover:border-border hover:bg-secondary/70"
             >
-                <Icon className="mt-0.5 h-5 w-5 shrink-0 text-foreground/60 group-hover:text-primary transition-colors" />
-                <div className="space-y-1.5">
-                    <p className="text-[13px] font-semibold leading-none text-foreground">
-                        {title}
-                    </p>
-                    <p className="text-[12px] leading-snug text-muted-foreground line-clamp-1">
-                        {description}
-                    </p>
+                <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center bg-secondary text-muted-foreground group-hover:text-primary">
+                    <Icon className="h-4 w-4" />
+                </div>
+                <div>
+                    <p className="text-sm font-semibold text-foreground">{title}</p>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{description}</p>
                 </div>
             </Link>
         </NavigationMenuLink>
-    )
+    );
 }
 
-// ─── SECTION LABEL ────────────────────────────────────────────────────────────
+type MegaPanelProps = {
+    label: string;
+    title: string;
+    description: string;
+    primaryLabel: string;
+    primaryHref: string;
+    secondaryLabel: string;
+    secondaryHref: string;
+};
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+function MegaPanel({
+    label,
+    title,
+    description,
+    primaryLabel,
+    primaryHref,
+    secondaryLabel,
+    secondaryHref,
+}: MegaPanelProps) {
     return (
-        <p className="mb-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">
-            {children}
-        </p>
-    )
+        <div className="border border-border/70 bg-secondary/70 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
+            <h4 className="mt-2 text-sm font-semibold text-foreground">{title}</h4>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{description}</p>
+            <div className="mt-4 grid gap-2">
+                <Button size="sm" className="h-9 bg-primary text-primary-foreground hover:bg-primary/90" asChild>
+                    <Link href={primaryHref}>
+                        {primaryLabel}
+                        <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                    </Link>
+                </Button>
+                <Button size="sm" variant="outline" className="h-9" asChild>
+                    <Link href={secondaryHref}>{secondaryLabel}</Link>
+                </Button>
+            </div>
+        </div>
+    );
 }
-
-// ─── NAVBAR ───────────────────────────────────────────────────────────────────
 
 export function Navbar() {
-    const { data: session, isPending } = useSession()
-    const showLayout = useShowLayout()
-
-    if (!showLayout) return null
-
     return (
-        <header className="sticky top-0 z-50 w-full transition-all duration-300">
-            <Banner />
-            <div className="border-b border-border/60 bg-background backdrop-blur-sm supports-[backdrop-filter]:bg-background">
-                <div className="mx-auto flex h-24 w-full max-w-[1400px] items-center justify-between px-4 sm:px-8">
+        <header className="sticky top-0 z-50 border-b border-border/70 bg-background/90 backdrop-blur-xl">
+            <div className={cn(APP_CONTENT_WIDTH, "flex h-20 items-center justify-between")}>
+                <div className="flex items-center gap-10">
+                    <BrandMark />
 
-                    {/* Left: logo + nav */}
-                    <div className="flex items-center gap-8 h-full">
-                        <BeresLogo />
-
-                        <NavigationMenu className="hidden lg:flex h-full">
-                            <NavigationMenuList className="gap-0 h-full">
-
-                                {/* ── FITUR ── */}
-                                <NavigationMenuItem>
-                                    <NavigationMenuTrigger className="h-9 text-[13px] font-medium">
-                                        Fitur
-                                    </NavigationMenuTrigger>
-                                    <NavigationMenuContent>
-                                        <div className="w-screen border-t border-border/50 bg-popover shadow-lg">
-                                            <div className="mx-auto max-w-[1400px] px-4 sm:px-8 py-10">
-                                                <div className="grid grid-cols-[2fr_1fr_220px] gap-12">
-                                                    <div className="space-y-6">
-                                                        <div>
-                                                            <SectionLabel>FITUR UTAMA</SectionLabel>
-                                                            <div className="space-y-1 mt-3">
-                                                                {coreFeatures.map((item) => (
-                                                                    <ListItem key={item.href} {...item} />
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                        <div>
-                                                            <SectionLabel>ADVANCED</SectionLabel>
-                                                            <div className="space-y-1 mt-3">
-                                                                {advancedFeatures.map((item) => (
-                                                                    <ListItem key={item.href} {...item} />
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="space-y-6">
-                                                        <div>
-                                                            <SectionLabel>RESOURCES</SectionLabel>
-                                                            <div className="space-y-1 mt-3">
-                                                                {resources.map((resource) => (
-                                                                    <NavigationMenuLink
-                                                                        key={resource.label}
-                                                                        href={resource.href}
-                                                                        className="flex items-center gap-3 rounded-md p-2.5 hover:bg-muted transition-colors group"
-                                                                    >
-                                                                        <resource.icon className="size-4 text-foreground/60 group-hover:text-primary transition-colors" />
-                                                                        <span className="font-medium text-[13px]">{resource.label}</span>
-                                                                    </NavigationMenuLink>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                        <div>
-                                                            <SectionLabel>COMPANY</SectionLabel>
-                                                            <div className="space-y-1 mt-3">
-                                                                {company.map((item) => (
-                                                                    <NavigationMenuLink
-                                                                        key={item.label}
-                                                                        href={item.href}
-                                                                        className="block rounded-md p-2.5 hover:bg-muted transition-colors"
-                                                                    >
-                                                                        <span className="font-medium text-[13px]">{item.label}</span>
-                                                                    </NavigationMenuLink>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <MegaMenuSidebar />
+                    <NavigationMenu className="hidden lg:flex">
+                        <NavigationMenuList className="gap-1">
+                            <NavigationMenuItem>
+                                <NavigationMenuTrigger className="bg-transparent text-sm font-semibold text-foreground">
+                                    Fitur
+                                </NavigationMenuTrigger>
+                                <NavigationMenuContent className="min-w-screen w-screen md:!w-screen">
+                                    <div className="min-w-screen w-screen border-y border-border/70 bg-background px-6 py-5 shadow-xl">
+                                        <div className={APP_CONTENT_WIDTH_INNER}>
+                                            <div className="grid w-full grid-cols-[minmax(0,1fr)_minmax(0,1fr)_320px] gap-5">
+                                                <div className="space-y-2 border-r border-border/70 pr-5">
+                                                    <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                                                        Core
+                                                    </p>
+                                                    {CORE_FEATURES.map((item) => (
+                                                        <DesktopListItem key={item.href} {...item} />
+                                                    ))}
                                                 </div>
-                                            </div>
-                                        </div>
-                                    </NavigationMenuContent>
-                                </NavigationMenuItem>
-
-                                {/* ── SOLUSI ── */}
-                                <NavigationMenuItem>
-                                    <NavigationMenuTrigger className="h-9 text-[13px] font-medium">
-                                        Solusi
-                                    </NavigationMenuTrigger>
-                                    <NavigationMenuContent>
-                                        <div className="w-screen border-t border-border/50 bg-popover shadow-lg">
-                                            <div className="mx-auto max-w-[1400px] px-4 sm:px-8 py-10">
-                                                <div className="grid grid-cols-[1fr_220px] gap-12">
-                                                    <div>
-                                                        <SectionLabel>INDUSTRI</SectionLabel>
-                                                        <div className="space-y-1 mt-3">
-                                                            {solutions.map((item) => (
-                                                                <ListItem key={item.href} {...item} />
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                    <MegaMenuSidebar />
+                                                <div className="space-y-2 border-r border-border/70 pr-5">
+                                                    <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                                                        Advanced
+                                                    </p>
+                                                    {ADVANCED_FEATURES.map((item) => (
+                                                        <DesktopListItem key={item.href} {...item} />
+                                                    ))}
                                                 </div>
+                                                <MegaPanel
+                                                    label="Mulai Dengan Fitur"
+                                                    title="Pilih modul yang paling kamu butuhkan"
+                                                    description="Lihat flow fitur POS, inventori, laporan, dan pengiriman untuk operasional harian."
+                                                    primaryLabel="Eksplor Fitur POS"
+                                                    primaryHref="/fitur/kasir"
+                                                    secondaryLabel="Jadwalkan Demo"
+                                                    secondaryHref="/demo"
+                                                />
                                             </div>
-                                        </div>
-                                    </NavigationMenuContent>
-                                </NavigationMenuItem>
-
-                                {/* ── PARTNERSHIP ── */}
-                                <NavigationMenuItem>
-                                    <NavigationMenuLink
-                                        asChild
-                                        className={cn(navigationMenuTriggerStyle(), "h-9 text-[13px] font-medium")}
-                                    >
-                                        <Link href="/partnership">Partnership</Link>
-                                    </NavigationMenuLink>
-                                </NavigationMenuItem>
-
-                                {/* ── RESOURCES ── */}
-                                <NavigationMenuItem>
-                                    <NavigationMenuTrigger className="h-9 text-[13px] font-medium">
-                                        Resources
-                                    </NavigationMenuTrigger>
-                                    <NavigationMenuContent>
-                                        <div className="w-screen border-t border-border/50 bg-popover shadow-lg">
-                                            <div className="mx-auto max-w-[1400px] px-4 sm:px-8 py-10">
-                                                <div className="grid grid-cols-[1fr_220px] gap-12">
-                                                    <div>
-                                                        <SectionLabel>PUSAT BANTUAN</SectionLabel>
-                                                        <div className="space-y-1 mt-3">
-                                                            {resources.map((resource) => (
-                                                                <NavigationMenuLink
-                                                                    key={resource.label}
-                                                                    href={resource.href}
-                                                                    className="flex items-center gap-4 rounded-md p-3 hover:bg-muted transition-all group"
-                                                                >
-                                                                    <resource.icon className="size-4 text-foreground/60 group-hover:text-primary transition-colors" />
-                                                                    <span className="font-semibold text-[13px]">{resource.label}</span>
-                                                                </NavigationMenuLink>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex flex-col justify-center">
-                                                        <div className="rounded-lg bg-primary/5 p-4 border border-primary/10">
-                                                            <h4 className="font-semibold text-[12px]">Support 24/7</h4>
-                                                            <p className="mt-1 text-muted-foreground text-[10px] leading-relaxed">
-                                                                Tim kami siap membantu operasional bisnis Anda kapanpun.
-                                                            </p>
-                                                            <Button className="mt-3 w-full h-8 text-[11px] rounded-2xl" size="sm" variant="ghost" asChild>
-                                                                <Link href="/support">Hubungi Kami</Link>
-                                                            </Button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </NavigationMenuContent>
-                                </NavigationMenuItem>
-
-                                {/* ── HARGA ── direct link */}
-                                <NavigationMenuItem>
-                                    <NavigationMenuLink
-                                        asChild
-                                        className={cn(navigationMenuTriggerStyle(), "h-9 text-[13px] font-medium")}
-                                    >
-                                        <Link href="/harga">Harga</Link>
-                                    </NavigationMenuLink>
-                                </NavigationMenuItem>
-
-                            </NavigationMenuList>
-                        </NavigationMenu>
-                    </div>
-
-                    {/* Right: actions */}
-                    <div className="flex items-center gap-1.5">
-                        {isPending ? (
-                            <div className="h-10 w-24 rounded-xl bg-muted animate-pulse hidden md:block" />
-                        ) : session ? (
-                            <ProfileDropdown data={{
-                                name: session.user.name,
-                                email: session.user.email,
-                                avatar: session.user.image || "",
-                            }} />
-                        ) : (
-                            <>
-                                <div className="hidden md:flex items-center gap-1.5">
-                                    <Button
-                                        variant="link"
-                                        size="lg"
-                                        asChild
-                                    >
-                                        <Link href="/sign-in">Masuk</Link>
-                                    </Button>
-
-                                    <div className="mx-1 h-4 w-px bg-border" />
-
-                                    <Button
-                                        variant="outline"
-                                        size="lg"
-                                        asChild
-                                        className="rounded-2xl"
-                                    >
-                                        <Link href="/wishlist">Join Wishlist</Link>
-                                    </Button>
-                                </div>
-
-                                <Button
-                                    size="lg"
-                                    asChild
-                                    className="rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 transition-all"
-                                >
-                                    <Link href="/wishlist">Gabung Antrean</Link>
-                                </Button>
-                            </>
-                        )}
-
-                        <Sheet>
-                            <SheetTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-11 w-11 lg:hidden hover:bg-accent" aria-label="Open menu">
-                                    <Menu className="h-6 w-6 text-foreground" />
-                                </Button>
-                            </SheetTrigger>
-                            <SheetContent side="right" className="w-[320px] p-0 flex flex-col gap-0 border-l border-border/50 bg-background/98 backdrop-blur-xl">
-                                <SheetHeader className="p-6 border-b border-border/50 text-left">
-                                    <SheetTitle>
-                                        <BeresLogo />
-                                    </SheetTitle>
-                                </SheetHeader>
-
-                                <div className="flex-1 overflow-y-auto px-4 py-6 space-y-8">
-                                    <div className="space-y-4">
-                                        <SectionLabel>Fitur Utama</SectionLabel>
-                                        <div className="grid gap-2">
-                                            {coreFeatures.concat(advancedFeatures).map((item) => (
-                                                <Link
-                                                    key={item.href}
-                                                    href={item.href}
-                                                    className="flex items-center gap-4 rounded-lg p-3 hover:bg-muted transition-colors group"
-                                                >
-                                                    <item.icon className="h-5 w-5 text-foreground/60 group-hover:text-primary transition-colors" />
-                                                    <div className="space-y-1">
-                                                        <p className="text-[14px] font-semibold leading-none">{item.title}</p>
-                                                        <p className="text-[12px] text-muted-foreground line-clamp-1">{item.description}</p>
-                                                    </div>
-                                                </Link>
-                                            ))}
                                         </div>
                                     </div>
+                                </NavigationMenuContent>
+                            </NavigationMenuItem>
 
-                                    <div className="space-y-4">
-                                        <SectionLabel>Solusi Industri</SectionLabel>
-                                        <div className="grid gap-2">
-                                            {solutions.map((item) => (
-                                                <Link
-                                                    key={item.href}
-                                                    href={item.href}
-                                                    className="flex items-center gap-3 rounded-lg p-3 hover:bg-accent transition-colors"
-                                                >
-                                                    <item.icon className="h-4 w-4 text-muted-foreground" />
-                                                    <span className="text-[14px] font-medium">{item.title}</span>
-                                                </Link>
-                                            ))}
+                            <NavigationMenuItem>
+                                <NavigationMenuTrigger className="bg-transparent text-sm font-semibold text-foreground">
+                                    Solusi
+                                </NavigationMenuTrigger>
+                                <NavigationMenuContent className="min-w-screen w-screen md:!w-screen">
+                                    <div className="min-w-screen w-screen border-y border-border/70 bg-background px-6 py-5 shadow-xl">
+                                        <div className={APP_CONTENT_WIDTH_INNER}>
+                                            <div className="grid w-full grid-cols-[minmax(0,1fr)_320px] gap-5">
+                                                <div className="grid grid-cols-2 gap-2 border-r border-border/70 pr-5">
+                                                    {SOLUTIONS.map((item) => (
+                                                        <DesktopListItem key={item.href} {...item} />
+                                                    ))}
+                                                </div>
+                                                <MegaPanel
+                                                    label="Pilih Vertikal"
+                                                    title="Temukan solusi sesuai tipe bisnis"
+                                                    description="Setiap industri punya workflow berbeda. Lihat template dashboard sesuai operasionalmu."
+                                                    primaryLabel="Lihat Solusi F&B"
+                                                    primaryHref="/solusi/fnb"
+                                                    secondaryLabel="Konsultasi Industri"
+                                                    secondaryHref="/sales"
+                                                />
+                                            </div>
                                         </div>
                                     </div>
+                                </NavigationMenuContent>
+                            </NavigationMenuItem>
 
-                                    <div className="space-y-4">
-                                        <SectionLabel>Bantuan & Lainnya</SectionLabel>
-                                        <div className="grid gap-1">
-                                            <Link href="/partnership" className="px-3 py-2 text-[14px] font-medium hover:bg-accent rounded-md transition-colors">Partnership</Link>
-                                            <Link href="/harga" className="px-3 py-2 text-[14px] font-medium hover:bg-accent rounded-md transition-colors">Harga</Link>
-                                            <Link href="/docs" className="px-3 py-2 text-[14px] font-medium hover:bg-accent rounded-md transition-colors">Dokumentasi</Link>
-                                            <Link href="/blog" className="px-3 py-2 text-[14px] font-medium hover:bg-accent rounded-md transition-colors">Blog</Link>
+                            <NavigationMenuItem>
+                                <NavigationMenuTrigger className="bg-transparent text-sm font-semibold text-foreground">
+                                    Resources
+                                </NavigationMenuTrigger>
+                                <NavigationMenuContent className="min-w-screen w-screen md:!w-screen">
+                                    <div className="min-w-screen w-screen border-y border-border/70 bg-background px-6 py-5 shadow-xl">
+                                        <div className={APP_CONTENT_WIDTH_INNER}>
+                                            <div className="grid w-full grid-cols-[minmax(0,1fr)_320px] gap-5">
+                                                <div className="space-y-2 border-r border-border/70 pr-5">
+                                                {RESOURCES.map((item) => (
+                                                    <DesktopListItem key={item.href} {...item} />
+                                                ))}
+                                                </div>
+                                                <MegaPanel
+                                                    label="Belajar Cepat"
+                                                    title="Akses panduan dan update produk"
+                                                    description="Mulai dari dokumentasi, video tutorial, sampai changelog fitur terbaru Beres Cloud."
+                                                    primaryLabel="Buka Dokumentasi"
+                                                    primaryHref="/docs"
+                                                    secondaryLabel="Tonton Tutorial"
+                                                    secondaryHref="/tutorial"
+                                                />
+                                            </div>
                                         </div>
+                                    </div>
+                                </NavigationMenuContent>
+                            </NavigationMenuItem>
+
+                            <NavigationMenuItem>
+                                <NavigationMenuLink asChild className={cn(navigationMenuTriggerStyle(), "bg-transparent text-sm font-semibold")}>
+                                    <Link href="/harga">Harga</Link>
+                                </NavigationMenuLink>
+                            </NavigationMenuItem>
+
+                            <NavigationMenuItem>
+                                <NavigationMenuLink asChild className={cn(navigationMenuTriggerStyle(), "bg-transparent text-sm font-semibold")}>
+                                    <Link href="/blog">Blog</Link>
+                                </NavigationMenuLink>
+                            </NavigationMenuItem>
+                        </NavigationMenuList>
+                    </NavigationMenu>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <NavbarAuthIsland />
+
+                    <Sheet>
+                        <SheetTrigger asChild>
+                            <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Open mobile menu">
+                                <Menu className="h-5 w-5" />
+                            </Button>
+                        </SheetTrigger>
+                        <SheetContent side="right" className="w-[320px] bg-background">
+                            <div className="pt-3">
+                                <BrandMark />
+                            </div>
+
+                            <div className="mt-8 space-y-7">
+                                <div>
+                                    <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Fitur</p>
+                                    <div className="space-y-1">
+                                        {[...CORE_FEATURES, ...ADVANCED_FEATURES].map((item) => (
+                                            <Link key={item.href} href={item.href} className="flex items-center justify-between px-3 py-2.5 text-sm text-foreground hover:bg-secondary">
+                                                <span>{item.title}</span>
+                                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                            </Link>
+                                        ))}
                                     </div>
                                 </div>
 
-                                <div className="p-6 border-t border-border/50 bg-muted/30">
-                                    <div className="grid gap-3">
-                                        {session ? (
-                                            <Button asChild className="w-full rounded-2xl bg-primary">
-                                                <Link href="/dashboard">Ke Dashboard</Link>
-                                            </Button>
-                                        ) : (
-                                            <>
-                                                <Button variant="outline" asChild className="w-full rounded-2xl">
-                                                    <Link href="/sign-in">Masuk ke Dashboard</Link>
-                                                </Button>
-                                                <Button asChild className="w-full rounded-2xl bg-primary hover:bg-accent hover:text-accent-foreground">
-                                                    <Link href="/wishlist">Gabung Wishlist</Link>
-                                                </Button>
-                                            </>
-                                        )}
+                                <div>
+                                    <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Solusi</p>
+                                    <div className="space-y-1">
+                                        {SOLUTIONS.map((item) => (
+                                            <Link key={item.href} href={item.href} className="block px-3 py-2.5 text-sm text-foreground hover:bg-secondary">
+                                                {item.title}
+                                            </Link>
+                                        ))}
                                     </div>
                                 </div>
-                            </SheetContent>
-                        </Sheet>
-                    </div>
 
+                                <div>
+                                    <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Lainnya</p>
+                                    <div className="space-y-1">
+                                        <Link href="/harga" className="block px-3 py-2.5 text-sm text-foreground hover:bg-secondary">
+                                            Harga
+                                        </Link>
+                                        <Link href="/blog" className="block px-3 py-2.5 text-sm text-foreground hover:bg-secondary">
+                                            Blog
+                                        </Link>
+                                        <Link href="/docs" className="block px-3 py-2.5 text-sm text-foreground hover:bg-secondary">
+                                            Dokumentasi
+                                        </Link>
+                                        <Link href="/support" className="block px-3 py-2.5 text-sm text-foreground hover:bg-secondary">
+                                            Support
+                                        </Link>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <NavbarAuthIsland mobile />
+                        </SheetContent>
+                    </Sheet>
                 </div>
             </div>
         </header>
-    )
+    );
 }
-
