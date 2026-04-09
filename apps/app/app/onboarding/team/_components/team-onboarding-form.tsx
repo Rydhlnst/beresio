@@ -1,128 +1,95 @@
 "use client";
 
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { toast } from "sonner";
-import { z } from "zod";
 
-import { authClient } from "@/lib/auth-client";
+import { BranchFormClient, type BranchPayload } from "@/app/(dashboard)/branches/new/_components/branch-form-client";
+import { createBranchAction } from "@/app/(dashboard)/branches/_actions/branches";
 import { useTransitionRouter } from "@/hooks/use-transition-router";
 import { bootstrapRbacForActiveOrg } from "../../_actions/rbac";
 
-import { Button } from "@repo/ui/button";
-import { Input } from "@repo/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@repo/ui/form";
-import { Loader2, MapPin } from "lucide-react";
-
-const teamSchema = z.object({
-    name: z.string().min(2, "Nama cabang minimal 2 karakter").max(60, "Nama cabang maksimal 60 karakter"),
-});
-
-type TeamFormValues = z.infer<typeof teamSchema>;
-
 interface TeamOnboardingFormProps {
-    organizationId?: string;
+  organizationId?: string;
+}
+
+const MAX_CODE_ATTEMPTS = 5;
+
+function buildBranchCode(branchName: string, attempt: number) {
+  const compact = branchName.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+  const prefix = (compact.slice(0, 3) || "BRN").padEnd(3, "X");
+  const randomBlock = Math.floor(100 + Math.random() * 900).toString();
+  const attemptSuffix = attempt > 0 ? attempt.toString() : "";
+  return `${prefix}${randomBlock}${attemptSuffix}`.slice(0, 10);
+}
+
+function buildBranchAddress(payload: BranchPayload) {
+  const area = [payload.kelurahan, payload.kecamatan, payload.kota, payload.provinsi]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(", ");
+  if (!area) return payload.alamat_lengkap;
+  return `${payload.alamat_lengkap} (${area})`;
 }
 
 export function TeamOnboardingForm({ organizationId }: TeamOnboardingFormProps) {
-    const { push, refresh } = useTransitionRouter();
-    const [isLoading, setIsLoading] = useState(false);
+  const { replace } = useTransitionRouter();
+  const [isLoading, setIsLoading] = useState(false);
 
-    const form = useForm<TeamFormValues>({
-        resolver: zodResolver(teamSchema),
-        defaultValues: {
-            name: "",
-        },
-    });
+  async function onSubmit(payload: BranchPayload) {
+    setIsLoading(true);
+    try {
+      let lastError: string | null = null;
+      for (let attempt = 0; attempt < MAX_CODE_ATTEMPTS; attempt += 1) {
+        const code = buildBranchCode(payload.nama_cabang, attempt);
+        const result = await createBranchAction({
+          name: payload.nama_cabang,
+          code,
+          address: buildBranchAddress(payload),
+          phone: payload.nomor_telepon,
+          isActive: true,
+        });
 
-    async function onSubmit(values: TeamFormValues) {
-        setIsLoading(true);
-        try {
-            const payload: { name: string; organizationId?: string } = {
-                name: values.name,
-            };
+        if (result.ok) {
+          const bootstrapResult = await bootstrapRbacForActiveOrg();
+          if (!bootstrapResult.ok) {
+            toast.error("Role akses belum tersinkron. Silakan refresh setelah onboarding.");
+          }
 
-            if (organizationId) {
-                payload.organizationId = organizationId;
-            }
-
-            const { data, error } = await authClient.organization.createTeam(payload);
-
-            if (error) {
-                toast.error(error.message || "Gagal membuat cabang. Silakan coba lagi.");
-                return;
-            }
-
-            const teamId = (data as any)?.team?.id ?? (data as any)?.id;
-            if (teamId) {
-                await authClient.organization.setActiveTeam({
-                    teamId,
-                });
-            }
-
-            const bootstrapResult = await bootstrapRbacForActiveOrg();
-            if (!bootstrapResult.ok) {
-                toast.error("Role akses belum tersinkron. Silakan refresh setelah onboarding.");
-            }
-
-            toast.success("Cabang usaha berhasil dibuat!");
-            push("/dashboard");
-            refresh();
-        } catch (error) {
-            toast.error("Terjadi kesalahan sistem. Silakan coba lagi nanti.");
-        } finally {
-            setIsLoading(false);
+          toast.success("Cabang pertama berhasil dibuat!");
+          replace("/dashboard");
+          return;
         }
+
+        const currentError = result.error ?? "Gagal membuat cabang.";
+        lastError = currentError;
+        if (!currentError.includes("Branch code already exists")) {
+          break;
+        }
+      }
+
+      toast.error(lastError ?? "Gagal membuat cabang. Silakan coba lagi.");
+    } catch {
+      toast.error("Terjadi kesalahan sistem. Silakan coba lagi nanti.");
+    } finally {
+      setIsLoading(false);
     }
+  }
 
-    return (
-        <Card className="border-border">
-            <CardHeader>
-                <CardTitle className="text-xl">Informasi Cabang Pertama</CardTitle>
-                <CardDescription>
-                    Cabang ini akan digunakan untuk mengelola operasional lokasi pertamamu
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                        <FormField
-                            control={form.control}
-                            name="name"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Nama Cabang Usaha</FormLabel>
-                                    <FormControl>
-                                        <div className="relative">
-                                            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                            <Input
-                                                placeholder="Contoh: Indomaret Setia Budi Medan"
-                                                disabled={isLoading}
-                                                className="pl-9"
-                                                {...field}
-                                            />
-                                        </div>
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+  return (
+    <div className="space-y-6">
+      <div className="space-y-1">
+        <h3 className="text-xl font-semibold text-slate-900">Informasi Cabang Pertama</h3>
+        <p className="text-sm text-slate-600">
+          Isi detail cabang utama: nama cabang, lokasi, alamat, dan kontak operasional.
+          {organizationId ? " Cabang ini akan langsung terhubung ke organisasi aktif." : ""}
+        </p>
+      </div>
 
-                        <Button type="submit" className="w-full" disabled={isLoading}>
-                            {isLoading ? (
-                                <>
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    Sedang Memproses...
-                                </>
-                            ) : (
-                                "Buat Cabang Pertama"
-                            )}
-                        </Button>
-                    </form>
-                </Form>
-            </CardContent>
-        </Card>
-    );
+      <BranchFormClient
+        onSubmit={onSubmit}
+        isSubmitting={isLoading}
+        submitLabel="Selesai Setup & Masuk Dashboard"
+      />
+    </div>
+  );
 }
