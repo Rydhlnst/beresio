@@ -18,9 +18,14 @@ interface SupplierDetailPageProps {
 }
 
 export async function generateMetadata({ params }: SupplierDetailPageProps): Promise<Metadata> {
+  const { id } = await params;
+  const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://app.beres.io";
   return {
-    title: `Detail Pemasok | Beres`,
+    title: `Detail Pemasok ${id}`,
     description: "Detail informasi pemasok",
+    alternates: {
+      canonical: `${appBaseUrl}/suppliers/${id}`,
+    },
   };
 }
 

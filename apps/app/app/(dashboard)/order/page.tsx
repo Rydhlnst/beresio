@@ -10,7 +10,7 @@ import { getActiveOrganizationContext } from "@/lib/organization-context";
 import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
-    title: "Order | Beres",
+    title: "Order",
     description: "Pantau semua order lintas cabang secara real-time",
 };
 
@@ -78,10 +78,30 @@ type SearchParams = {
     status?: string;
     branchId?: string;
     type?: string;
+    orderType?: string;
     q?: string;
     dateFrom?: string;
     dateTo?: string;
 };
+
+function toQueryString(searchParams: SearchParams) {
+    const params = new URLSearchParams();
+    const entries: Array<[string, string | undefined]> = [
+        ["orderId", searchParams.orderId],
+        ["status", searchParams.status],
+        ["branchId", searchParams.branchId],
+        ["orderType", searchParams.orderType ?? searchParams.type],
+        ["q", searchParams.q],
+        ["dateFrom", searchParams.dateFrom],
+        ["dateTo", searchParams.dateTo],
+    ];
+    for (const [key, value] of entries) {
+        if (!value) continue;
+        params.set(key, value);
+    }
+    const query = params.toString();
+    return query ? `?${query}` : "";
+}
 
 async function renderLaundryOrderPage(searchParams: SearchParams) {
     const cookie = (await headers()).get("cookie") || "";
@@ -235,14 +255,15 @@ async function renderRetailPosPage() {
     );
 }
 
-export default async function OrderPage({ searchParams }: { searchParams: SearchParams }) {
+export default async function OrderPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+    const resolvedSearchParams = await searchParams;
     const activeOrg = await getActiveOrganizationContext();
     if (!activeOrg) {
         redirect("/login");
     }
 
     if (activeOrg.businessType === "laundry") {
-        return renderLaundryOrderPage(searchParams);
+        redirect(`/laundry/orders${toQueryString(resolvedSearchParams)}`);
     }
 
     if (activeOrg.businessType === "retail") {

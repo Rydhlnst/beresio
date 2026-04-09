@@ -5,26 +5,36 @@ import { Input } from "@repo/ui/input";
 import { SectionCard } from "@/components/dashboard/shared/section-card";
 
 type CabangSettingsPageProps = {
-    params: { branchId: string };
+    params: Promise<{ branchId: string }>;
 };
 
-export const metadata: Metadata = {
-    title: "Pengaturan Cabang | Beres",
-    description: "Konfigurasi cabang",
-};
+export async function generateMetadata({ params }: CabangSettingsPageProps): Promise<Metadata> {
+    const { branchId } = await params;
+    const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://app.beres.io";
 
-export default function CabangSettingsPage({ params }: CabangSettingsPageProps) {
+    return {
+        title: `Pengaturan Cabang ${branchId}`,
+        description: "Konfigurasi cabang",
+        alternates: {
+            canonical: `${appBaseUrl}/cabang/${branchId}/pengaturan`,
+        },
+    };
+}
+
+export default async function CabangSettingsPage({ params }: CabangSettingsPageProps) {
+    const { branchId } = await params;
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h1 className="text-2xl font-semibold text-foreground">Pengaturan Cabang</h1>
                     <p className="text-sm text-muted-foreground mt-2">
-                        ID cabang: {params.branchId}
+                        ID cabang: {branchId}
                     </p>
                 </div>
                 <Button variant="outline" className="h-9 text-xs font-semibold" asChild>
-                    <Link href={`/cabang/${params.branchId}`}>Kembali</Link>
+                    <Link href={`/cabang/${branchId}`}>Kembali</Link>
                 </Button>
             </div>
 

@@ -9,6 +9,7 @@ import { generateMetadata as seoMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = seoMetadata({
     title: "Onboarding - Siapkan Organisasi Anda",
+    path: "/onboarding/org",
     description: "Onboarding Beres.io - Lengkapi data organisasi Anda untuk memulai menggunakan platform kasir digital.",
     noIndex: true, // Onboarding should not be indexed
 });
@@ -57,8 +58,8 @@ export default function OnboardingOrgPage() {
                         {ONBOARDING_STEPS.map((step) => (
                             <Card key={step.title} className="border-border/60">
                                 <CardHeader className="space-y-4">
-                                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10">
-                                        <step.icon className="h-5 w-5 text-primary" />
+                                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand/10">
+                                        <step.icon className="h-5 w-5 text-brand" />
                                     </div>
                                     <CardTitle className="text-base">{step.title}</CardTitle>
                                 </CardHeader>

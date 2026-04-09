@@ -9,6 +9,7 @@ import { generateMetadata as seoMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = seoMetadata({
     title: "Dashboard - Ringkasan Bisnis Anda",
+    path: "/dashboard",
     description: "Dashboard Beres.io - Pantau metrik bisnis, transaksi, dan aktivitas tim dalam satu layar.",
     noIndex: true, // Dashboard should not be indexed
 });
@@ -61,7 +62,7 @@ export default function DashboardPage() {
                             <Card key={metric.label} className="border-border/60">
                                 <CardHeader className="flex-row items-center justify-between space-y-0">
                                     <CardTitle className="text-sm">{metric.label}</CardTitle>
-                                    <metric.icon className="h-4 w-4 text-primary" />
+                                    <metric.icon className="h-4 w-4 text-brand" />
                                 </CardHeader>
                                 <CardContent>
                                     <Text className="text-3xl font-bold">{metric.value}</Text>

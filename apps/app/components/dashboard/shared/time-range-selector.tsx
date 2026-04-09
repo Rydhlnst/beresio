@@ -16,7 +16,7 @@ const ranges: TimeRange[] = ["7D", "30D", "3M"];
 export function TimeRangeSelector({ value, onChange, className }: TimeRangeSelectorProps) {
     return (
         <div className={cn(
-            "inline-flex items-center rounded-md border border-border/60 bg-muted/40 p-1 gap-1",
+            "inline-flex items-center gap-1 rounded-full border border-border/70 bg-secondary/80 p-1",
             className
         )}>
             {ranges.map((range) => (
@@ -26,9 +26,9 @@ export function TimeRangeSelector({ value, onChange, className }: TimeRangeSelec
                     suppressHydrationWarning
                     onClick={() => onChange(range)}
                     className={cn(
-                        "px-3 py-1.5 text-xs font-semibold rounded-md transition-colors duration-150 ease-out",
+                        "rounded-full px-3 py-1.5 text-xs font-semibold transition-colors duration-150 ease-out",
                         value === range
-                            ? "bg-background text-foreground"
+                            ? "bg-background text-foreground shadow-sm"
                             : "text-muted-foreground hover:text-foreground"
                     )}
                 >

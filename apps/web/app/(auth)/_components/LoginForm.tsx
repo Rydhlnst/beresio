@@ -123,7 +123,7 @@ export function LoginForm() {
                                                     placeholder="Enter your email"
                                                     type="email"
                                                     disabled={isLoading}
-                                                    className="h-12 pl-12 bg-white border-input rounded-xl text-foreground placeholder:text-muted-foreground/30 focus-visible:ring-1 focus-visible:ring-primary/20 transition-all font-medium shadow-none"
+                                                    className="h-12 pl-12 bg-white border-input rounded-xl text-foreground placeholder:text-muted-foreground/30 focus-visible:ring-1 focus-visible:ring-brand/20 transition-all font-medium shadow-none"
                                                 />
                                             </div>
                                         </FormControl>
@@ -148,7 +148,7 @@ export function LoginForm() {
                                                     placeholder="••••••••"
                                                     type={showPassword ? "text" : "password"}
                                                     disabled={isLoading}
-                                                    className="h-12 pl-12 bg-white border-input rounded-xl text-foreground placeholder:text-muted-foreground/30 focus-visible:ring-1 focus-visible:ring-primary/20 transition-all font-medium pr-12 shadow-none"
+                                                    className="h-12 pl-12 bg-white border-input rounded-xl text-foreground placeholder:text-muted-foreground/30 focus-visible:ring-1 focus-visible:ring-brand/20 transition-all font-medium pr-12 shadow-none"
                                                 />
                                                 <button
                                                     type="button"
@@ -178,7 +178,7 @@ export function LoginForm() {
                                                 id="remember"
                                                 checked={field.value}
                                                 onChange={field.onChange}
-                                                className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
+                                                className="h-4 w-4 rounded border-input text-brand focus:ring-brand"
                                                 disabled={isLoading}
                                             />
                                         </FormControl>
@@ -188,7 +188,7 @@ export function LoginForm() {
                                     </div>
                                 )}
                             />
-                            <Link href="/forgot-password" university-link="true" className="text-sm font-bold text-primary hover:opacity-80 transition-opacity">
+                            <Link href="/forgot-password" university-link="true" className="text-sm font-bold text-brand hover:opacity-80 transition-opacity">
                                 Forgot password
                             </Link>
                         </div>
@@ -196,7 +196,7 @@ export function LoginForm() {
                         <Button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base transition-all border-none shadow-none"
+                            className="w-full h-12 rounded-xl bg-brand hover:bg-brand/90 text-brand-foreground font-bold text-base transition-all border-none shadow-none"
                         >
                             {isLoading ? <Loader2 className="animate-spin h-5 w-5" /> : "Log in"}
                         </Button>
@@ -223,7 +223,7 @@ export function LoginForm() {
                     <div className="text-center pt-2">
                         <Text align="center" className="text-sm font-medium text-muted-foreground">
                             Don't have an account?{" "}
-                            <Link href="/sign-up" className="text-primary font-bold hover:underline transition-all">
+                            <Link href="/sign-up" className="text-brand font-bold hover:underline transition-all">
                                 Request Now
                             </Link>
                         </Text>

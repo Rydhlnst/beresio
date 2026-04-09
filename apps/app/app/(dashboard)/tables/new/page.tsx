@@ -8,7 +8,7 @@ import { Button } from "@repo/ui/button";
 import { ArrowLeft } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Tambah Meja | Beres",
+  title: "Tambah Meja",
   description: "Tambah meja baru",
 };
 

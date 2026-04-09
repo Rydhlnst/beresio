@@ -45,7 +45,7 @@ export default function Error({ error, reset }: ErrorProps) {
                     <RefreshCw className="h-4 w-4" />
                     Coba Lagi
                 </Button>
-                <Button asChild className="rounded-2xl bg-primary gap-2">
+                <Button asChild className="rounded-2xl bg-brand gap-2">
                     <Link href="/">
                         <Home className="h-4 w-4" />
                         Ke Beranda

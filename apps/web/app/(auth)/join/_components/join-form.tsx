@@ -92,7 +92,7 @@ export function JoinForm({ initialToken }: JoinFormProps) {
         return (
             <Card className="w-full border-border shadow-sm">
                 <CardContent className="flex flex-col items-center justify-center py-10 space-y-4">
-                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    <Loader2 className="w-8 h-8 animate-spin text-brand" />
                     <p className="text-muted-foreground">Menerima undangan...</p>
                 </CardContent>
             </Card>
@@ -144,7 +144,7 @@ export function JoinForm({ initialToken }: JoinFormProps) {
                 </p>
                 <Link
                     href="/welcome"
-                    className="text-sm font-medium text-primary hover:underline underline-offset-4"
+                    className="text-sm font-medium text-brand hover:underline underline-offset-4"
                 >
                     Kembali
                 </Link>

@@ -9,9 +9,12 @@ export class QueryMock<T> implements PromiseLike<T> {
     orderBy() { return this; }
     groupBy() { return this; }
     limit() { return this; }
+    offset() { return this; }
     values() { return this; }
     set() { return this; }
     returning() { return this; }
+    onConflictDoUpdate() { return this; }
+    onConflictDoNothing() { return this; }
     as() { return this; }
     then<TResult1 = T, TResult2 = never>(
         onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null,

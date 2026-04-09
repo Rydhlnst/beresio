@@ -6,7 +6,7 @@ import { SectionCard } from "@/components/dashboard/shared/section-card";
 import { createHighlightAction } from "../_actions/highlights";
 
 export const metadata: Metadata = {
-    title: "Buat Highlight | Beres",
+    title: "Buat Highlight",
     description: "Buat highlight baru untuk dashboard",
 };
 

@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { z } from 'zod'
 import { authMiddleware } from '../../middleware/auth'
 import { getOrgId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
@@ -13,6 +14,28 @@ type Bindings = {
 }
 type Variables = { db: any; user: any; session: any }
 
+const imageUploadSchema = z.object({
+    image: z
+        .string()
+        .min(1, 'Image data is required')
+        .startsWith('data:image/', 'Invalid image format. Must be base64 data URI'),
+    folder: z.string().trim().min(1).max(120).default('products'),
+})
+
+const multipleImageUploadSchema = z.object({
+    images: z
+        .array(
+            z.string().min(1).startsWith('data:image/', 'Invalid image format. Must be base64 data URI')
+        )
+        .min(1, 'Upload 1-5 images at a time')
+        .max(5, 'Upload 1-5 images at a time'),
+    folder: z.string().trim().min(1).max(120).default('products'),
+})
+
+function getValidationMessage(error: z.ZodError, fallback = 'Invalid payload') {
+    return error.issues[0]?.message ?? fallback
+}
+
 export const uploadRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
 // Cloudinary upload using unsigned upload
@@ -25,18 +48,12 @@ uploadRouter.post('/image', authMiddleware, async (c) => {
         const env = c.env
         const orgId = await getOrgId(c)
         const body = await c.req.json().catch(() => null)
-
-        const imageBase64 = body?.image
-        const folder = body?.folder || 'products'
-        
-        if (!imageBase64) {
-            return errors.badRequest(c, 'Image data is required')
+        const parsedBody = imageUploadSchema.safeParse(body)
+        if (!parsedBody.success) {
+            return errors.badRequest(c, getValidationMessage(parsedBody.error))
         }
 
-        // Validate base64 format
-        if (!imageBase64.startsWith('data:image/')) {
-            return errors.badRequest(c, 'Invalid image format. Must be base64 data URI')
-        }
+        const { image: imageBase64, folder = 'products' } = parsedBody.data
 
         // Prepare form data for Cloudinary
         const formData = new FormData()
@@ -69,7 +86,7 @@ uploadRouter.post('/image', authMiddleware, async (c) => {
         })
     } catch (err: any) {
         console.error('[upload/image]', err)
-        return errors.internal(c, err.message || 'Failed to upload image')
+        return errors.internal(c)
     }
 })
 
@@ -80,21 +97,16 @@ uploadRouter.post('/multiple', authMiddleware, async (c) => {
         const env = c.env
         const orgId = await getOrgId(c)
         const body = await c.req.json().catch(() => null)
-
-        const images: string[] = body?.images || []
-        const folder = body?.folder || 'products'
-
-        if (!images.length || images.length > 5) {
-            return errors.badRequest(c, 'Upload 1-5 images at a time')
+        const parsedBody = multipleImageUploadSchema.safeParse(body)
+        if (!parsedBody.success) {
+            return errors.badRequest(c, getValidationMessage(parsedBody.error))
         }
+
+        const { images, folder = 'products' } = parsedBody.data
 
         const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${env.CLOUDINARY_CLOUD_NAME}/image/upload`
 
         const uploadPromises = images.map(async (imageBase64, index) => {
-            if (!imageBase64.startsWith('data:image/')) {
-                throw new Error(`Invalid image format at index ${index}`)
-            }
-
             const formData = new FormData()
             formData.append('file', imageBase64)
             formData.append('upload_preset', env.CLOUDINARY_UPLOAD_PRESET)
@@ -124,7 +136,7 @@ uploadRouter.post('/multiple', authMiddleware, async (c) => {
         return ok(c, { images: results })
     } catch (err: any) {
         console.error('[upload/multiple]', err)
-        return errors.internal(c, err.message || 'Failed to upload images')
+        return errors.internal(c)
     }
 })
 
@@ -138,6 +150,6 @@ uploadRouter.delete('/image', authMiddleware, async (c) => {
         return errors.badRequest(c, 'Image deletion not implemented. Please delete manually from Cloudinary dashboard.')
     } catch (err: any) {
         console.error('[upload/delete]', err)
-        return errors.internal(c, err.message || 'Failed to delete image')
+        return errors.internal(c)
     }
 })

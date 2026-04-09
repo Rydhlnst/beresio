@@ -1,22 +1,44 @@
 "use client"
 
 import { useCallback } from "react"
-import { useRouter, type AppRouterInstance } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { usePageProgress } from "@/components/shared/page-progress"
 
-type Href = Parameters<AppRouterInstance["push"]>[0]
-type NavigateOptions = Parameters<AppRouterInstance["push"]>[1]
+type RouterInstance = ReturnType<typeof useRouter>
+type Href = Parameters<RouterInstance["push"]>[0]
+type NavigateOptions = Parameters<RouterInstance["push"]>[1]
 
 export function useTransitionRouter() {
   const router = useRouter()
   const { start } = usePageProgress()
 
+  const getPrefetchTarget = useCallback((href: Href) => {
+    if (typeof href !== "string") return null
+    // Skip query/hash variants to avoid filling router cache with many transient URLs.
+    if (!href.startsWith("/") || href.includes("?") || href.includes("#")) return null
+    return href
+  }, [])
+
+  const prefetch = useCallback(
+    (href: Href) => {
+      const target = getPrefetchTarget(href)
+      if (!target) return Promise.resolve()
+      try {
+        return router.prefetch(target)
+      } catch {
+        return Promise.resolve()
+      }
+    },
+    [router, getPrefetchTarget]
+  )
+
   const push = useCallback(
     (href: Href, options?: NavigateOptions) => {
+      void prefetch(href)
       start()
       router.push(href, options)
     },
-    [router, start]
+    [router, start, prefetch]
   )
 
   const replace = useCallback(
@@ -37,12 +59,17 @@ export function useTransitionRouter() {
     router.forward()
   }, [router, start])
 
+  const refresh = useCallback(() => {
+    start()
+    router.refresh()
+  }, [router, start])
+
   return {
     push,
     replace,
     back,
     forward,
-    refresh: router.refresh,
-    prefetch: router.prefetch,
+    refresh,
+    prefetch,
   }
 }

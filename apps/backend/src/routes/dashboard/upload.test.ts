@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createDbMock, createTestApp } from "./test-utils";
 
 // Mock auth middleware
@@ -19,6 +19,10 @@ const createUploadApp = (db: any, env: any = {}) =>
     createTestApp(uploadRouter, "/api/dashboard/upload", db);
 
 describe("upload routes", () => {
+    afterEach(() => {
+        vi.clearAllMocks();
+    });
+
     const mockEnv = {
         CLOUDINARY_CLOUD_NAME: "test-cloud",
         CLOUDINARY_UPLOAD_PRESET: "test-preset",
@@ -115,6 +119,31 @@ describe("upload routes", () => {
             expect(res.status).toBe(500);
             expect(body.success).toBe(false);
         });
+
+        it("phase 2.1: hides internal error details on unexpected failures", async () => {
+            const db = createDbMock({});
+            const app = createUploadApp(db, mockEnv);
+
+            global.fetch = vi.fn().mockRejectedValueOnce(new Error("sensitive-upload-error"));
+
+            const res = await app.request(
+                "/api/dashboard/upload/image",
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        image: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ...",
+                    }),
+                },
+                mockEnv as any
+            );
+            const body = await res.json();
+
+            expect(res.status).toBe(500);
+            expect(body.success).toBe(false);
+            expect(body.error.code).toBe("INTERNAL_ERROR");
+            expect(body.error.message).toBe("Internal server error");
+        });
     });
 
     describe("POST /multiple", () => {
@@ -191,6 +220,24 @@ describe("upload routes", () => {
 
             expect(res.status).toBe(400);
             expect(body.success).toBe(false);
+        });
+
+        it("phase 2.1: rejects invalid image format in multiple upload", async () => {
+            const db = createDbMock({});
+            const app = createUploadApp(db, mockEnv);
+
+            const res = await app.request("/api/dashboard/upload/multiple", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    images: ["not-a-valid-data-uri"],
+                }),
+            });
+            const body = await res.json();
+
+            expect(res.status).toBe(400);
+            expect(body.success).toBe(false);
+            expect(body.error.code).toBe("BAD_REQUEST");
         });
     });
 

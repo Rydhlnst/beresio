@@ -339,8 +339,9 @@ export function OrderPageClient({
 
     useEffect(() => {
         const interval = window.setInterval(() => {
+            if (document.visibilityState !== "visible") return;
             refresh();
-        }, 30000);
+        }, 45000);
         return () => window.clearInterval(interval);
     }, [refresh]);
 

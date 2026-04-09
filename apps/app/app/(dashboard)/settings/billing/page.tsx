@@ -5,7 +5,7 @@ import { Badge } from "@repo/ui/badge";
 import { SectionCard } from "@/components/dashboard/shared/section-card";
 
 export const metadata: Metadata = {
-    title: "Billing Settings | Beres",
+    title: "Billing Settings",
     description: "Kelola paket dan pembayaran",
 };
 

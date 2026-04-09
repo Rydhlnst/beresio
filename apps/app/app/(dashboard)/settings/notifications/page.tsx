@@ -4,7 +4,7 @@ import { Button } from "@repo/ui/button";
 import { SectionCard } from "@/components/dashboard/shared/section-card";
 
 export const metadata: Metadata = {
-    title: "Notification Settings | Beres",
+    title: "Notification Settings",
     description: "Kelola preferensi notifikasi",
 };
 

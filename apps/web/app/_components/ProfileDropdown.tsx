@@ -2,9 +2,10 @@
 
 import * as React from "react";
 import { cn } from "@repo/ui/lib/utils";
-import { LogOut, User, LayoutDashboard, Building, SlidersHorizontal } from "lucide-react";
+import { LogOut, User, LayoutDashboard, Building, Moon, Sun } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useTheme } from "next-themes";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -38,9 +39,17 @@ export default function ProfileDropdown({
     ...props
 }: ProfileDropdownProps) {
     const [isOpen, setIsOpen] = React.useState(false);
+    const [isThemeReady, setIsThemeReady] = React.useState(false);
+    const { setTheme, resolvedTheme } = useTheme();
 
     const { data: session } = useSession();
     const userSession = session?.user;
+
+    React.useEffect(() => {
+        setIsThemeReady(true);
+    }, []);
+
+    const isDarkMode = resolvedTheme === "dark";
 
     const allMenuItems: MenuItem[] = [
         {
@@ -51,25 +60,19 @@ export default function ProfileDropdown({
         // === USER LEVEL ===
         {
             label: "Profile",
-            href: "/profile",          // nama, password, 2FA, sessions
+            href: "/profile", // nama, password, 2FA, sessions
             icon: <User className="w-4 h-4" />,
         },
-        {
-            label: "Preferences",
-            href: "/profile/preferences", // notif, tema, bahasa — bukan "/settings"
-            icon: <SlidersHorizontal className="w-4 h-4" />,
-        },
-
         {
             label: "Switch Organization",
             href: "/organizations",
             icon: <Building className="w-4 h-4" />,
-            showIf: (userSession as any)?.orgCount > 1,  // hidden jika 1 org
+            showIf: (userSession as any)?.orgCount > 1, // hidden jika 1 org
         },
     ];
 
     // Filter items based on logic
-    const menuItems = allMenuItems.filter(item => {
+    const menuItems = allMenuItems.filter((item) => {
         // 1. Check showIf
         if (item.showIf === false) return false;
 
@@ -142,6 +145,21 @@ export default function ProfileDropdown({
                                 </Link>
                             </DropdownMenuItem>
                         ))}
+
+                        <DropdownMenuItem
+                            disabled={!isThemeReady}
+                            onSelect={() => setTheme(isDarkMode ? "light" : "dark")}
+                            className="p-2.5 rounded-lg cursor-pointer focus:bg-muted data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                        >
+                            <div className="flex items-center gap-3 w-full">
+                                <div className="text-muted-foreground transition-colors">
+                                    {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                                </div>
+                                <span className="text-sm font-medium">
+                                    {isDarkMode ? "Light Mode" : "Dark Mode"}
+                                </span>
+                            </div>
+                        </DropdownMenuItem>
                     </div>
 
                     <DropdownMenuSeparator className="my-2 bg-border/50" />

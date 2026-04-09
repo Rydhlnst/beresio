@@ -22,12 +22,12 @@ export function DashboardPreview() {
         <div className="w-full h-full bg-[#E5F1E3] flex flex-col items-center justify-center p-8 overflow-hidden relative">
             {/* Background Decorations */}
             <div className="absolute top-[10%] left-[5%] w-[300px] h-[300px] bg-white/30 rounded-full blur-[80px]" />
-            <div className="absolute bottom-[10%] right-[5%] w-[250px] h-[250px] bg-primary/5 rounded-full blur-[60px]" />
+            <div className="absolute bottom-[10%] right-[5%] w-[250px] h-[250px] bg-brand/5 rounded-full blur-[60px]" />
 
             <div className="w-full max-w-2xl space-y-8 relative z-10">
                 <div className="space-y-4">
                     <h2 className="text-4xl lg:text-5xl font-black tracking-tight leading-[1.1] text-[#0A2540]">
-                        The first <span className="text-primary italic inline-block relative">
+                        The first <span className="text-brand italic inline-block relative">
                             eCommerce shop
                             <svg className="absolute -bottom-2 left-0 w-full" height="8" viewBox="0 0 100 8" preserveAspectRatio="none">
                                 <path d="M0 5C30 2 70 2 100 5" stroke="currentColor" strokeWidth="3" fill="none" className="opacity-30" />
@@ -108,7 +108,7 @@ export function DashboardPreview() {
                                 <div className="text-xs font-bold text-muted-foreground/60 mb-8">Analytics</div>
                                 <div className="flex items-end justify-between h-24 gap-1">
                                     {[30, 60, 45, 80, 50, 90, 65].map((h, i) => (
-                                        <div key={i} className="flex-1 bg-primary/20 rounded-t-sm" style={{ height: `${h}%` }} />
+                                        <div key={i} className="flex-1 bg-brand/20 rounded-t-sm" style={{ height: `${h}%` }} />
                                     ))}
                                 </div>
                             </div>
@@ -129,7 +129,7 @@ function NavItem({ icon, label, active = false }: { icon: React.ReactNode, label
     return (
         <div className={cn(
             "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer",
-            active ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+            active ? "bg-brand text-white shadow-lg shadow-brand/20" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
         )}>
             {icon}
             <span>{label}</span>

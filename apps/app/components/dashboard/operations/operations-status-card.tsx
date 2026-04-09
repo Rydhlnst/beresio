@@ -68,7 +68,7 @@ export async function OperationsStatusCard({ organizationId }: OperationsStatusC
         >
             <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-3">
+                    <div className="rounded-xl border border-border/70 bg-secondary/70 px-3 py-3">
                         <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
                             Cabang aktif
                         </p>
@@ -76,7 +76,7 @@ export async function OperationsStatusCard({ organizationId }: OperationsStatusC
                             {activeBranchesCount}/{totalBranches}
                         </p>
                     </div>
-                    <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-3">
+                    <div className="rounded-xl border border-border/70 bg-secondary/70 px-3 py-3">
                         <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
                             Anggota tim
                         </p>
@@ -100,7 +100,7 @@ export async function OperationsStatusCard({ organizationId }: OperationsStatusC
                             {activeBranches.map((branch) => (
                                 <li key={branch.id} className="flex items-center justify-between text-xs">
                                     <span className="font-semibold text-foreground">{branch.name}</span>
-                                    <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                                    <span className="rounded-full border border-[#cddfce] bg-[#ecf6ee] px-2 py-0.5 text-[10px] font-semibold text-[#2f7b45]">
                                         Aktif
                                     </span>
                                 </li>

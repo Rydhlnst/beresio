@@ -174,7 +174,7 @@ export function RegisterForm() {
                     Sudah punya akun?{" "}
                     <Link
                         href="/login"
-                        className="font-medium text-primary hover:underline underline-offset-4"
+                        className="font-medium text-brand hover:underline underline-offset-4"
                     >
                         Masuk
                     </Link>

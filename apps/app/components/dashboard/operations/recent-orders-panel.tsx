@@ -30,6 +30,19 @@ export async function RecentOrdersPanel() {
         }
     };
 
+    const getStatusClass = (status: string) => {
+        switch (status.toLowerCase()) {
+            case "completed":
+                return "border-[#cddfce] bg-[#ecf6ee] text-[#2f7b45]";
+            case "processing":
+                return "border-[#ead7b7] bg-[#fff8e8] text-[#b45309]";
+            case "cancelled":
+                return "border-[#f0d1d1] bg-[#fff1f1] text-[#b42318]";
+            default:
+                return "border-border/70 bg-secondary text-muted-foreground";
+        }
+    };
+
     return (
         <SectionCard 
             title="Pesanan Terbaru" 
@@ -51,11 +64,11 @@ export async function RecentOrdersPanel() {
                     description="Transaksi akan muncul di sini."
                 />
             ) : (
-                <div className="divide-y divide-border/40 -mx-4 -mb-4">
+                <div className="-mx-5 -mb-5 rounded-b-2xl border-t border-border/60 bg-background">
                     {orders.map((order: any) => (
-                        <div key={order.id} className="flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors">
+                        <div key={order.id} className="flex items-center justify-between border-b border-border/50 px-5 py-3 transition-colors last:border-b-0 hover:bg-secondary/40">
                             <div className="min-w-0 flex-1">
-                                <p className="text-sm font-semibold text-foreground truncate uppercase">
+                                <p className="truncate text-sm font-semibold text-foreground">
                                     {order.orderNumber}
                                 </p>
                                 <p className="text-[11px] text-muted-foreground mt-0.5">
@@ -71,7 +84,10 @@ export async function RecentOrdersPanel() {
                                     }).format(order.totalAmount)}
                                 </p>
                                 <div className="mt-1 flex justify-end">
-                                    <Badge variant={getStatusColor(order.status) as any} className="text-[10px] px-1.5 py-0 h-4 uppercase">
+                                    <Badge
+                                        variant={getStatusColor(order.status) as any}
+                                        className={`h-5 rounded-full border px-2 py-0 text-[10px] font-semibold uppercase ${getStatusClass(order.status)}`}
+                                    >
                                         {order.status}
                                     </Badge>
                                 </div>

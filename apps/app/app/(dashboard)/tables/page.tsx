@@ -8,7 +8,7 @@ import { LayoutGrid } from "lucide-react";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Manajemen Meja | Beres",
+  title: "Manajemen Meja",
   description: "Kelola meja, area, dan status ketersediaan",
 };
 

@@ -8,7 +8,7 @@ import { CardEmptyState } from "@/components/dashboard/shared/card-empty-state";
 import { AlertTriangle } from "lucide-react";
 
 export const metadata: Metadata = {
-    title: "Dashboard Reports | Beres",
+    title: "Dashboard Reports",
     description: "Ringkasan laporan dan ekspor data",
 };
 

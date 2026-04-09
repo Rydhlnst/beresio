@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { ResetPasswordForm } from "./_components/reset-password-form";
 
 export const metadata = {
-    title: "Reset Password | Beres",
+    title: "Reset Password",
     description: "Buat password baru untuk akun Beres kamu",
 };
 

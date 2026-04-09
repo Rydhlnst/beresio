@@ -8,7 +8,7 @@ import { PageErrorState } from "@/components/dashboard/shared/page-error-state";
 import { ErrorRetryAction } from "@/components/dashboard/shared/error-retry-action";
 
 export const metadata: Metadata = {
-    title: "Role & Izin | Beres",
+    title: "Role & Izin",
     description: "Kelola role dan izin akses",
 };
 

@@ -15,6 +15,12 @@ vi.mock("../../lib/auth-context", () => ({
     getUserId: vi.fn(async () => "user-1"),
 }));
 
+vi.mock("../../lib/branch-access", () => ({
+    getBranchAccessContext: vi.fn(async () => ({ branchIds: ["br-1", "br-2"], isOrgWide: false })),
+    getAccessibleBranchIds: vi.fn(async () => ["br-1", "br-2"]),
+    hasBranchAccess: vi.fn((branchIds: string[], branchId?: string | null) => !!branchId && branchIds.includes(branchId)),
+}));
+
 import { inventoryRouter } from "./inventory";
 const createInventoryApp = (db: any) =>
     createTestApp(inventoryRouter, "/api/dashboard/inventory", db);
@@ -449,6 +455,43 @@ describe("inventory routes", () => {
             const body = await res.json();
 
             expect(res.status).toBe(400);
+        });
+    });
+
+    describe("phase 2.1 validation + error hygiene", () => {
+        it("rejects invalid adjustment payload with BAD_REQUEST", async () => {
+            const app = createInventoryApp(createDbMock({}));
+
+            const res = await app.request("/api/dashboard/inventory/adjustments", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    productId: "prod-1",
+                    branchId: "br-1",
+                    quantityDelta: 0,
+                }),
+            });
+            const body = await res.json();
+
+            expect(res.status).toBe(400);
+            expect(body.success).toBe(false);
+            expect(body.error.code).toBe("BAD_REQUEST");
+        });
+
+        it("hides internal error details on server failures", async () => {
+            const app = createInventoryApp({
+                select: () => {
+                    throw new Error("sensitive-db-error");
+                },
+            });
+
+            const res = await app.request("/api/dashboard/inventory/products");
+            const body = await res.json();
+
+            expect(res.status).toBe(500);
+            expect(body.success).toBe(false);
+            expect(body.error.code).toBe("INTERNAL_ERROR");
+            expect(body.error.message).toBe("Internal server error");
         });
     });
 });

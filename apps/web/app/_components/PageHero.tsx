@@ -13,6 +13,7 @@ export type PageHeroProps = {
     primaryCta?: { label: string; href: string };
     secondaryCta?: { label: string; href: string };
     align?: "left" | "center";
+    contentClassName?: string;
 };
 
 export function PageHero({
@@ -23,13 +24,19 @@ export function PageHero({
     primaryCta,
     secondaryCta,
     align = "left",
+    contentClassName,
 }: PageHeroProps) {
     const isCentered = align === "center";
 
     return (
-        <Section id="page-hero" showDivider={false} className="relative overflow-hidden bg-background">
-            <div className="absolute -top-24 right-0 h-64 w-64 rounded-full bg-primary/10 blur-[120px]" />
-            <div className="absolute bottom-24 left-0 h-64 w-64 rounded-full bg-amber-500/10 blur-[120px]" />
+        <Section
+            id="page-hero"
+            showDivider={false}
+            className="relative overflow-hidden border-b border-border/60 bg-background"
+            contentClassName={contentClassName}
+        >
+            <div className="pointer-events-none absolute inset-0 -z-10 [background-image:linear-gradient(to_right,hsl(var(--border)/0.32)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.32)_1px,transparent_1px)] [background-size:44px_44px] opacity-25" />
+            <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_right,hsl(var(--secondary))_0%,transparent_45%)]" />
 
             <div
                 className={cn(
@@ -39,8 +46,7 @@ export function PageHero({
             >
                 {badgeLabel && (
                     <Badge
-                        variant="secondary"
-                        className="bg-primary/10 text-primary hover:bg-primary/15 rounded-full px-4 py-1.5 font-medium border-0"
+                        className="rounded-full border border-border/80 bg-secondary px-4 py-1.5 text-[11px] font-semibold text-foreground"
                     >
                         {badgeLabel}
                     </Badge>
@@ -50,13 +56,13 @@ export function PageHero({
                     <Heading
                         as="h1"
                         className={cn(
-                            "text-[clamp(2.2rem,6vw,4.25rem)] font-black leading-[0.95] tracking-tight",
+                            "text-[clamp(2.2rem,6vw,4.25rem)] font-semibold leading-[0.95] tracking-tight text-foreground",
                             isCentered ? "text-center" : "text-left"
                         )}
                     >
                         {title}
                         {subtitle && (
-                            <span className="block text-muted-foreground">
+                            <span className="block font-medium text-muted-foreground">
                                 {subtitle}
                             </span>
                         )}
@@ -78,7 +84,7 @@ export function PageHero({
                         {primaryCta && (
                             <Button
                                 size="lg"
-                                className="rounded-2xl px-10 h-14 font-extrabold text-base bg-primary text-primary-foreground hover:scale-105 transition-all shadow-xl shadow-primary/20"
+                                className="h-12 bg-primary px-6 text-primary-foreground hover:bg-primary/90"
                                 asChild
                             >
                                 <Link href={primaryCta.href}>
@@ -91,7 +97,7 @@ export function PageHero({
                             <Button
                                 variant="outline"
                                 size="lg"
-                                className="rounded-2xl px-8 h-14 font-bold text-base bg-background/50 backdrop-blur-sm border-border hover:bg-muted/50 transition-all"
+                                className="h-12 px-6"
                                 asChild
                             >
                                 <Link href={secondaryCta.href}>{secondaryCta.label}</Link>

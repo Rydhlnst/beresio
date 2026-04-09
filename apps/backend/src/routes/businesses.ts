@@ -23,6 +23,12 @@ type NavItem = {
     permissionsAny?: string[]
 }
 
+type RoleInfo = {
+    id: string
+    slug: string
+    name: string
+}
+
 const NAV_REGISTRY: Record<string, Record<string, NavItem>> = {
     laundry: {
         dashboard: {
@@ -34,45 +40,47 @@ const NAV_REGISTRY: Record<string, Record<string, NavItem>> = {
         },
         crm: {
             id: 'crm',
-            label: 'Pelanggan',
+            label: 'Pelanggan Laundry',
             icon: 'heart-handshake',
-            path: '/crm',
+            path: '/laundry/customers',
             submenu: [
-                { id: 'customers', label: 'Daftar Pelanggan', icon: 'users', path: '/crm', permissionsAny: ['crm.read'] },
+                { id: 'customers', label: 'Daftar Pelanggan Laundry', icon: 'users', path: '/laundry/customers', permissionsAny: ['crm.read', 'order.read'] },
                 { id: 'tags', label: 'Tags', icon: 'tags', path: '/crm/tags', permissionsAny: ['crm.manage'] },
             ],
-            permissionsAny: ['crm.read', 'crm.manage'],
+            permissionsAny: ['crm.read', 'crm.manage', 'order.read'],
         },
         order: {
             id: 'order',
             label: 'Order Cucian',
             icon: 'basket',
-            path: '/order',
+            path: '/laundry/orders',
             submenu: [
-                { id: 'create', label: 'Tambah Order', icon: 'plus', path: '/order/create', permissionsAny: ['order.create'] },
-                { id: 'list', label: 'Daftar Order', icon: 'list', path: '/order', permissionsAny: ['order.read'] },
+                { id: 'overview', label: 'Ringkasan Laundry', icon: 'layout-dashboard', path: '/laundry', permissionsAny: ['order.read', 'report.read'] },
+                { id: 'create', label: 'Tambah Order', icon: 'plus', path: '/laundry/orders/new', permissionsAny: ['order.create'] },
+                { id: 'list', label: 'Daftar Order', icon: 'list', path: '/laundry/orders', permissionsAny: ['order.read'] },
+                { id: 'services', label: 'Layanan', icon: 'box', path: '/laundry/services', permissionsAny: ['laundry.service.manage', 'order.read'] },
             ],
             permissionsAny: ['order.read', 'order.create'],
         },
         pickup: {
             id: 'pickup',
-            label: 'Pickup',
+            label: 'Pickup Laundry',
             icon: 'truck',
-            path: '/pickup',
+            path: '/laundry/orders',
             permissionsAny: ['pickup.read', 'pickup.manage'],
         },
         inventory: {
             id: 'inventory',
-            label: 'Inventory',
+            label: 'Inventory Laundry',
             icon: 'box',
             path: '/inventory',
             permissionsAny: ['inventory.read', 'inventory.manage'],
         },
         laporan: {
             id: 'laporan',
-            label: 'Laporan',
+            label: 'Laporan Laundry',
             icon: 'chart',
-            path: '/laporan',
+            path: '/laundry/reports',
             permissionsAny: ['report.read'],
         },
         cabang: {
@@ -111,32 +119,32 @@ const NAV_REGISTRY: Record<string, Record<string, NavItem>> = {
         },
         crm: {
             id: 'crm',
-            label: 'Pelanggan',
+            label: 'Pelanggan F&B',
             icon: 'heart-handshake',
             path: '/crm',
             submenu: [
-                { id: 'customers', label: 'Daftar Pelanggan', icon: 'users', path: '/crm', permissionsAny: ['crm.read'] },
+                { id: 'customers', label: 'Daftar Pelanggan F&B', icon: 'users', path: '/crm', permissionsAny: ['crm.read'] },
                 { id: 'tags', label: 'Tags', icon: 'tags', path: '/crm/tags', permissionsAny: ['crm.manage'] },
             ],
             permissionsAny: ['crm.read', 'crm.manage'],
         },
         order: {
             id: 'order',
-            label: 'Order',
+            label: 'Order F&B',
             icon: 'basket',
             path: '/order',
-            permissionsAny: ['order.read', 'order.create'],
+            permissionsAny: ['order.read', 'order.create', 'order.manage'],
         },
         inventory: {
             id: 'inventory',
-            label: 'Inventory',
+            label: 'Inventory F&B',
             icon: 'box',
             path: '/inventory',
             permissionsAny: ['inventory.read', 'inventory.manage'],
         },
         laporan: {
             id: 'laporan',
-            label: 'Laporan',
+            label: 'Laporan F&B',
             icon: 'chart',
             path: '/laporan',
             permissionsAny: ['report.read'],
@@ -187,32 +195,32 @@ const NAV_REGISTRY: Record<string, Record<string, NavItem>> = {
         },
         crm: {
             id: 'crm',
-            label: 'Pelanggan',
+            label: 'Pelanggan Retail',
             icon: 'heart-handshake',
             path: '/crm',
             submenu: [
-                { id: 'customers', label: 'Daftar Pelanggan', icon: 'users', path: '/crm', permissionsAny: ['crm.read'] },
+                { id: 'customers', label: 'Daftar Pelanggan Retail', icon: 'users', path: '/crm', permissionsAny: ['crm.read'] },
                 { id: 'tags', label: 'Tags', icon: 'tags', path: '/crm/tags', permissionsAny: ['crm.manage'] },
             ],
             permissionsAny: ['crm.read', 'crm.manage'],
         },
         order: {
             id: 'order',
-            label: 'Order',
+            label: 'Order Retail',
             icon: 'basket',
             path: '/order',
             permissionsAny: ['order.read', 'order.create'],
         },
         inventory: {
             id: 'inventory',
-            label: 'Inventory',
+            label: 'Inventory Retail',
             icon: 'box',
             path: '/inventory',
             permissionsAny: ['inventory.read', 'inventory.manage'],
         },
         laporan: {
             id: 'laporan',
-            label: 'Laporan',
+            label: 'Laporan Retail',
             icon: 'chart',
             path: '/laporan',
             permissionsAny: ['report.read'],
@@ -260,10 +268,6 @@ const NAV_REGISTRY: Record<string, Record<string, NavItem>> = {
 // ============================================
 const BASE_MODULES = [
     'dashboard',
-    'crm',
-    'order',
-    'inventory',
-    'laporan',
     'cabang',
     'tim',
     'pengaturan',
@@ -273,9 +277,9 @@ const BASE_MODULES = [
 // VERTICAL MODULES - Business type specific
 // ============================================
 const VERTICAL_MODULES_BY_TYPE: Record<string, string[]> = {
-    laundry: ['pickup'],
-    fnb: ['meja', 'menu'],
-    retail: ['products', 'suppliers'],
+    laundry: ['crm', 'order', 'inventory', 'laporan', 'pickup'],
+    fnb: ['crm', 'order', 'inventory', 'laporan', 'meja', 'menu'],
+    retail: ['crm', 'order', 'inventory', 'laporan', 'products', 'suppliers'],
 }
 
 const BUSINESS_TYPE_ALIASES: Record<string, keyof typeof NAV_REGISTRY> = {
@@ -285,9 +289,14 @@ const BUSINESS_TYPE_ALIASES: Record<string, keyof typeof NAV_REGISTRY> = {
     other: 'retail',
 }
 
+const PRIVILEGED_LAUNDRY_ROLE_SLUGS = new Set(['owner', 'admin', 'branch_manager'])
+const IMPLIED_LAUNDRY_BASE_PERMISSIONS = ['dashboard.read', 'branch.read', 'team.read', 'settings.read']
+
 function normalizeBusinessType(input: string | null | undefined): keyof typeof NAV_REGISTRY {
     if (input && input in NAV_REGISTRY) return input as keyof typeof NAV_REGISTRY
-    if (input && input in BUSINESS_TYPE_ALIASES) return BUSINESS_TYPE_ALIASES[input]
+    if (input && Object.prototype.hasOwnProperty.call(BUSINESS_TYPE_ALIASES, input)) {
+        return BUSINESS_TYPE_ALIASES[input as keyof typeof BUSINESS_TYPE_ALIASES] ?? 'retail'
+    }
     return 'retail'
 }
 
@@ -369,7 +378,34 @@ businessesRouter.get('/:id/navigation', authMiddleware, async (c) => {
 
         const permissions = permissionsRows.map((row: any) => row.permission)
 
+        let role: RoleInfo | null = null
+        if (roleId) {
+            const [roleRow] = await db
+                .select({ id: roles.id, slug: roles.slug, name: roles.name })
+                .from(roles)
+                .where(eq(roles.id, roleId))
+                .limit(1)
+
+            if (roleRow) role = roleRow as RoleInfo
+        }
+
+        if (!role && membership.roleLegacy) {
+            role = {
+                id: roleId ?? membership.roleLegacy,
+                slug: membership.roleLegacy,
+                name: toFallbackLabel(membership.roleLegacy),
+            }
+        }
+
         const normalizedType = normalizeBusinessType(orgRow.businessType)
+        const roleSlug = (role?.slug ?? membership.roleLegacy ?? '').toLowerCase()
+        const effectivePermissionsSet = new Set(permissions)
+        if (normalizedType === 'laundry' && PRIVILEGED_LAUNDRY_ROLE_SLUGS.has(roleSlug)) {
+            for (const permission of IMPLIED_LAUNDRY_BASE_PERMISSIONS) {
+                effectivePermissionsSet.add(permission)
+            }
+        }
+        const effectivePermissions = [...effectivePermissionsSet]
         const registry = NAV_REGISTRY[normalizedType] ?? {}
         
         // Gabungkan base modules + vertical modules untuk business type ini
@@ -394,10 +430,10 @@ businessesRouter.get('/:id/navigation', authMiddleware, async (c) => {
         const applyPermissions = (items: NavItem[]) => items
             .map((item) => {
                 if (!item.submenu) return item
-                const submenu = item.submenu.filter((sub) => hasAnyPermission(sub, permissions))
+                const submenu = item.submenu.filter((sub) => hasAnyPermission(sub, effectivePermissions))
                 return { ...item, submenu }
             })
-            .filter((item) => hasAnyPermission(item, permissions))
+            .filter((item) => hasAnyPermission(item, effectivePermissions))
 
         const navigationBase = applyPermissions(mapToNav(baseModuleKeys))
         const navigationVertical = applyPermissions(mapToNav(verticalModuleKeys))
@@ -410,10 +446,11 @@ businessesRouter.get('/:id/navigation', authMiddleware, async (c) => {
                 type: normalizedType,
                 config,
             },
+            role,
             navigationBase,
             navigationVertical,
             navigation,
-            permissions,
+            permissions: effectivePermissions,
         })
     } catch (err: any) {
         console.error('[businesses/navigation]', err)

@@ -1,6 +1,12 @@
+import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { apiClient } from "@/lib/api-client";
 import { BranchCreateWizardClient } from "./_components/branch-create-wizard-client";
+
+export const metadata: Metadata = {
+    title: "Tambah Cabang",
+    description: "Buat cabang baru untuk organisasi.",
+};
 
 export default async function CabangNewPage() {
     const cookie = (await headers()).get("cookie") || "";

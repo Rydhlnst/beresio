@@ -149,8 +149,9 @@ export const pageKeywords = {
 interface MetadataOptions {
     title: string;
     description: string;
-    keywords?: string[];
+    keywords?: readonly string[];
     image?: string;
+    path?: string;
     canonical?: string;
     noIndex?: boolean;
     alternates?: Metadata["alternates"];
@@ -164,6 +165,7 @@ export function generateMetadata(options: MetadataOptions): Metadata {
         description,
         keywords = [],
         image = siteConfig.ogImage,
+        path,
         canonical,
         noIndex = false,
         alternates,
@@ -171,11 +173,15 @@ export function generateMetadata(options: MetadataOptions): Metadata {
         twitter,
     } = options;
 
+    const normalizedPath = path
+        ? path.startsWith("/") ? path : `/${path}`
+        : "";
+    const canonicalUrl = canonical ?? `${siteConfig.url}${normalizedPath}`;
     const ogImageUrl = image.startsWith("http") ? image : `${siteConfig.url}${image}`;
 
     return {
         metadataBase: new URL(siteConfig.url),
-        title: `${title} | ${siteConfig.name}`,
+        title,
         description,
         keywords: [...defaultKeywords, ...keywords],
         authors: [{ name: siteConfig.author, url: siteConfig.url }],
@@ -195,7 +201,7 @@ export function generateMetadata(options: MetadataOptions): Metadata {
         openGraph: {
             type: "website",
             locale: siteConfig.locale,
-            url: canonical ?? siteConfig.url,
+            url: canonicalUrl,
             siteName: siteConfig.name,
             title: `${title} | ${siteConfig.name}`,
             description,
@@ -219,8 +225,8 @@ export function generateMetadata(options: MetadataOptions): Metadata {
             ...twitter,
         },
         alternates: {
-            canonical: canonical ?? siteConfig.url,
-            languages: { "id-ID": siteConfig.url },
+            canonical: canonicalUrl,
+            languages: { "id-ID": canonicalUrl },
             ...alternates,
         },
     };

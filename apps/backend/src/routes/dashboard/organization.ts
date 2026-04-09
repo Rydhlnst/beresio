@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { z } from 'zod'
 import { authMiddleware } from '../../middleware/auth'
 import { getOrgId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
@@ -7,6 +8,36 @@ import { organization } from '@beresio/db'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
 type Variables = { db: any; user: any; session: any }
+
+const updateOrganizationBodySchema = z.object({
+    name: z.string().trim().min(1).optional(),
+    slug: z.string().trim().min(1).optional(),
+    businessType: z.string().trim().min(1).optional(),
+    logoUrl: z.string().trim().min(1).nullable().optional(),
+    metadata: z.record(z.unknown()).optional(),
+    timezone: z.string().trim().min(1).optional(),
+    currency: z.string().trim().min(1).optional(),
+}).superRefine((value, ctx) => {
+    if (
+        value.name === undefined
+        && value.slug === undefined
+        && value.businessType === undefined
+        && value.logoUrl === undefined
+        && value.metadata === undefined
+        && value.timezone === undefined
+        && value.currency === undefined
+    ) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'No fields to update',
+            path: [],
+        })
+    }
+})
+
+function getValidationMessage(error: z.ZodError, fallback = 'Invalid payload') {
+    return error.issues[0]?.message ?? fallback
+}
 
 export const organizationRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
@@ -60,7 +91,7 @@ organizationRouter.get('/', authMiddleware, async (c) => {
         })
     } catch (err: any) {
         console.error('[organization]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -76,6 +107,19 @@ organizationRouter.patch('/', authMiddleware, async (c) => {
         }
 
         const body = await c.req.json().catch(() => null)
+        const parsedBody = updateOrganizationBodySchema.safeParse(body)
+        if (!parsedBody.success) {
+            return errors.badRequest(c, getValidationMessage(parsedBody.error))
+        }
+        const {
+            name,
+            slug,
+            businessType,
+            logoUrl,
+            metadata,
+            timezone,
+            currency,
+        } = parsedBody.data
 
         const [orgRow] = await db
             .select({ id: organization.id, metadata: organization.metadata })
@@ -86,27 +130,27 @@ organizationRouter.patch('/', authMiddleware, async (c) => {
         if (!orgRow) return errors.notFound(c, 'Organization not found')
 
         let nextMetadata = orgRow.metadata
-        if (body?.metadata && typeof body.metadata === 'object') {
-            nextMetadata = JSON.stringify(body.metadata)
-        } else if (body?.timezone || body?.currency) {
+        if (metadata !== undefined) {
+            nextMetadata = JSON.stringify(metadata)
+        } else if (timezone !== undefined || currency !== undefined) {
             let parsed: Record<string, any> = {}
             try {
                 parsed = orgRow.metadata ? JSON.parse(orgRow.metadata) : {}
             } catch {
                 parsed = {}
             }
-            if (body?.timezone) parsed.timezone = body.timezone
-            if (body?.currency) parsed.currency = body.currency
+            if (timezone !== undefined) parsed.timezone = timezone
+            if (currency !== undefined) parsed.currency = currency
             nextMetadata = JSON.stringify(parsed)
         }
 
         const updated = await db
             .update(organization)
             .set({
-                name: body?.name ?? undefined,
-                slug: body?.slug ?? undefined,
-                businessType: body?.businessType ?? undefined,
-                logoUrl: body?.logoUrl ?? undefined,
+                name: name ?? undefined,
+                slug: slug ?? undefined,
+                businessType: businessType ?? undefined,
+                logoUrl: logoUrl ?? undefined,
                 metadata: nextMetadata ?? undefined,
             })
             .where(eq(organization.id, orgId))
@@ -116,6 +160,6 @@ organizationRouter.patch('/', authMiddleware, async (c) => {
         return ok(c, updated[0])
     } catch (err: any) {
         console.error('[organization/update]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })

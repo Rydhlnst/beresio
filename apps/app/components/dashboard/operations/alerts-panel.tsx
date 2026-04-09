@@ -38,20 +38,20 @@ export async function AlertsPanel() {
                             key={alert.id} 
                             href={alert.actionUrl || "#"}
                             className={cn(
-                                "flex items-start gap-3 p-3 rounded-lg border transition-all hover:shadow-sm",
-                                alert.type === 'danger' ? "bg-red-50/50 border-red-100 hover:border-red-200" : "bg-orange-50/50 border-orange-100 hover:border-orange-200"
+                                "flex items-start gap-3 rounded-xl border p-3 transition-all hover:shadow-sm",
+                                alert.type === 'danger' ? "border-[#f0d1d1] bg-[#fff4f4] hover:border-[#e8b8b8]" : "border-[#ead7b7] bg-[#fff8e8] hover:border-[#e2c990]"
                             )}
                         >
                             <div className={cn(
-                                "mt-0.5 shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
-                                alert.type === 'danger' ? "bg-red-100 text-red-600" : "bg-orange-100 text-orange-600"
+                                "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+                                alert.type === 'danger' ? "bg-[#fde1e1] text-[#b42318]" : "bg-[#fee8c8] text-[#b45309]"
                             )}>
                                 <AlertCircle className="w-4 h-4" />
                             </div>
                             <div className="min-w-0 flex-1">
                                 <h4 className={cn(
                                     "text-xs font-bold uppercase tracking-tight",
-                                    alert.type === 'danger' ? "text-red-700" : "text-orange-700"
+                                    alert.type === 'danger' ? "text-[#b42318]" : "text-[#b45309]"
                                 )}>
                                     {alert.title}
                                 </h4>

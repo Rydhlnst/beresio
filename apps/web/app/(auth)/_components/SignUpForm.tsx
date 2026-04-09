@@ -113,7 +113,7 @@ export function SignUpForm() {
                                                     placeholder="Enter your full name"
                                                     type="text"
                                                     disabled={isLoading}
-                                                    className="h-12 pl-12 bg-white border-input rounded-xl text-foreground placeholder:text-muted-foreground/30 focus-visible:ring-1 focus-visible:ring-primary/20 transition-all font-medium shadow-none"
+                                                    className="h-12 pl-12 bg-white border-input rounded-xl text-foreground placeholder:text-muted-foreground/30 focus-visible:ring-1 focus-visible:ring-brand/20 transition-all font-medium shadow-none"
                                                 />
                                             </div>
                                         </FormControl>
@@ -138,7 +138,7 @@ export function SignUpForm() {
                                                     placeholder="Enter your email"
                                                     type="email"
                                                     disabled={isLoading}
-                                                    className="h-12 pl-12 bg-white border-input rounded-xl text-foreground placeholder:text-muted-foreground/30 focus-visible:ring-1 focus-visible:ring-primary/20 transition-all font-medium shadow-none"
+                                                    className="h-12 pl-12 bg-white border-input rounded-xl text-foreground placeholder:text-muted-foreground/30 focus-visible:ring-1 focus-visible:ring-brand/20 transition-all font-medium shadow-none"
                                                 />
                                             </div>
                                         </FormControl>
@@ -163,7 +163,7 @@ export function SignUpForm() {
                                                     placeholder="••••••••"
                                                     type={showPassword ? "text" : "password"}
                                                     disabled={isLoading}
-                                                    className="h-12 pl-12 bg-white border-input rounded-xl text-foreground placeholder:text-muted-foreground/30 focus-visible:ring-1 focus-visible:ring-primary/20 transition-all font-medium pr-12 shadow-none"
+                                                    className="h-12 pl-12 bg-white border-input rounded-xl text-foreground placeholder:text-muted-foreground/30 focus-visible:ring-1 focus-visible:ring-brand/20 transition-all font-medium pr-12 shadow-none"
                                                 />
                                                 <button
                                                     type="button"
@@ -184,7 +184,7 @@ export function SignUpForm() {
                         <Button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base transition-all border-none shadow-none"
+                            className="w-full h-12 rounded-xl bg-brand hover:bg-brand/90 text-brand-foreground font-bold text-base transition-all border-none shadow-none"
                         >
                             {isLoading ? <Loader2 className="animate-spin h-5 w-5" /> : "Sign up"}
                         </Button>
@@ -211,7 +211,7 @@ export function SignUpForm() {
                     <div className="text-center pt-2">
                         <Text align="center" className="text-sm font-medium text-muted-foreground">
                             Already have an account?{" "}
-                            <Link href="/sign-in" className="text-primary font-bold hover:underline transition-all">
+                            <Link href="/sign-in" className="text-brand font-bold hover:underline transition-all">
                                 Login Now
                             </Link>
                         </Text>

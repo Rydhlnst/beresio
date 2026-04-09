@@ -1,7 +1,10 @@
-"use client";
-
-import * as React from "react";
+import type { Metadata } from "next";
 import { LoginForm } from "../_components/LoginForm";
+
+export const metadata: Metadata = {
+    title: "Masuk",
+    description: "Masuk ke akun Beres kamu",
+};
 
 export default function SignInPage() {
     return (

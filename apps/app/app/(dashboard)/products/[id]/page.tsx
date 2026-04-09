@@ -11,16 +11,28 @@ import Link from "next/link";
 import { Button } from "@repo/ui/button";
 import { ArrowLeft } from "lucide-react";
 
-export const metadata: Metadata = {
-    title: "Detail Produk | Beres",
-    description: "Lihat dan kelola detail produk",
+type ProductDetailPageProps = {
+    params: Promise<{ id: string }>;
 };
+
+export async function generateMetadata({
+    params,
+}: ProductDetailPageProps): Promise<Metadata> {
+    const { id } = await params;
+    const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://app.beres.io";
+
+    return {
+        title: `Detail Produk ${id}`,
+        description: "Lihat dan kelola detail produk",
+        alternates: {
+            canonical: `${appBaseUrl}/products/${id}`,
+        },
+    };
+}
 
 export default async function ProductDetailPage({
     params,
-}: {
-    params: Promise<{ id: string }>;
-}) {
+}: ProductDetailPageProps) {
     const { id } = await params;
     
     const db = createDbNextjs(process.env.DATABASE_URL!);

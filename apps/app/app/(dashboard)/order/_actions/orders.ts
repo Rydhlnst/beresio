@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 import { apiClient } from "@/lib/api-client";
+import type { OrderStatusInput, OrderTypeInput } from "@beresio/db";
 
 type OrderItemInput = {
     name: string;
@@ -11,22 +12,11 @@ type OrderItemInput = {
     sku?: string | null;
 };
 
-type LaundryOrderStatus =
-    | "received"
-    | "in_process"
-    | "done"
-    | "ready_pickup"
-    | "out_for_delivery"
-    | "completed"
-    | "cancelled";
-
-type LaundryOrderType = "walkin" | "pickup_delivery";
-
 export type CreateOrderInput = {
     branchId: string;
     customerId?: string | null;
-    type: LaundryOrderType;
-    status?: LaundryOrderStatus;
+    type: OrderTypeInput;
+    status?: OrderStatusInput;
     paymentStatus?: "pending" | "paid" | "refunded" | "failed";
     paymentMethod?: string | null;
     discountAmount?: number;
@@ -37,8 +27,8 @@ export type CreateOrderInput = {
 };
 
 export type UpdateOrderInput = {
-    status?: LaundryOrderStatus;
-    type?: LaundryOrderType;
+    status?: OrderStatusInput;
+    type?: OrderTypeInput;
     paymentStatus?: "pending" | "paid" | "refunded" | "failed";
     paymentMethod?: string | null;
     notes?: string | null;

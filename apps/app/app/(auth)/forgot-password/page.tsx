@@ -1,7 +1,7 @@
 import { ForgotPasswordForm } from "./_components/forgot-password-form";
 
 export const metadata = {
-    title: "Lupa Password | Beres",
+    title: "Lupa Password",
     description: "Reset password akun Beres kamu",
 };
 

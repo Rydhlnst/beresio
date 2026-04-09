@@ -14,8 +14,12 @@ interface CustomerDetailPageProps {
 
 export async function generateMetadata({ params }: CustomerDetailPageProps): Promise<Metadata> {
   const { customerId } = await params;
+  const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://app.beres.io";
   return {
-    title: `Detail Pelanggan | Beres`,
+    title: `Detail Pelanggan ${customerId}`,
+    alternates: {
+      canonical: `${appBaseUrl}/crm/${customerId}`,
+    },
   };
 }
 

@@ -9,18 +9,27 @@ import { AlertTriangle } from "lucide-react";
 import { archiveHighlightAction } from "../_actions/highlights";
 
 type HighlightPageProps = {
-    params: { highlightId: string };
+    params: Promise<{ highlightId: string }>;
 };
 
-export const metadata: Metadata = {
-    title: "Detail Highlight | Beres",
-    description: "Detail highlight dashboard",
-};
+export async function generateMetadata({ params }: HighlightPageProps): Promise<Metadata> {
+    const { highlightId } = await params;
+    const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://app.beres.io";
+
+    return {
+        title: `Detail Highlight ${highlightId}`,
+        description: "Detail highlight dashboard",
+        alternates: {
+            canonical: `${appBaseUrl}/dashboard/highlights/${highlightId}`,
+        },
+    };
+}
 
 export default async function DashboardHighlightDetailPage({ params }: HighlightPageProps) {
+    const { highlightId } = await params;
     const cookie = (await headers()).get("cookie") || "";
     const highlightRes = await apiClient.api.dashboard.highlights[":id"].$get(
-        { param: { id: params.highlightId } },
+        { param: { id: highlightId } },
         { headers: { cookie } }
     );
 
@@ -37,7 +46,7 @@ export default async function DashboardHighlightDetailPage({ params }: Highlight
                 <div>
                     <h1 className="text-2xl font-semibold text-foreground">Detail Highlight</h1>
                     <p className="text-sm text-muted-foreground mt-2">
-                        ID highlight: {params.highlightId}
+                        ID highlight: {highlightId}
                     </p>
                 </div>
                 <Button variant="outline" className="h-9 text-xs font-semibold" asChild>

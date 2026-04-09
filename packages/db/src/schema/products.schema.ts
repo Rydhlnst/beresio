@@ -117,6 +117,20 @@ export const products = pgTable("products", {
     // Details
     description: text("description"),
     shortDescription: varchar("short_description", { length: 255 }),
+    prepTimeMinutes: integer("prep_time_minutes").notNull().default(0),
+    station: text("station").default("kitchen"), // kitchen | bar
+    modifierGroups: jsonb("modifier_groups").$type<Array<{
+        name: string;
+        type: "single_required" | "single_optional" | "multi_optional";
+        maxSelect?: number;
+        options: Array<{
+            name: string;
+            price?: number;
+        }>;
+    }>>().default([]),
+    isAvailableDineIn: boolean("is_available_dine_in").notNull().default(true),
+    isAvailableTakeaway: boolean("is_available_takeaway").notNull().default(true),
+    isAvailableDelivery: boolean("is_available_delivery").notNull().default(true),
     weight: integer("weight"), // in grams
     dimensions: jsonb("dimensions").$type<{
         length?: number;
@@ -149,6 +163,10 @@ export const products = pgTable("products", {
         idxProductsSupplier: index("idx_products_supplier").on(table.supplierId),
         idxProductsSku: index("idx_products_sku").on(table.sku),
         idxProductsBarcode: index("idx_products_barcode").on(table.barcode),
+        idxProductsOrgStation: index("idx_products_org_station").on(table.organizationId, table.station),
+        idxProductsOrgAvailDineIn: index("idx_products_org_avail_dine_in").on(table.organizationId, table.isAvailableDineIn),
+        idxProductsOrgAvailTakeaway: index("idx_products_org_avail_takeaway").on(table.organizationId, table.isAvailableTakeaway),
+        idxProductsOrgAvailDelivery: index("idx_products_org_avail_delivery").on(table.organizationId, table.isAvailableDelivery),
         uqProductsOrgSku: uniqueIndex("uq_products_org_sku").on(table.organizationId, table.sku),
     };
 });

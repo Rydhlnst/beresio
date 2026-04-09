@@ -5,22 +5,32 @@ import { Badge } from "@repo/ui/badge";
 import { SectionCard } from "@/components/dashboard/shared/section-card";
 
 type CabangDetailPageProps = {
-    params: { branchId: string };
+    params: Promise<{ branchId: string }>;
 };
 
-export const metadata: Metadata = {
-    title: "Detail Cabang | Beres",
-    description: "Detail performa cabang",
-};
+export async function generateMetadata({ params }: CabangDetailPageProps): Promise<Metadata> {
+    const { branchId } = await params;
+    const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://app.beres.io";
 
-export default function CabangDetailPage({ params }: CabangDetailPageProps) {
+    return {
+        title: `Detail Cabang ${branchId}`,
+        description: "Detail performa cabang",
+        alternates: {
+            canonical: `${appBaseUrl}/cabang/${branchId}`,
+        },
+    };
+}
+
+export default async function CabangDetailPage({ params }: CabangDetailPageProps) {
+    const { branchId } = await params;
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h1 className="text-2xl font-semibold text-foreground">Detail Cabang</h1>
                     <p className="text-sm text-muted-foreground mt-2">
-                        ID cabang: {params.branchId}
+                        ID cabang: {branchId}
                     </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -28,7 +38,7 @@ export default function CabangDetailPage({ params }: CabangDetailPageProps) {
                         <Link href="/cabang">Kembali</Link>
                     </Button>
                     <Button className="h-9 text-xs font-semibold" asChild>
-                        <Link href={`/cabang/${params.branchId}/pengaturan`}>Pengaturan</Link>
+                        <Link href={`/cabang/${branchId}/pengaturan`}>Pengaturan</Link>
                     </Button>
                 </div>
             </div>

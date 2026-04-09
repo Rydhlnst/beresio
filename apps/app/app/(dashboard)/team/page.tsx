@@ -7,7 +7,7 @@ import { ErrorRetryAction } from "@/components/dashboard/shared/error-retry-acti
 import { ErrorToast } from "@/components/dashboard/shared/error-toast";
 
 export const metadata: Metadata = {
-    title: "Tim & Akses | Beres",
+    title: "Tim & Akses",
     description: "Kelola user, role, dan undangan",
 };
 

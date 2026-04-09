@@ -113,7 +113,7 @@ function ImageGallery({ images, mainImage, productName }: { images: string[]; ma
   return (
     <div className="space-y-4">
       {/* Main Image */}
-      <div className="relative aspect-square rounded-2xl bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden border border-border/60">
+      <div className="relative aspect-square overflow-hidden rounded-2xl border border-border/60 bg-muted/40">
         {currentImage && !imageError.has(selectedIndex) ? (
           <Image
             src={currentImage}
@@ -326,7 +326,7 @@ export function ProductDetailClient({ product, categories, suppliers }: ProductD
           </div>
 
           {/* Price */}
-          <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+          <Card className="border-primary/20 bg-primary/5">
             <CardContent className="p-6">
               <div className="flex items-baseline gap-3">
                 <span className="text-4xl font-bold text-foreground">

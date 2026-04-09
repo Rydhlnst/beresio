@@ -21,16 +21,20 @@ export type BusinessType = 'laundry' | 'fnb' | 'retail';
  * Module Keys - Available modules per business type
  */
 export type ModuleKey = 
-    | 'order' 
-    | 'tracking' 
-    | 'inventory' 
-    | 'customer' 
-    | 'report' 
-    | 'payment' 
-    | 'staff' 
-    | 'analytics' 
-    | 'promo' 
-    | 'settings';
+    | 'laundry'
+    | 'dashboard'
+    | 'crm'
+    | 'order'
+    | 'inventory'
+    | 'laporan'
+    | 'cabang'
+    | 'tim'
+    | 'pengaturan'
+    | 'pickup'
+    | 'meja'
+    | 'menu'
+    | 'products'
+    | 'suppliers';
 
 /**
  * User Role in Business
@@ -289,9 +293,9 @@ export interface ModuleConfigByBusinessType {
  * Default modules for each business type
  */
 export const DEFAULT_MODULES_BY_TYPE: ModuleConfigByBusinessType = {
-    laundry: ['order', 'tracking', 'inventory', 'customer', 'report'],
-    fnb: ['order', 'inventory', 'customer', 'report', 'payment'],
-    retail: ['order', 'inventory', 'customer', 'report', 'payment'],
+    laundry: ['dashboard', 'laundry', 'crm', 'order', 'inventory', 'laporan', 'cabang', 'tim', 'pengaturan', 'pickup'],
+    fnb: ['dashboard', 'crm', 'order', 'inventory', 'laporan', 'cabang', 'tim', 'pengaturan', 'meja', 'menu'],
+    retail: ['dashboard', 'crm', 'order', 'inventory', 'laporan', 'cabang', 'tim', 'pengaturan', 'products', 'suppliers'],
 };
 
 // ============================================
@@ -316,7 +320,40 @@ export function isValidBusinessType(type: string): type is BusinessType {
  */
 export function isValidModuleKey(key: string): key is ModuleKey {
     return [
-        'order', 'tracking', 'inventory', 'customer', 'report',
-        'payment', 'staff', 'analytics', 'promo', 'settings'
+        'laundry',
+        'dashboard', 'crm', 'order', 'inventory', 'laporan',
+        'cabang', 'tim', 'pengaturan', 'pickup', 'meja',
+        'menu', 'products', 'suppliers'
     ].includes(key);
+}
+
+// ============================================
+// FnB Domain Event Contract
+// ============================================
+
+export const FNB_DOMAIN_EVENT_TYPES = [
+    "ORDER_CREATED",
+    "ORDER_CONFIRMED",
+    "ORDER_PREPARING",
+    "ORDER_READY",
+    "ORDER_COMPLETED",
+    "PAYMENT_SETTLED",
+    "TABLE_SESSION_OPENED",
+    "TABLE_SESSION_CLOSED",
+] as const;
+
+export type FnbDomainEventType = typeof FNB_DOMAIN_EVENT_TYPES[number];
+
+export interface DomainEventEnvelope {
+    eventId: string;
+    sequence: number;
+    organizationId: string;
+    branchId: string | null;
+    aggregateType: "order" | "table_session" | "payment";
+    aggregateId: string;
+    eventType: FnbDomainEventType;
+    occurredAt: Date;
+    actorId: string | null;
+    idempotencyKey: string | null;
+    payload: Record<string, unknown>;
 }

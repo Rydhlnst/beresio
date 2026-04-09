@@ -1,19 +1,21 @@
 import { apiClient } from "@/lib/api-client";
 import { headers } from "next/headers";
-import { RevenueTrendClient } from "./revenue-trend-client";
+import { RevenueTrendLazyClient } from "./revenue-trend-lazy-client";
 import { SectionCard } from "../shared/section-card";
 import { CardErrorState } from "../shared/card-error-state";
 import { ErrorRetryAction } from "../shared/error-retry-action";
 import { ErrorToast } from "../shared/error-toast";
 
 export async function RevenueTrendChart() {
+    const cookie = (await headers()).get("cookie") || "";
+
     // Fetch both 7D and 30D data
     const [res7d, res30d] = await Promise.all([
         apiClient.api.dashboard.performance.trend.$get({ query: { timeRange: "7d" } }, {
-            headers: { cookie: (await headers()).get("cookie") || "" }
+            headers: { cookie }
         }),
         apiClient.api.dashboard.performance.trend.$get({ query: { timeRange: "30d" } }, {
-            headers: { cookie: (await headers()).get("cookie") || "" }
+            headers: { cookie }
         })
     ]);
 
@@ -40,9 +42,9 @@ export async function RevenueTrendChart() {
     const data30d = await res30d.json();
 
     return (
-        <RevenueTrendClient 
-            initialData7d={(data7d as any).data || []} 
-            initialData30d={(data30d as any).data || []} 
+        <RevenueTrendLazyClient
+            initialData7d={(data7d as any).data || []}
+            initialData30d={(data30d as any).data || []}
         />
     );
 }

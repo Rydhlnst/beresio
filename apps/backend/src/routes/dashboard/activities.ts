@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { z } from 'zod'
 import { authMiddleware } from '../../middleware/auth'
 import { getOrgId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
@@ -7,6 +8,21 @@ import { activityLogs, user } from '@beresio/db'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
 type Variables = { db: any; user: any; session: any }
+
+const ACTIVITY_TYPES = ['RBAC', 'PAYMENT', 'AUTH', 'SYSTEM', 'BRANCH', 'CUSTOMER'] as const
+
+const listActivitiesQuerySchema = z.object({
+    limit: z.coerce.number().int().min(1).max(50).default(20),
+    cursor: z.string().trim().min(1).optional(),
+    type: z.preprocess(
+        (value) => (typeof value === 'string' ? value.trim().toUpperCase() : value),
+        z.enum(ACTIVITY_TYPES).optional()
+    ),
+})
+
+function getValidationMessage(error: z.ZodError, fallback = 'Invalid request') {
+    return error.issues[0]?.message ?? fallback
+}
 
 export const activitiesRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
@@ -27,10 +43,16 @@ activitiesRouter.get('/', authMiddleware, async (c) => {
             return errors.unauthorized(c, 'No organization context')
         }
 
-        const limitParam = Number(c.req.query('limit') ?? 20)
-        const limit = Math.min(Math.max(1, limitParam), 50)
-        const cursor = c.req.query('cursor') // UUID of last item
-        const typeFilter = c.req.query('type')
+        const parsedQuery = listActivitiesQuerySchema.safeParse({
+            limit: c.req.query('limit') ?? 20,
+            cursor: c.req.query('cursor') ?? undefined,
+            type: c.req.query('type') ?? undefined,
+        })
+        if (!parsedQuery.success) {
+            return errors.badRequest(c, getValidationMessage(parsedQuery.error))
+        }
+
+        const { limit, cursor, type: typeFilter } = parsedQuery.data
 
         // Build where conditions
         const conditions = [eq(activityLogs.organizationId, orgId)]
@@ -90,6 +112,6 @@ activitiesRouter.get('/', authMiddleware, async (c) => {
         })
     } catch (err: any) {
         console.error('[activities]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })

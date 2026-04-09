@@ -2,8 +2,8 @@ import { Hono } from 'hono'
 import { authMiddleware } from '../../middleware/auth'
 import { getOrgId, getUserId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
-import { sql, and, eq, desc } from 'drizzle-orm'
-import { member, invitation, activityLogs, user, roles } from '@beresio/db'
+import { sql, and, eq, desc, inArray } from 'drizzle-orm'
+import { member, invitation, activityLogs, user, roles, rolePermissions } from '@beresio/db'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
 type Variables = { db: any; user: any; session: any }
@@ -15,8 +15,77 @@ const DEFAULT_ROLES = [
     { slug: 'admin', name: 'Admin' },
     { slug: 'branch_manager', name: 'Branch Manager' },
     { slug: 'cashier', name: 'Cashier' },
+    { slug: 'laundry_worker', name: 'Laundry Worker' },
+    { slug: 'driver', name: 'Driver' },
     { slug: 'staff', name: 'Staff' },
 ]
+
+const DEFAULT_LAUNDRY_ROLE_PERMISSIONS: Record<string, string[]> = {
+    owner: [
+        'dashboard.read',
+        'branch.read',
+        'team.read',
+        'settings.read',
+        'order.read',
+        'order.create',
+        'laundry.status.update',
+        'laundry.payment.record',
+        'laundry.service.manage',
+        'pickup.read',
+        'pickup.manage',
+        'laundry.driver.assign',
+        'report.read',
+    ],
+    admin: [
+        'dashboard.read',
+        'branch.read',
+        'team.read',
+        'settings.read',
+        'order.read',
+        'order.create',
+        'laundry.status.update',
+        'laundry.payment.record',
+        'laundry.service.manage',
+        'pickup.read',
+        'pickup.manage',
+        'laundry.driver.assign',
+        'report.read',
+    ],
+    branch_manager: [
+        'dashboard.read',
+        'branch.read',
+        'team.read',
+        'settings.read',
+        'order.read',
+        'order.create',
+        'laundry.status.update',
+        'laundry.payment.record',
+        'laundry.service.manage',
+        'pickup.read',
+        'pickup.manage',
+        'laundry.driver.assign',
+        'report.read',
+    ],
+    laundry_worker: [
+        'order.read',
+        'order.create',
+        'laundry.status.update',
+        'laundry.service.manage',
+        'pickup.read',
+        'pickup.manage',
+    ],
+    cashier: [
+        'order.read',
+        'order.create',
+        'laundry.payment.record',
+        'report.read',
+    ],
+    driver: [
+        'pickup.read',
+        'pickup.manage',
+        'laundry.driver.assign',
+    ],
+}
 
 // POST /api/dashboard/rbac/bootstrap
 // Ensures default roles exist and links current member to roleId based on legacy role slug.
@@ -75,7 +144,55 @@ rbacRouter.post('/bootstrap', authMiddleware, async (c) => {
                     )
             }
 
-            let resolvedRoleId = existingBySlug.get(roleSlug)
+            const seededRoles = await tx
+                .select({ id: roles.id, slug: roles.slug })
+                .from(roles)
+                .where(eq(roles.organizationId, orgId))
+
+            const roleIdBySlug = new Map<string, string>(
+                seededRoles.map((role: any): [string, string] => [String(role.slug), String(role.id)])
+            )
+
+            const targetRoleIds = Object.keys(DEFAULT_LAUNDRY_ROLE_PERMISSIONS)
+                .map((slug) => roleIdBySlug.get(slug))
+                .filter((value): value is string => Boolean(value))
+
+            let permissionsInserted = 0
+            if (targetRoleIds.length > 0) {
+                const existingPermissionRows = await tx
+                    .select({ roleId: rolePermissions.roleId, permission: rolePermissions.permission })
+                    .from(rolePermissions)
+                    .where(and(
+                        eq(rolePermissions.organizationId, orgId),
+                        inArray(rolePermissions.roleId, targetRoleIds)
+                    ))
+
+                const existingPermissionSet = new Set(
+                    existingPermissionRows.map((row: any) => `${row.roleId}:${row.permission}`)
+                )
+
+                const permissionsToInsert: Array<{ organizationId: string; roleId: string; permission: string }> = []
+                for (const [slug, permissions] of Object.entries(DEFAULT_LAUNDRY_ROLE_PERMISSIONS)) {
+                    const roleId = roleIdBySlug.get(slug)
+                    if (!roleId) continue
+                    for (const permission of permissions) {
+                        const key = `${roleId}:${permission}`
+                        if (existingPermissionSet.has(key)) continue
+                        permissionsToInsert.push({
+                            organizationId: orgId,
+                            roleId,
+                            permission,
+                        })
+                    }
+                }
+
+                if (permissionsToInsert.length > 0) {
+                    await tx.insert(rolePermissions).values(permissionsToInsert)
+                    permissionsInserted = permissionsToInsert.length
+                }
+            }
+
+            let resolvedRoleId = roleIdBySlug.get(roleSlug)
             if (!resolvedRoleId) {
                 const [roleRow] = await tx
                     .select({ id: roles.id })
@@ -97,6 +214,7 @@ rbacRouter.post('/bootstrap', authMiddleware, async (c) => {
 
             return {
                 rolesInserted: missingRoles.length,
+                permissionsInserted,
                 memberUpdated,
                 roleSlug,
             }

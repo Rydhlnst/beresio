@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { z } from 'zod'
 import { authMiddleware } from '../../middleware/auth'
 import { getOrgId, getUserId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
@@ -27,6 +28,55 @@ type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_
 type Variables = { db: any; user: any; session: any }
 
 const DEFAULT_LIMIT = 100
+const TRANSFER_STATUS = ['approved', 'rejected', 'cancelled'] as const
+
+const adjustmentBodySchema = z.object({
+    productId: z.string().trim().min(1, 'productId is required'),
+    branchId: z.string().trim().min(1, 'branchId is required'),
+    quantityDelta: z.coerce
+        .number()
+        .finite()
+        .refine((value) => value !== 0, 'quantityDelta must be a non-zero number'),
+    reason: z.string().nullable().optional(),
+})
+
+const transferBodySchema = z.object({
+    productId: z.string().trim().min(1, 'productId is required'),
+    fromBranchId: z.string().trim().min(1, 'fromBranchId is required'),
+    toBranchId: z.string().trim().min(1, 'toBranchId is required'),
+    quantity: z.coerce.number().finite().gt(0, 'quantity must be > 0'),
+    note: z.string().nullable().optional(),
+})
+
+const transferStatusBodySchema = z.object({
+    status: z.enum(TRANSFER_STATUS),
+})
+
+const thresholdBodySchema = z.object({
+    productId: z.string().trim().min(1, 'productId and branchId are required'),
+    branchId: z.string().trim().min(1, 'productId and branchId are required'),
+    minThreshold: z.coerce.number().finite().min(0, 'minThreshold must be >= 0'),
+})
+
+const variantAdjustBodySchema = z.object({
+    variantId: z.string().trim().min(1, 'variantId and branchId are required'),
+    branchId: z.string().trim().min(1, 'variantId and branchId are required'),
+    quantityDelta: z.coerce
+        .number()
+        .finite()
+        .refine((value) => value !== 0, 'quantityDelta must be a non-zero number'),
+    reason: z.string().nullable().optional(),
+})
+
+const variantThresholdBodySchema = z.object({
+    variantId: z.string().trim().min(1, 'variantId and branchId are required'),
+    branchId: z.string().trim().min(1, 'variantId and branchId are required'),
+    minThreshold: z.coerce.number().finite().min(0, 'minThreshold must be >= 0'),
+})
+
+function getValidationMessage(error: z.ZodError, fallback = 'Invalid payload') {
+    return error.issues[0]?.message ?? fallback
+}
 
 export const inventoryRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
@@ -109,8 +159,9 @@ inventoryRouter.get('/products', authMiddleware, async (c) => {
         }))
 
         return ok(c, result)
-        } catch (err: any) {
-        return errors.internal(c, err.message)
+    } catch (err: any) {
+        console.error('[inventory/products]', err)
+        return errors.internal(c)
     }
 })
 
@@ -161,7 +212,7 @@ inventoryRouter.delete('/products/:id', authMiddleware, async (c) => {
         return ok(c, { deleted: true })
     } catch (err: any) {
         console.error('[inventory/products/delete]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -210,7 +261,7 @@ inventoryRouter.get('/adjustments', authMiddleware, async (c) => {
         })))
     } catch (err: any) {
         console.error('[inventory/adjustments]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -229,17 +280,14 @@ inventoryRouter.post('/adjustments', authMiddleware, async (c) => {
             }
         })()
         const body = await c.req.json().catch(() => null)
-
-        const productId = body?.productId
-        const branchId = body?.branchId
-        const quantityDelta = Number(body?.quantityDelta ?? 0)
-        const reason = body?.reason ?? null
-
-        if (!productId || !branchId) return errors.badRequest(c, 'productId and branchId are required')
-        if (!hasBranchAccess(branchIds, branchId)) return errors.forbidden(c, 'No access to branch')
-        if (!Number.isFinite(quantityDelta) || quantityDelta === 0) {
-            return errors.badRequest(c, 'quantityDelta must be a non-zero number')
+        const parsedBody = adjustmentBodySchema.safeParse(body)
+        if (!parsedBody.success) {
+            return errors.badRequest(c, getValidationMessage(parsedBody.error))
         }
+
+        const { productId, branchId, quantityDelta, reason } = parsedBody.data
+
+        if (!hasBranchAccess(branchIds, branchId)) return errors.forbidden(c, 'No access to branch')
 
         const [productRow] = await db
             .select({ id: inventoryProducts.id })
@@ -287,7 +335,7 @@ inventoryRouter.post('/adjustments', authMiddleware, async (c) => {
         if (err?.message === 'INSUFFICIENT_STOCK') {
             return errors.badRequest(c, 'Stok tidak mencukupi')
         }
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -346,7 +394,7 @@ inventoryRouter.get('/transfers', authMiddleware, async (c) => {
         })))
     } catch (err: any) {
         console.error('[inventory/transfers]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -365,21 +413,17 @@ inventoryRouter.post('/transfers', authMiddleware, async (c) => {
             }
         })()
         const body = await c.req.json().catch(() => null)
-
-        const productId = body?.productId
-        const fromBranchId = body?.fromBranchId
-        const toBranchId = body?.toBranchId
-        const quantity = Number(body?.quantity ?? 0)
-        const note = body?.note ?? null
-
-        if (!productId || !fromBranchId || !toBranchId) {
-            return errors.badRequest(c, 'productId, fromBranchId, toBranchId are required')
+        const parsedBody = transferBodySchema.safeParse(body)
+        if (!parsedBody.success) {
+            return errors.badRequest(c, getValidationMessage(parsedBody.error))
         }
+
+        const { productId, fromBranchId, toBranchId, quantity, note } = parsedBody.data
+
         if (!hasBranchAccess(branchIds, fromBranchId) || !hasBranchAccess(branchIds, toBranchId)) {
             return errors.forbidden(c, 'No access to branch')
         }
         if (fromBranchId === toBranchId) return errors.badRequest(c, 'fromBranchId and toBranchId must differ')
-        if (!Number.isFinite(quantity) || quantity <= 0) return errors.badRequest(c, 'quantity must be > 0')
 
         const [productRow] = await db
             .select({ id: inventoryProducts.id })
@@ -432,7 +476,7 @@ inventoryRouter.post('/transfers', authMiddleware, async (c) => {
         return ok(c, created)
     } catch (err: any) {
         console.error('[inventory/transfers/create]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -445,11 +489,11 @@ inventoryRouter.patch('/transfers/:id', authMiddleware, async (c) => {
         if (branchIds.length === 0) return errors.forbidden(c, 'No branch access')
         const transferId = c.req.param('id')
         const body = await c.req.json().catch(() => null)
-        const status = body?.status
-
-        if (!['approved', 'rejected', 'cancelled'].includes(status)) {
-            return errors.badRequest(c, 'status must be approved, rejected, or cancelled')
+        const parsedBody = transferStatusBodySchema.safeParse(body)
+        if (!parsedBody.success) {
+            return errors.badRequest(c, getValidationMessage(parsedBody.error))
         }
+        const { status } = parsedBody.data
 
         const [transferRow] = await db
             .select()
@@ -526,7 +570,7 @@ inventoryRouter.patch('/transfers/:id', authMiddleware, async (c) => {
         if (err?.message === 'INSUFFICIENT_STOCK') {
             return errors.badRequest(c, 'Stok cabang asal tidak cukup')
         }
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -589,7 +633,7 @@ inventoryRouter.get('/movements', authMiddleware, async (c) => {
         })))
     } catch (err: any) {
         console.error('[inventory/movements]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -601,19 +645,15 @@ inventoryRouter.patch('/stocks/threshold', authMiddleware, async (c) => {
         const branchIds = await getAccessibleBranchIds(c, orgId)
         if (branchIds.length === 0) return errors.forbidden(c, 'No branch access')
         const body = await c.req.json().catch(() => null)
-
-        const productId = body?.productId
-        const branchId = body?.branchId
-        const minThreshold = Number(body?.minThreshold ?? 0)
-
-        if (!productId || !branchId) {
-            return errors.badRequest(c, 'productId and branchId are required')
+        const parsedBody = thresholdBodySchema.safeParse(body)
+        if (!parsedBody.success) {
+            return errors.badRequest(c, getValidationMessage(parsedBody.error))
         }
+
+        const { productId, branchId, minThreshold } = parsedBody.data
+
         if (!hasBranchAccess(branchIds, branchId)) {
             return errors.forbidden(c, 'No access to branch')
-        }
-        if (!Number.isFinite(minThreshold) || minThreshold < 0) {
-            return errors.badRequest(c, 'minThreshold must be >= 0')
         }
 
         const [stockRow] = await db
@@ -644,7 +684,7 @@ inventoryRouter.patch('/stocks/threshold', authMiddleware, async (c) => {
         })
     } catch (err: any) {
         console.error('[inventory/threshold]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -714,7 +754,7 @@ inventoryRouter.get('/variant-stocks', authMiddleware, async (c) => {
         })))
     } catch (err: any) {
         console.error('[inventory/variant-stocks]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -733,17 +773,14 @@ inventoryRouter.post('/variant-stocks/adjust', authMiddleware, async (c) => {
             }
         })()
         const body = await c.req.json().catch(() => null)
-
-        const variantId = body?.variantId
-        const branchId = body?.branchId
-        const quantityDelta = Number(body?.quantityDelta ?? 0)
-        const reason = body?.reason ?? null
-
-        if (!variantId || !branchId) return errors.badRequest(c, 'variantId and branchId are required')
-        if (!hasBranchAccess(branchIds, branchId)) return errors.forbidden(c, 'No access to branch')
-        if (!Number.isFinite(quantityDelta) || quantityDelta === 0) {
-            return errors.badRequest(c, 'quantityDelta must be a non-zero number')
+        const parsedBody = variantAdjustBodySchema.safeParse(body)
+        if (!parsedBody.success) {
+            return errors.badRequest(c, getValidationMessage(parsedBody.error))
         }
+
+        const { variantId, branchId, quantityDelta, reason } = parsedBody.data
+
+        if (!hasBranchAccess(branchIds, branchId)) return errors.forbidden(c, 'No access to branch')
 
         const [variantRow] = await db
             .select({ id: productVariants.id })
@@ -780,7 +817,7 @@ inventoryRouter.post('/variant-stocks/adjust', authMiddleware, async (c) => {
         if (err?.message === 'INSUFFICIENT_STOCK') {
             return errors.badRequest(c, 'Stok tidak mencukupi')
         }
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -792,19 +829,15 @@ inventoryRouter.patch('/variant-stocks/threshold', authMiddleware, async (c) => 
         const branchIds = await getAccessibleBranchIds(c, orgId)
         if (branchIds.length === 0) return errors.forbidden(c, 'No branch access')
         const body = await c.req.json().catch(() => null)
-
-        const variantId = body?.variantId
-        const branchId = body?.branchId
-        const minThreshold = Number(body?.minThreshold ?? 0)
-
-        if (!variantId || !branchId) {
-            return errors.badRequest(c, 'variantId and branchId are required')
+        const parsedBody = variantThresholdBodySchema.safeParse(body)
+        if (!parsedBody.success) {
+            return errors.badRequest(c, getValidationMessage(parsedBody.error))
         }
+
+        const { variantId, branchId, minThreshold } = parsedBody.data
+
         if (!hasBranchAccess(branchIds, branchId)) {
             return errors.forbidden(c, 'No access to branch')
-        }
-        if (!Number.isFinite(minThreshold) || minThreshold < 0) {
-            return errors.badRequest(c, 'minThreshold must be >= 0')
         }
 
         const [stockRow] = await db
@@ -847,6 +880,6 @@ inventoryRouter.patch('/variant-stocks/threshold', authMiddleware, async (c) => 
         })
     } catch (err: any) {
         console.error('[inventory/variant-stocks/threshold]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })

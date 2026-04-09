@@ -22,10 +22,10 @@ export function WelcomeView({ userName }: WelcomeViewProps) {
             <div className="grid w-full grid-cols-1 gap-6 md:grid-cols-2">
                 <Link
                     href="/onboarding/org"
-                    className="flex flex-col items-center p-8 space-y-4 border rounded-xl bg-card border-border hover:border-primary hover:bg-accent/50 transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent cursor-pointer"
+                    className="flex flex-col items-center p-8 space-y-4 border rounded-xl bg-card border-border hover:border-brand hover:bg-accent/50 transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent cursor-pointer"
                 >
-                    <div className="flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                        <Building2 className="w-8 h-8 text-primary" />
+                    <div className="flex items-center justify-center w-16 h-16 rounded-full bg-brand/10 group-hover:bg-brand/20 transition-colors">
+                        <Building2 className="w-8 h-8 text-brand" />
                     </div>
                     <div className="space-y-2 text-center">
                         <h3 className="text-xl font-semibold">Saya punya bisnis</h3>
@@ -37,10 +37,10 @@ export function WelcomeView({ userName }: WelcomeViewProps) {
 
                 <Link
                     href="/join"
-                    className="flex flex-col items-center p-8 space-y-4 border rounded-xl bg-card border-border hover:border-primary hover:bg-accent/50 transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent cursor-pointer"
+                    className="flex flex-col items-center p-8 space-y-4 border rounded-xl bg-card border-border hover:border-brand hover:bg-accent/50 transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent cursor-pointer"
                 >
-                    <div className="flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                        <Users className="w-8 h-8 text-primary" />
+                    <div className="flex items-center justify-center w-16 h-16 rounded-full bg-brand/10 group-hover:bg-brand/20 transition-colors">
+                        <Users className="w-8 h-8 text-brand" />
                     </div>
                     <div className="space-y-2 text-center">
                         <h3 className="text-xl font-semibold">Saya diundang seseorang</h3>

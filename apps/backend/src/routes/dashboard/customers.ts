@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { z } from 'zod'
 import { authMiddleware } from '../../middleware/auth'
 import { getOrgId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
@@ -7,6 +8,42 @@ import { customers, customerNotes, customerTagLinks, customerTags } from '@beres
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
 type Variables = { db: any; user: any; session: any }
+
+const createCustomerBodySchema = z.object({
+    name: z.string().trim().min(1, 'name and phone are required'),
+    phone: z.string().trim().min(1, 'name and phone are required'),
+    email: z.string().trim().email().nullable().optional(),
+    address: z.string().nullable().optional(),
+    loyaltyPoints: z.coerce.number().int().min(0).optional().default(0),
+    loyaltyTier: z.string().trim().min(1).optional().default('regular'),
+    totalSpentRp: z.coerce.number().min(0).optional().default(0),
+})
+
+const updateCustomerBodySchema = z.object({
+    name: z.string().trim().min(1).optional(),
+    phone: z.string().trim().min(1).optional(),
+    email: z.string().trim().email().nullable().optional(),
+    address: z.string().nullable().optional(),
+    loyaltyTier: z.string().trim().min(1).optional(),
+}).superRefine((value, ctx) => {
+    if (
+        value.name === undefined
+        && value.phone === undefined
+        && value.email === undefined
+        && value.address === undefined
+        && value.loyaltyTier === undefined
+    ) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'No fields to update',
+            path: [],
+        })
+    }
+})
+
+function getValidationMessage(error: z.ZodError, fallback = 'Invalid payload') {
+    return error.issues[0]?.message ?? fallback
+}
 
 export const customersRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
@@ -54,7 +91,7 @@ customersRouter.get('/', authMiddleware, async (c) => {
         return ok(c, rows)
     } catch (err: any) {
         console.error('[customers/list]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -114,7 +151,7 @@ customersRouter.get('/:id', authMiddleware, async (c) => {
         })
     } catch (err: any) {
         console.error('[customers/detail]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -130,12 +167,20 @@ customersRouter.post('/', authMiddleware, async (c) => {
         }
 
         const body = await c.req.json().catch(() => null)
-        const name = body?.name?.trim()
-        const phone = body?.phone?.trim()
-
-        if (!name || !phone) {
-            return errors.badRequest(c, 'name and phone are required')
+        const parsedBody = createCustomerBodySchema.safeParse(body)
+        if (!parsedBody.success) {
+            return errors.badRequest(c, getValidationMessage(parsedBody.error))
         }
+
+        const {
+            name,
+            phone,
+            email,
+            address,
+            loyaltyPoints,
+            loyaltyTier,
+            totalSpentRp,
+        } = parsedBody.data
 
         const [created] = await db
             .insert(customers)
@@ -143,18 +188,18 @@ customersRouter.post('/', authMiddleware, async (c) => {
                 organizationId: orgId,
                 name,
                 phone,
-                email: body?.email ?? null,
-                address: body?.address ?? null,
-                loyaltyPoints: body?.loyaltyPoints ?? 0,
-                loyaltyTier: body?.loyaltyTier ?? 'regular',
-                totalSpentRp: body?.totalSpentRp ?? 0,
+                email: email ?? null,
+                address: address ?? null,
+                loyaltyPoints,
+                loyaltyTier,
+                totalSpentRp,
             })
             .returning()
 
         return ok(c, created)
     } catch (err: any) {
         console.error('[customers/create]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -171,15 +216,27 @@ customersRouter.patch('/:id', authMiddleware, async (c) => {
 
         const customerId = c.req.param('id')
         const body = await c.req.json().catch(() => null)
+        const parsedBody = updateCustomerBodySchema.safeParse(body)
+        if (!parsedBody.success) {
+            return errors.badRequest(c, getValidationMessage(parsedBody.error))
+        }
+
+        const {
+            name,
+            phone,
+            email,
+            address,
+            loyaltyTier,
+        } = parsedBody.data
 
         const updated = await db
             .update(customers)
             .set({
-                name: body?.name,
-                phone: body?.phone,
-                email: body?.email,
-                address: body?.address,
-                loyaltyTier: body?.loyaltyTier,
+                name,
+                phone,
+                email,
+                address,
+                loyaltyTier,
             })
             .where(and(eq(customers.id, customerId), eq(customers.organizationId, orgId)))
             .returning()
@@ -189,6 +246,6 @@ customersRouter.patch('/:id', authMiddleware, async (c) => {
         return ok(c, updated[0])
     } catch (err: any) {
         console.error('[customers/update]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })

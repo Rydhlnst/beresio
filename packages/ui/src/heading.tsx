@@ -8,12 +8,12 @@ interface HeadingProps extends React.HTMLAttributes<HTMLHeadingElement> {
 const Heading = React.forwardRef<HTMLHeadingElement, HeadingProps>(
     ({ className, as: Component = "h2", ...props }, ref) => {
         const variants = {
-            h1: "text-[48px] lg:text-[56px] xl:text-[64px] font-bold leading-[1.1] tracking-tight text-foreground",
-            h2: "text-4xl lg:text-5xl font-bold tracking-tight text-foreground",
-            h3: "text-3xl font-bold tracking-tight text-foreground",
-            h4: "text-xl font-bold tracking-tight text-foreground",
-            h5: "text-lg font-bold tracking-tight text-foreground",
-            h6: "text-base font-bold tracking-tight text-foreground",
+            h1: "text-[48px] lg:text-[56px] xl:text-[64px] font-semibold leading-[1.1] tracking-tight text-foreground",
+            h2: "text-4xl lg:text-5xl font-semibold tracking-tight text-foreground",
+            h3: "text-3xl font-semibold tracking-tight text-foreground",
+            h4: "text-xl font-medium tracking-tight text-foreground",
+            h5: "text-lg font-medium tracking-tight text-foreground",
+            h6: "text-base font-medium tracking-tight text-foreground",
         }
 
         return (

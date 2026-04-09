@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { z } from 'zod'
 import { authMiddleware } from '../../middleware/auth'
 import { getOrgId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
@@ -16,6 +17,16 @@ const PLAN_LIMITS: Record<string, { branches: number; members: number }> = {
     growth: { branches: 5, members: 15 },
     pro: { branches: 20, members: 50 },
     enterprise: { branches: Infinity, members: Infinity },
+}
+
+const PLAN_NAMES = Object.keys(PLAN_LIMITS) as [string, ...string[]]
+
+const upgradePlanBodySchema = z.object({
+    plan: z.enum(PLAN_NAMES),
+})
+
+function getValidationMessage(error: z.ZodError, fallback = 'Invalid payload') {
+    return error.issues[0]?.message ?? fallback
 }
 
 // GET /api/dashboard/billing/status
@@ -101,7 +112,7 @@ billingRouter.get('/status', authMiddleware, async (c) => {
         })
     } catch (err: any) {
         console.error('[billing/status]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -117,8 +128,11 @@ billingRouter.post('/upgrade', authMiddleware, async (c) => {
         }
 
         const body = await c.req.json().catch(() => null)
-        const plan = body?.plan
-        if (!plan || !PLAN_LIMITS[plan]) return errors.badRequest(c, 'Invalid plan')
+        const parsedBody = upgradePlanBodySchema.safeParse(body)
+        if (!parsedBody.success) {
+            return errors.badRequest(c, getValidationMessage(parsedBody.error, 'Invalid plan'))
+        }
+        const { plan } = parsedBody.data
 
         const updated = await db
             .update(organization)
@@ -134,7 +148,7 @@ billingRouter.post('/upgrade', authMiddleware, async (c) => {
         })
     } catch (err: any) {
         console.error('[billing/upgrade]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -173,7 +187,7 @@ billingRouter.get('/invoices', authMiddleware, async (c) => {
         })))
     } catch (err: any) {
         console.error('[billing/invoices]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -214,6 +228,6 @@ billingRouter.get('/invoices/:id/download', authMiddleware, async (c) => {
         })
     } catch (err: any) {
         console.error('[billing/invoices/download]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })

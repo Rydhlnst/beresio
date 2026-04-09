@@ -1,14 +1,16 @@
 import { apiClient } from "@/lib/api-client";
 import { headers } from "next/headers";
-import { RevenueBranchClient } from "./revenue-branch-client";
+import { RevenueBranchLazyClient } from "./revenue-branch-lazy-client";
 import { SectionCard } from "../shared/section-card";
 import { CardErrorState } from "../shared/card-error-state";
 import { ErrorRetryAction } from "../shared/error-retry-action";
 import { ErrorToast } from "../shared/error-toast";
 
 export async function RevenueBranchChart() {
+    const cookie = (await headers()).get("cookie") || "";
+
     const res = await apiClient.api.dashboard.performance.branches.$get(undefined, {
-        headers: { cookie: (await headers()).get("cookie") || "" }
+        headers: { cookie }
     });
 
     if (!res.ok) {
@@ -31,5 +33,5 @@ export async function RevenueBranchChart() {
 
     const data = await res.json();
 
-    return <RevenueBranchClient data={(data as any).data || []} />;
+    return <RevenueBranchLazyClient data={(data as any).data || []} />;
 }

@@ -1,8 +1,9 @@
 import { Hono } from 'hono'
+import { z } from 'zod'
 import { authMiddleware } from '../../middleware/auth'
-import { getOrgId, getUserId } from '../../lib/auth-context'
+import { getOrgId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
-import { and, asc, desc, eq, ilike, inArray, isNull, or, sql, ne } from 'drizzle-orm'
+import { and, asc, desc, eq, ilike, inArray, or, sql, ne } from 'drizzle-orm'
 import {
     products,
     productCategories,
@@ -19,6 +20,135 @@ type Variables = { db: any; user: any; session: any }
 
 const DEFAULT_LIMIT = 20
 const MAX_LIMIT = 100
+
+const createProductSchema = z.object({
+    name: z.string().trim().min(1, 'Nama produk wajib diisi'),
+    sku: z.string().optional().nullable(),
+    barcode: z.string().optional().nullable(),
+    categoryId: z.string().optional().nullable(),
+    supplierId: z.string().optional().nullable(),
+    basePrice: z.union([z.number(), z.string()]).optional(),
+    salePrice: z.union([z.number(), z.string(), z.null()]).optional(),
+    costPrice: z.union([z.number(), z.string(), z.null()]).optional(),
+    description: z.string().optional().nullable(),
+    shortDescription: z.string().optional().nullable(),
+    weight: z.union([z.number(), z.string(), z.null()]).optional(),
+    imageUrl: z.string().optional().nullable(),
+    isActive: z.boolean().optional(),
+    isFeatured: z.boolean().optional(),
+})
+
+const updateProductSchema = z.object({
+    name: z.string().trim().min(1, 'Nama produk wajib diisi').optional(),
+    sku: z.string().optional().nullable(),
+    barcode: z.string().optional().nullable(),
+    categoryId: z.string().optional().nullable(),
+    supplierId: z.string().optional().nullable(),
+    basePrice: z.union([z.number(), z.string()]).optional(),
+    salePrice: z.union([z.number(), z.string(), z.null()]).optional(),
+    costPrice: z.union([z.number(), z.string(), z.null()]).optional(),
+    description: z.string().optional().nullable(),
+    shortDescription: z.string().optional().nullable(),
+    weight: z.union([z.number(), z.string(), z.null()]).optional(),
+    imageUrl: z.string().optional().nullable(),
+    isActive: z.boolean().optional(),
+    isFeatured: z.boolean().optional(),
+}).superRefine((value, ctx) => {
+    if (
+        value.name === undefined
+        && value.sku === undefined
+        && value.barcode === undefined
+        && value.categoryId === undefined
+        && value.supplierId === undefined
+        && value.basePrice === undefined
+        && value.salePrice === undefined
+        && value.costPrice === undefined
+        && value.description === undefined
+        && value.shortDescription === undefined
+        && value.weight === undefined
+        && value.imageUrl === undefined
+        && value.isActive === undefined
+        && value.isFeatured === undefined
+    ) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Tidak ada field yang diupdate',
+            path: [],
+        })
+    }
+})
+
+const createVariantSchema = z.object({
+    sku: z.string().optional().nullable(),
+    barcode: z.string().optional().nullable(),
+    option1: z.string().optional().nullable(),
+    option2: z.string().optional().nullable(),
+    option3: z.string().optional().nullable(),
+    price: z.union([z.number(), z.string(), z.null()]).optional(),
+    compareAtPrice: z.union([z.number(), z.string(), z.null()]).optional(),
+    costPrice: z.union([z.number(), z.string(), z.null()]).optional(),
+    imageUrl: z.string().optional().nullable(),
+    sortOrder: z.union([z.number(), z.string()]).optional(),
+    isActive: z.boolean().optional(),
+})
+
+const updateVariantSchema = z.object({
+    sku: z.string().optional().nullable(),
+    barcode: z.string().optional().nullable(),
+    option1: z.string().optional().nullable(),
+    option2: z.string().optional().nullable(),
+    option3: z.string().optional().nullable(),
+    price: z.union([z.number(), z.string(), z.null()]).optional(),
+    compareAtPrice: z.union([z.number(), z.string(), z.null()]).optional(),
+    costPrice: z.union([z.number(), z.string(), z.null()]).optional(),
+    imageUrl: z.string().optional().nullable(),
+    sortOrder: z.union([z.number(), z.string()]).optional(),
+    isActive: z.boolean().optional(),
+}).superRefine((value, ctx) => {
+    if (
+        value.sku === undefined
+        && value.barcode === undefined
+        && value.option1 === undefined
+        && value.option2 === undefined
+        && value.option3 === undefined
+        && value.price === undefined
+        && value.compareAtPrice === undefined
+        && value.costPrice === undefined
+        && value.imageUrl === undefined
+        && value.sortOrder === undefined
+        && value.isActive === undefined
+    ) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Tidak ada field yang diupdate',
+            path: [],
+        })
+    }
+})
+
+const createCategorySchema = z.object({
+    name: z.string().trim().min(1, 'Nama kategori wajib diisi'),
+    slug: z.string().optional().nullable(),
+    description: z.string().optional().nullable(),
+    parentId: z.string().optional().nullable(),
+    sortOrder: z.union([z.number(), z.string()]).optional(),
+})
+
+const createSupplierSchema = z.object({
+    name: z.string().trim().min(1, 'Nama pemasok wajib diisi'),
+    code: z.string().optional().nullable(),
+    contactName: z.string().optional().nullable(),
+    email: z.string().optional().nullable(),
+    phone: z.string().optional().nullable(),
+    address: z.string().optional().nullable(),
+    city: z.string().optional().nullable(),
+    province: z.string().optional().nullable(),
+    postalCode: z.string().optional().nullable(),
+})
+
+function getValidationMessage(error: z.ZodError, fallback = 'Invalid payload') {
+    return error.issues[0]?.message ?? fallback
+}
 
 export const productsRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
@@ -208,7 +338,7 @@ productsRouter.get('/', authMiddleware, async (c) => {
         })
     } catch (err: any) {
         console.error('[products/list]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -329,7 +459,7 @@ productsRouter.get('/:id', authMiddleware, async (c) => {
         })
     } catch (err: any) {
         console.error('[products/detail]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -340,13 +470,30 @@ productsRouter.post('/', authMiddleware, async (c) => {
         const db = c.get('db')
         const orgId = await getOrgId(c)
         const body = await c.req.json().catch(() => null)
+        const parsedBody = createProductSchema.safeParse(body)
+        if (!parsedBody.success) {
+            return errors.badRequest(c, getValidationMessage(parsedBody.error))
+        }
 
-        // Validation
-        const name = body?.name?.trim()
-        if (!name) return errors.badRequest(c, 'Nama produk wajib diisi')
+        const {
+            name,
+            sku: rawSku,
+            barcode: rawBarcode,
+            categoryId,
+            supplierId,
+            basePrice,
+            salePrice,
+            costPrice,
+            description,
+            shortDescription,
+            weight,
+            imageUrl,
+            isActive,
+            isFeatured,
+        } = parsedBody.data
 
-        const sku = body?.sku?.trim()
-        const barcode = body?.barcode?.trim()
+        const sku = rawSku?.trim()
+        const barcode = rawBarcode?.trim()
 
         // Check SKU uniqueness
         if (sku) {
@@ -382,17 +529,17 @@ productsRouter.post('/', authMiddleware, async (c) => {
                 name,
                 sku: sku || null,
                 barcode: barcode || null,
-                categoryId: body?.categoryId || null,
-                supplierId: body?.supplierId || null,
-                basePrice: Number(body?.basePrice || 0),
-                salePrice: body?.salePrice ? Number(body.salePrice) : null,
-                costPrice: body?.costPrice ? Number(body.costPrice) : null,
-                description: body?.description?.trim() || null,
-                shortDescription: body?.shortDescription?.trim() || null,
-                weight: body?.weight ? Number(body.weight) : null,
-                imageUrl: body?.imageUrl || null,
-                isActive: body?.isActive !== false,
-                isFeatured: body?.isFeatured === true,
+                categoryId: categoryId?.trim() || null,
+                supplierId: supplierId?.trim() || null,
+                basePrice: Number(basePrice || 0),
+                salePrice: salePrice === null || salePrice === undefined || salePrice === '' ? null : Number(salePrice),
+                costPrice: costPrice === null || costPrice === undefined || costPrice === '' ? null : Number(costPrice),
+                description: description?.trim() || null,
+                shortDescription: shortDescription?.trim() || null,
+                weight: weight === null || weight === undefined || weight === '' ? null : Number(weight),
+                imageUrl: imageUrl?.trim() || null,
+                isActive: isActive !== false,
+                isFeatured: isFeatured === true,
             })
             .returning()
 
@@ -413,7 +560,7 @@ productsRouter.post('/', authMiddleware, async (c) => {
         })
     } catch (err: any) {
         console.error('[products/create]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -425,6 +572,11 @@ productsRouter.patch('/:id', authMiddleware, async (c) => {
         const orgId = await getOrgId(c)
         const productId = c.req.param('id')
         const body = await c.req.json().catch(() => null)
+        const parsedBody = updateProductSchema.safeParse(body)
+        if (!parsedBody.success) {
+            return errors.badRequest(c, getValidationMessage(parsedBody.error))
+        }
+        const parsed = parsedBody.data
 
         // Check product exists
         const [existing] = await db
@@ -439,7 +591,7 @@ productsRouter.patch('/:id', authMiddleware, async (c) => {
         if (!existing) return errors.notFound(c, 'Produk tidak ditemukan')
 
         // Check SKU uniqueness if changing
-        const newSku = body?.sku?.trim()
+        const newSku = parsed.sku?.trim()
         if (newSku && newSku !== existing.sku) {
             const [duplicate] = await db
                 .select({ id: products.id })
@@ -453,7 +605,7 @@ productsRouter.patch('/:id', authMiddleware, async (c) => {
         }
 
         // Check barcode uniqueness if changing
-        const newBarcode = body?.barcode?.trim()
+        const newBarcode = parsed.barcode?.trim()
         if (newBarcode && newBarcode !== existing.barcode) {
             const [duplicate] = await db
                 .select({ id: products.id })
@@ -468,25 +620,21 @@ productsRouter.patch('/:id', authMiddleware, async (c) => {
 
         // Build updates
         const updates: any = {}
-        
-        if (body?.name !== undefined) updates.name = body.name.trim()
+
+        if (parsed.name !== undefined) updates.name = parsed.name.trim()
         if (newSku !== undefined) updates.sku = newSku || null
         if (newBarcode !== undefined) updates.barcode = newBarcode || null
-        if (body?.categoryId !== undefined) updates.categoryId = body.categoryId || null
-        if (body?.supplierId !== undefined) updates.supplierId = body.supplierId || null
-        if (body?.basePrice !== undefined) updates.basePrice = Number(body.basePrice)
-        if (body?.salePrice !== undefined) updates.salePrice = body.salePrice ? Number(body.salePrice) : null
-        if (body?.costPrice !== undefined) updates.costPrice = body.costPrice ? Number(body.costPrice) : null
-        if (body?.description !== undefined) updates.description = body.description?.trim() || null
-        if (body?.shortDescription !== undefined) updates.shortDescription = body.shortDescription?.trim() || null
-        if (body?.weight !== undefined) updates.weight = body.weight ? Number(body.weight) : null
-        if (body?.imageUrl !== undefined) updates.imageUrl = body.imageUrl || null
-        if (body?.isActive !== undefined) updates.isActive = body.isActive
-        if (body?.isFeatured !== undefined) updates.isFeatured = body.isFeatured
-
-        if (Object.keys(updates).length === 0) {
-            return errors.badRequest(c, 'Tidak ada field yang diupdate')
-        }
+        if (parsed.categoryId !== undefined) updates.categoryId = parsed.categoryId?.trim() || null
+        if (parsed.supplierId !== undefined) updates.supplierId = parsed.supplierId?.trim() || null
+        if (parsed.basePrice !== undefined) updates.basePrice = Number(parsed.basePrice)
+        if (parsed.salePrice !== undefined) updates.salePrice = parsed.salePrice === null || parsed.salePrice === '' ? null : Number(parsed.salePrice)
+        if (parsed.costPrice !== undefined) updates.costPrice = parsed.costPrice === null || parsed.costPrice === '' ? null : Number(parsed.costPrice)
+        if (parsed.description !== undefined) updates.description = parsed.description?.trim() || null
+        if (parsed.shortDescription !== undefined) updates.shortDescription = parsed.shortDescription?.trim() || null
+        if (parsed.weight !== undefined) updates.weight = parsed.weight === null || parsed.weight === '' ? null : Number(parsed.weight)
+        if (parsed.imageUrl !== undefined) updates.imageUrl = parsed.imageUrl?.trim() || null
+        if (parsed.isActive !== undefined) updates.isActive = parsed.isActive
+        if (parsed.isFeatured !== undefined) updates.isFeatured = parsed.isFeatured
 
         const [updated] = await db
             .update(products)
@@ -515,7 +663,7 @@ productsRouter.patch('/:id', authMiddleware, async (c) => {
         })
     } catch (err: any) {
         console.error('[products/update]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -550,7 +698,7 @@ productsRouter.delete('/:id', authMiddleware, async (c) => {
         return ok(c, { deleted: true })
     } catch (err: any) {
         console.error('[products/delete]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -600,7 +748,7 @@ productsRouter.get('/:id/variants', authMiddleware, async (c) => {
         return ok(c, { data: rows })
     } catch (err: any) {
         console.error('[products/variants/list]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -611,6 +759,11 @@ productsRouter.post('/:id/variants', authMiddleware, async (c) => {
         const orgId = await getOrgId(c)
         const productId = c.req.param('id')
         const body = await c.req.json().catch(() => null)
+        const parsedBody = createVariantSchema.safeParse(body)
+        if (!parsedBody.success) {
+            return errors.badRequest(c, getValidationMessage(parsedBody.error))
+        }
+        const parsed = parsedBody.data
 
         const [productRow] = await db
             .select({ id: products.id })
@@ -620,8 +773,8 @@ productsRouter.post('/:id/variants', authMiddleware, async (c) => {
 
         if (!productRow) return errors.notFound(c, 'Product not found')
 
-        const sku = body?.sku?.trim()
-        const barcode = body?.barcode?.trim()
+        const sku = parsed.sku?.trim()
+        const barcode = parsed.barcode?.trim()
 
         if (sku) {
             const [existingSku] = await db
@@ -654,22 +807,22 @@ productsRouter.post('/:id/variants', authMiddleware, async (c) => {
                 productId,
                 sku: sku || null,
                 barcode: barcode || null,
-                option1: body?.option1?.trim() || null,
-                option2: body?.option2?.trim() || null,
-                option3: body?.option3?.trim() || null,
-                price: body?.price !== undefined ? Number(body.price) : null,
-                compareAtPrice: body?.compareAtPrice !== undefined ? Number(body.compareAtPrice) : null,
-                costPrice: body?.costPrice !== undefined ? Number(body.costPrice) : null,
-                imageUrl: body?.imageUrl || null,
-                sortOrder: body?.sortOrder !== undefined ? Number(body.sortOrder) : 0,
-                isActive: body?.isActive !== false,
+                option1: parsed.option1?.trim() || null,
+                option2: parsed.option2?.trim() || null,
+                option3: parsed.option3?.trim() || null,
+                price: parsed.price !== undefined && parsed.price !== null && parsed.price !== '' ? Number(parsed.price) : null,
+                compareAtPrice: parsed.compareAtPrice !== undefined && parsed.compareAtPrice !== null && parsed.compareAtPrice !== '' ? Number(parsed.compareAtPrice) : null,
+                costPrice: parsed.costPrice !== undefined && parsed.costPrice !== null && parsed.costPrice !== '' ? Number(parsed.costPrice) : null,
+                imageUrl: parsed.imageUrl?.trim() || null,
+                sortOrder: parsed.sortOrder !== undefined ? Number(parsed.sortOrder) : 0,
+                isActive: parsed.isActive !== false,
             })
             .returning()
 
         return ok(c, created)
     } catch (err: any) {
         console.error('[products/variants/create]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -680,6 +833,11 @@ productsRouter.patch('/variants/:variantId', authMiddleware, async (c) => {
         const orgId = await getOrgId(c)
         const variantId = c.req.param('variantId')
         const body = await c.req.json().catch(() => null)
+        const parsedBody = updateVariantSchema.safeParse(body)
+        if (!parsedBody.success) {
+            return errors.badRequest(c, getValidationMessage(parsedBody.error))
+        }
+        const parsed = parsedBody.data
 
         const [existing] = await db
             .select({
@@ -693,7 +851,7 @@ productsRouter.patch('/variants/:variantId', authMiddleware, async (c) => {
 
         if (!existing) return errors.notFound(c, 'Variant not found')
 
-        const newSku = body?.sku?.trim()
+        const newSku = parsed.sku?.trim()
         if (newSku && newSku !== existing.sku) {
             const [duplicate] = await db
                 .select({ id: productVariants.id })
@@ -707,7 +865,7 @@ productsRouter.patch('/variants/:variantId', authMiddleware, async (c) => {
             if (duplicate) return errors.badRequest(c, 'SKU varian sudah digunakan')
         }
 
-        const newBarcode = body?.barcode?.trim()
+        const newBarcode = parsed.barcode?.trim()
         if (newBarcode && newBarcode !== existing.barcode) {
             const [duplicate] = await db
                 .select({ id: productVariants.id })
@@ -722,21 +880,17 @@ productsRouter.patch('/variants/:variantId', authMiddleware, async (c) => {
         }
 
         const updates: any = {}
-        if (body?.sku !== undefined) updates.sku = newSku || null
-        if (body?.barcode !== undefined) updates.barcode = newBarcode || null
-        if (body?.option1 !== undefined) updates.option1 = body.option1?.trim() || null
-        if (body?.option2 !== undefined) updates.option2 = body.option2?.trim() || null
-        if (body?.option3 !== undefined) updates.option3 = body.option3?.trim() || null
-        if (body?.price !== undefined) updates.price = body.price !== null ? Number(body.price) : null
-        if (body?.compareAtPrice !== undefined) updates.compareAtPrice = body.compareAtPrice !== null ? Number(body.compareAtPrice) : null
-        if (body?.costPrice !== undefined) updates.costPrice = body.costPrice !== null ? Number(body.costPrice) : null
-        if (body?.imageUrl !== undefined) updates.imageUrl = body.imageUrl || null
-        if (body?.sortOrder !== undefined) updates.sortOrder = Number(body.sortOrder)
-        if (body?.isActive !== undefined) updates.isActive = body.isActive
-
-        if (Object.keys(updates).length === 0) {
-            return errors.badRequest(c, 'Tidak ada field yang diupdate')
-        }
+        if (parsed.sku !== undefined) updates.sku = newSku || null
+        if (parsed.barcode !== undefined) updates.barcode = newBarcode || null
+        if (parsed.option1 !== undefined) updates.option1 = parsed.option1?.trim() || null
+        if (parsed.option2 !== undefined) updates.option2 = parsed.option2?.trim() || null
+        if (parsed.option3 !== undefined) updates.option3 = parsed.option3?.trim() || null
+        if (parsed.price !== undefined) updates.price = parsed.price !== null && parsed.price !== '' ? Number(parsed.price) : null
+        if (parsed.compareAtPrice !== undefined) updates.compareAtPrice = parsed.compareAtPrice !== null && parsed.compareAtPrice !== '' ? Number(parsed.compareAtPrice) : null
+        if (parsed.costPrice !== undefined) updates.costPrice = parsed.costPrice !== null && parsed.costPrice !== '' ? Number(parsed.costPrice) : null
+        if (parsed.imageUrl !== undefined) updates.imageUrl = parsed.imageUrl?.trim() || null
+        if (parsed.sortOrder !== undefined) updates.sortOrder = Number(parsed.sortOrder)
+        if (parsed.isActive !== undefined) updates.isActive = parsed.isActive
 
         const [updated] = await db
             .update(productVariants)
@@ -747,7 +901,7 @@ productsRouter.patch('/variants/:variantId', authMiddleware, async (c) => {
         return ok(c, updated)
     } catch (err: any) {
         console.error('[products/variants/update]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -786,7 +940,7 @@ productsRouter.delete('/variants/:variantId', authMiddleware, async (c) => {
         return ok(c, { deleted: true })
     } catch (err: any) {
         console.error('[products/variants/delete]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -821,7 +975,7 @@ productsRouter.get('/categories', authMiddleware, async (c) => {
         return ok(c, { data: rows })
     } catch (err: any) {
         console.error('[products/categories]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -831,19 +985,21 @@ productsRouter.post('/categories', authMiddleware, async (c) => {
         const db = c.get('db')
         const orgId = await getOrgId(c)
         const body = await c.req.json().catch(() => null)
-
-        const name = body?.name?.trim()
-        if (!name) return errors.badRequest(c, 'Nama kategori wajib diisi')
+        const parsedBody = createCategorySchema.safeParse(body)
+        if (!parsedBody.success) {
+            return errors.badRequest(c, getValidationMessage(parsedBody.error))
+        }
+        const { name, slug, description, parentId, sortOrder } = parsedBody.data
 
         const [created] = await db
             .insert(productCategories)
             .values({
                 organizationId: orgId,
                 name,
-                slug: body?.slug?.trim() || null,
-                description: body?.description?.trim() || null,
-                parentId: body?.parentId || null,
-                sortOrder: body?.sortOrder ? Number(body.sortOrder) : 0,
+                slug: slug?.trim() || null,
+                description: description?.trim() || null,
+                parentId: parentId?.trim() || null,
+                sortOrder: sortOrder === undefined || sortOrder === '' ? 0 : Number(sortOrder),
             })
             .returning()
 
@@ -857,7 +1013,7 @@ productsRouter.post('/categories', authMiddleware, async (c) => {
         })
     } catch (err: any) {
         console.error('[products/categories/create]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -894,7 +1050,7 @@ productsRouter.get('/suppliers', authMiddleware, async (c) => {
         return ok(c, { data: rows })
     } catch (err: any) {
         console.error('[products/suppliers]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -904,11 +1060,13 @@ productsRouter.post('/suppliers', authMiddleware, async (c) => {
         const db = c.get('db')
         const orgId = await getOrgId(c)
         const body = await c.req.json().catch(() => null)
-
-        const name = body?.name?.trim()
-        if (!name) return errors.badRequest(c, 'Nama pemasok wajib diisi')
-
-        const code = body?.code?.trim()
+        const parsedBody = createSupplierSchema.safeParse(body)
+        if (!parsedBody.success) {
+            return errors.badRequest(c, getValidationMessage(parsedBody.error))
+        }
+        const parsed = parsedBody.data
+        const name = parsed.name
+        const code = parsed.code?.trim()
         
         // Check code uniqueness
         if (code) {
@@ -929,13 +1087,13 @@ productsRouter.post('/suppliers', authMiddleware, async (c) => {
                 organizationId: orgId,
                 name,
                 code: code || null,
-                contactName: body?.contactName?.trim() || null,
-                email: body?.email?.trim() || null,
-                phone: body?.phone?.trim() || null,
-                address: body?.address?.trim() || null,
-                city: body?.city?.trim() || null,
-                province: body?.province?.trim() || null,
-                postalCode: body?.postalCode?.trim() || null,
+                contactName: parsed.contactName?.trim() || null,
+                email: parsed.email?.trim() || null,
+                phone: parsed.phone?.trim() || null,
+                address: parsed.address?.trim() || null,
+                city: parsed.city?.trim() || null,
+                province: parsed.province?.trim() || null,
+                postalCode: parsed.postalCode?.trim() || null,
             })
             .returning()
 
@@ -949,6 +1107,6 @@ productsRouter.post('/suppliers', authMiddleware, async (c) => {
         })
     } catch (err: any) {
         console.error('[products/suppliers/create]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })

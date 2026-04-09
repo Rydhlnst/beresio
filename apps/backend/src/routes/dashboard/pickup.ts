@@ -1,17 +1,36 @@
 import { Hono } from 'hono'
+import { z } from 'zod'
 import { authMiddleware } from '../../middleware/auth'
 import { getOrgId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
 import { and, desc, eq, gte, inArray } from 'drizzle-orm'
 import { customers, orderItems, orders, pickupOrders } from '@beresio/db'
 import { getBranchAccessContext } from '../../lib/branch-access'
+import { incrementDeprecatedPickupHits } from '../../lib/laundry-metrics'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
 type Variables = { db: any; user: any; session: any }
 
 const DEFAULT_LIMIT = 100
 const DEFAULT_DAYS = 3
-const STATUS_OPTIONS = ['Dikonfirmasi', 'Dicuci', 'Siap Diantar', 'Dalam Pengiriman', 'Selesai']
+const STATUS_OPTIONS = ['Dikonfirmasi', 'Dicuci', 'Siap Diantar', 'Dalam Pengiriman', 'Selesai'] as const
+const LEGACY_PICKUP_SUNSET = "Wed, 31 Dec 2026 23:59:59 GMT"
+const PICKUP_REPLACEMENT = {
+    path: "/api/dashboard/laundry/orders",
+    query: { orderType: "pickup" },
+}
+
+const updatePickupStatusSchema = z.object({
+    status: z.enum(STATUS_OPTIONS),
+})
+
+const assignPickupDriverSchema = z.object({
+    driverName: z.string().trim().min(1, 'driverName is required'),
+})
+
+function getValidationMessage(error: z.ZodError, fallback = 'Invalid payload') {
+    return error.issues[0]?.message ?? fallback
+}
 
 async function ensurePickupRow(db: any, input: {
     orgId: string
@@ -52,13 +71,46 @@ async function ensurePickupRow(db: any, input: {
 
 export const pickupRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
+function isLegacyPickupEnabled(c: any) {
+    const value = c.env?.ENABLE_LEGACY_PICKUP_ROUTES
+    return typeof value === "string" && value.toLowerCase() === "true"
+}
+
+function deprecatedPickupResponse(c: any) {
+    incrementDeprecatedPickupHits()
+    console.info(JSON.stringify({
+        scope: "pickup-legacy",
+        action: "deprecated_hit",
+        result: "gone",
+        method: c.req.method,
+        path: c.req.path,
+        replacement: PICKUP_REPLACEMENT,
+    }))
+
+    c.header("X-Deprecated", "true")
+    c.header("Sunset", LEGACY_PICKUP_SUNSET)
+    c.header("Link", "</api/dashboard/laundry/orders?orderType=pickup>; rel=\"successor-version\"")
+    return c.json({
+        success: false,
+        code: "LEGACY_PICKUP_DEPRECATED",
+        message: "Legacy pickup endpoints are deprecated. Use laundry orders endpoint.",
+        replacement: PICKUP_REPLACEMENT,
+    }, 410)
+}
+
+pickupRouter.use("*", async (c, next) => {
+    if (!isLegacyPickupEnabled(c)) {
+        return deprecatedPickupResponse(c)
+    }
+    await next()
+})
+
 // GET /api/dashboard/pickup
 pickupRouter.get('/', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
         const orgId = await getOrgId(c)
         const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId)
-        console.log('[DEBUG] pickup/ - branchIds:', branchIds)
         if (branchIds.length === 0 && !isOrgWide) return errors.forbidden(c, 'No branch access')
         if (branchIds.length === 0 && isOrgWide) return ok(c, [])
         const limit = Math.min(Number(c.req.query('limit') ?? DEFAULT_LIMIT), 200)
@@ -155,7 +207,7 @@ pickupRouter.get('/', authMiddleware, async (c) => {
         return ok(c, data)
     } catch (err: any) {
         console.error('[pickup/list]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -210,7 +262,7 @@ pickupRouter.get('/:id', authMiddleware, async (c) => {
         })
     } catch (err: any) {
         console.error('[pickup/detail]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -221,9 +273,11 @@ pickupRouter.patch('/:id/status', authMiddleware, async (c) => {
         const orgId = await getOrgId(c)
         const orderId = c.req.param('id')
         const body = await c.req.json().catch(() => null)
-
-        const status = body?.status
-        if (!STATUS_OPTIONS.includes(status)) return errors.badRequest(c, 'Invalid status')
+        const parsedBody = updatePickupStatusSchema.safeParse(body)
+        if (!parsedBody.success) {
+            return errors.badRequest(c, getValidationMessage(parsedBody.error))
+        }
+        const { status } = parsedBody.data
 
         const [orderRow] = await db
             .select({
@@ -255,7 +309,7 @@ pickupRouter.patch('/:id/status', authMiddleware, async (c) => {
         return ok(c, updated)
     } catch (err: any) {
         console.error('[pickup/status]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -266,9 +320,11 @@ pickupRouter.patch('/:id/assign-driver', authMiddleware, async (c) => {
         const orgId = await getOrgId(c)
         const orderId = c.req.param('id')
         const body = await c.req.json().catch(() => null)
-
-        const driverName = body?.driverName?.trim()
-        if (!driverName) return errors.badRequest(c, 'driverName is required')
+        const parsedBody = assignPickupDriverSchema.safeParse(body)
+        if (!parsedBody.success) {
+            return errors.badRequest(c, getValidationMessage(parsedBody.error))
+        }
+        const { driverName } = parsedBody.data
 
         const [orderRow] = await db
             .select({
@@ -300,6 +356,6 @@ pickupRouter.patch('/:id/assign-driver', authMiddleware, async (c) => {
         return ok(c, updated)
     } catch (err: any) {
         console.error('[pickup/assign-driver]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })

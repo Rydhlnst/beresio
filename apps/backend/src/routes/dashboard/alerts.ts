@@ -53,6 +53,6 @@ alertsRouter.get('/', authMiddleware, async (c) => {
         return ok(c, alerts)
     } catch (err: any) {
         console.error('[alerts]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })

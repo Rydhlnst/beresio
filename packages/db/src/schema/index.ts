@@ -11,3 +11,5 @@ export * from './business.schema';
 export * from './products.schema';
 export * from './variants.schema';
 export * from './transactions.schema';
+export * from './fnb.schema';
+export * from './laundry.schema';

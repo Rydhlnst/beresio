@@ -409,6 +409,21 @@ describe("products routes", () => {
             expect(res.status).toBe(404);
             expect(body.success).toBe(false);
         });
+
+        it("phase 2.6: rejects empty update payload", async () => {
+            const app = createProductsApp(createDbMock());
+
+            const res = await app.request("/api/dashboard/products/prod-1", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({}),
+            });
+            const body = await res.json();
+
+            expect(res.status).toBe(400);
+            expect(body.success).toBe(false);
+            expect(body.error.code).toBe("BAD_REQUEST");
+        });
     });
 
     describe("DELETE /:id", () => {
@@ -490,5 +505,21 @@ describe("products routes", () => {
             expect(body.success).toBe(true);
             expect(body.data).toHaveLength(2);
         });
+    });
+
+    it("phase 2.6: GET / hides internal error details", async () => {
+        const app = createProductsApp({
+            select: () => {
+                throw new Error("sensitive-db-error");
+            },
+        });
+
+        const res = await app.request("/api/dashboard/products");
+        const body = await res.json();
+
+        expect(res.status).toBe(500);
+        expect(body.success).toBe(false);
+        expect(body.error.code).toBe("INTERNAL_ERROR");
+        expect(body.error.message).toBe("Internal server error");
     });
 });

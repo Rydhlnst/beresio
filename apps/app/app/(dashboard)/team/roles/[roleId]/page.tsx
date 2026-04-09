@@ -5,13 +5,21 @@ import { Badge } from "@repo/ui/badge";
 import { SectionCard } from "@/components/dashboard/shared/section-card";
 
 type RoleDetailPageProps = {
-    params: { roleId: string };
+    params: Promise<{ roleId: string }>;
 };
 
-export const metadata: Metadata = {
-    title: "Detail Role | Beres",
-    description: "Detail role dan izin",
-};
+export async function generateMetadata({ params }: RoleDetailPageProps): Promise<Metadata> {
+    const { roleId } = await params;
+    const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://app.beres.io";
+
+    return {
+        title: `Detail Role ${roleId}`,
+        description: "Detail role dan izin",
+        alternates: {
+            canonical: `${appBaseUrl}/tim/roles/${roleId}`,
+        },
+    };
+}
 
 const PERMISSIONS = [
     "Dashboard",
@@ -22,14 +30,16 @@ const PERMISSIONS = [
     "Pengaturan",
 ];
 
-export default function RoleDetailPage({ params }: RoleDetailPageProps) {
+export default async function RoleDetailPage({ params }: RoleDetailPageProps) {
+    const { roleId } = await params;
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h1 className="text-2xl font-semibold text-foreground">Detail Role</h1>
                     <p className="text-sm text-muted-foreground mt-2">
-                        Role ID: {params.roleId}
+                        Role ID: {roleId}
                     </p>
                 </div>
                 <Button variant="outline" className="h-9 text-xs font-semibold" asChild>

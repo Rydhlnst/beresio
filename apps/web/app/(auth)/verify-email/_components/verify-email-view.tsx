@@ -44,7 +44,7 @@ export function VerifyEmailView({ email }: VerifyEmailViewProps) {
         <Card className="w-full border-border shadow-sm">
             <CardHeader className="items-center space-y-4 pb-4">
                 <div className="flex size-16 items-center justify-center rounded-full bg-muted">
-                    <Mail className="size-8 text-primary" />
+                    <Mail className="size-8 text-brand" />
                 </div>
                 <div className="space-y-1 text-center">
                     <CardTitle className="text-2xl font-bold tracking-tight">
@@ -80,7 +80,7 @@ export function VerifyEmailView({ email }: VerifyEmailViewProps) {
                     Email sudah terverifikasi?{" "}
                     <Link
                         href="/login"
-                        className="font-medium text-primary hover:underline underline-offset-4"
+                        className="font-medium text-brand hover:underline underline-offset-4"
                     >
                         Masuk
                     </Link>

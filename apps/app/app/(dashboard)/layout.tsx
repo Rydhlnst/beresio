@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { createDbNextjs, team } from "@beresio/db";
+import { branches, createDbNextjs } from "@beresio/db";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { BusinessNavResponse, BusinessNavItem } from "@/components/dashboard/layout/nav-config";
@@ -14,6 +14,17 @@ type OrgRecord = {
     subscriptionPlan?: string | null;
     businessType?: string | null;
 };
+
+async function readJsonBodySafe<T>(response: Response): Promise<{ data: T | null; rawText: string }> {
+    const rawText = await response.text();
+    if (!rawText) return { data: null, rawText: "" };
+
+    try {
+        return { data: JSON.parse(rawText) as T, rawText };
+    } catch {
+        return { data: null, rawText };
+    }
+}
 
 export default async function DashboardLayout({
     children,
@@ -57,40 +68,59 @@ export default async function DashboardLayout({
     let navLoaded = false;
     let businessName: string | null = activeOrganization?.name ?? null;
     let businessType: string | null = activeOrganization?.businessType ?? null;
+    let roleName: string | null = null;
+    let permissions: string[] = [];
 
     if (activeOrganization?.id) {
-        const navRes = await fetch(
-            `${apiBaseUrl}/api/businesses/${activeOrganization.id}/navigation`,
-            {
-                headers: { cookie },
-                cache: "no-store",
-            }
-        );
+        try {
+            const navRes = await fetch(
+                `${apiBaseUrl}/api/businesses/${activeOrganization.id}/navigation`,
+                {
+                    headers: {
+                        cookie,
+                        accept: "application/json",
+                    },
+                    cache: "no-store",
+                }
+            );
 
-        if (navRes.ok) {
-            const navBody = (await navRes.json()) as { data?: BusinessNavResponse };
-            const navData = navBody?.data;
-            navItems = navData?.navigation ?? [];
-            navBaseItems = navData?.navigationBase ?? [];
-            navVerticalItems = navData?.navigationVertical ?? [];
-            businessName = navData?.business?.name ?? businessName;
-            businessType = navData?.business?.type ?? businessType;
-        } else {
-            console.error("Failed to fetch business navigation:", await navRes.text());
+            const { data: navBody, rawText } = await readJsonBodySafe<{ data?: BusinessNavResponse }>(navRes);
+
+            if (navRes.ok && navBody?.data) {
+                const navData = navBody.data;
+                navItems = navData.navigation ?? [];
+                navBaseItems = navData.navigationBase ?? [];
+                navVerticalItems = navData.navigationVertical ?? [];
+                businessName = navData.business?.name ?? businessName;
+                businessType = navData.business?.type ?? businessType;
+                roleName = navData.role?.name ?? roleName;
+                permissions = navData.permissions ?? permissions;
+            } else {
+                const contentType = navRes.headers.get("content-type") ?? "unknown";
+                const preview = rawText.slice(0, 280);
+                console.error(
+                    "Failed to fetch business navigation:",
+                    `status=${navRes.status}`,
+                    `contentType=${contentType}`,
+                    preview
+                );
+            }
+        } catch (error) {
+            console.error("Failed to fetch business navigation (request error):", error);
         }
         navLoaded = true;
     }
 
-    const teamCountRows = activeOrganization?.id
+    const branchCountRows = activeOrganization?.id
         ? await db
             .select({ count: sql<number>`count(*)` })
-            .from(team)
-            .where(eq(team.organizationId, activeOrganization.id))
+            .from(branches)
+            .where(eq(branches.organizationId, activeOrganization.id))
         : [{ count: 0 }];
 
-    const hasTeam = Number(teamCountRows[0]?.count ?? 0) > 0;
+    const hasBranch = Number(branchCountRows[0]?.count ?? 0) > 0;
 
-    if (!hasTeam) {
+    if (!hasBranch) {
         redirect("/onboarding/team");
     }
 
@@ -99,6 +129,8 @@ export default async function DashboardLayout({
     return (
         <DashboardShell
             organizationName={businessName ?? "Organisasi"}
+            roleName={roleName}
+            permissions={permissions}
             user={{
                 name: session.user.name ?? "Owner",
                 email: session.user.email ?? "",

@@ -24,7 +24,7 @@ import {
   CollapsibleTrigger,
 } from "@radix-ui/react-collapsible"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import Image from "next/image"
 import {
   LayoutDashboard,
@@ -47,6 +47,7 @@ import {
   ChevronRight,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { getNavPathMatchScore, isNavPathActive, resolveNavPath } from "@/components/dashboard/layout/nav-utils"
 
 const ICONS: Record<string, React.ElementType> = {
   basket: ShoppingBasket,
@@ -67,15 +68,7 @@ const ICONS: Record<string, React.ElementType> = {
   truck: Truck,
   "layout-dashboard": LayoutDashboard,
 }
-
-const ROUTE_PREFIX_ALIASES: Array<[string, string]> = [
-  ["/laporan", "/reports"],
-  ["/cabang", "/branches"],
-  ["/tim", "/team"],
-  ["/menu", "/menus"],
-  ["/meja", "/tables"],
-  ["/pengaturan", "/settings"],
-]
+const MAX_PREFETCH_CACHE = 6
 
 type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
   organizations: OrgSwitcherItem[]
@@ -97,9 +90,11 @@ export function AppSidebar({
   isNavLoading = false,
   businessName,
   businessType,
+  className,
   ...props
 }: AppSidebarProps) {
   const pathname = usePathname()
+  const router = useRouter()
   const businessTypeLabel = businessType
     ? ({ laundry: "Laundry", fnb: "F&B", retail: "Retail" }[businessType] ?? businessType)
     : null
@@ -107,21 +102,9 @@ export function AppSidebar({
   const baseItems = hasGroupedNav ? navBaseItems ?? [] : navItems
   const verticalItems = hasGroupedNav ? navVerticalItems ?? [] : []
 
-  const resolvePath = React.useCallback((path: string) => {
-    for (const [from, to] of ROUTE_PREFIX_ALIASES) {
-      if (path === from || path.startsWith(`${from}/`)) {
-        return `${to}${path.slice(from.length)}`
-      }
-    }
-    return path
-  }, [])
-
   const isPathActive = React.useCallback(
-    (path: string) => {
-      const resolvedPath = resolvePath(path)
-      return pathname === resolvedPath || pathname.startsWith(`${resolvedPath}/`)
-    },
-    [pathname, resolvePath]
+    (path: string) => isNavPathActive(pathname, path),
+    [pathname]
   )
 
   // Track expanded menu items
@@ -162,16 +145,39 @@ export function AppSidebar({
     })
   }
 
+  const prefetchedPaths = React.useRef<Set<string>>(new Set())
+
+  const prefetchPath = React.useCallback(
+    (path: string) => {
+      if (isPathActive(path)) return
+      if (!path.startsWith("/") || prefetchedPaths.current.has(path)) return
+      if (prefetchedPaths.current.size >= MAX_PREFETCH_CACHE) return
+      prefetchedPaths.current.add(path)
+      try {
+        router.prefetch(path)
+      } catch {
+        prefetchedPaths.current.delete(path)
+      }
+    },
+    [router, isPathActive]
+  )
+
   const renderNavItems = (items: BusinessNavItem[]) =>
     items.map((item) => {
-      const resolvedItemPath = resolvePath(item.path)
+      const resolvedItemPath = resolveNavPath(item.path)
       const isActive = isPathActive(item.path)
       const Icon = ICONS[item.icon] ?? LayoutDashboard
       const submenu = item.submenu ?? []
       const hasSubmenu = submenu.length > 0
-      const isSubActive = submenu.some(
-        (sub) => isPathActive(sub.path)
-      )
+      const activeSubmenuId = submenu.reduce<{ id: string | null; score: number }>(
+        (best, sub) => {
+          const score = getNavPathMatchScore(pathname, sub.path)
+          if (score > best.score) return { id: sub.id, score }
+          return best
+        },
+        { id: null, score: -1 }
+      ).id
+      const isSubActive = activeSubmenuId !== null
       const isExpanded = expandedItems.has(item.id)
 
       // Menu item dengan submenu (collapsible)
@@ -188,7 +194,7 @@ export function AppSidebar({
                 <SidebarMenuButton
                   isActive={isActive || isSubActive}
                   tooltip={item.label}
-                  className="h-9 w-full justify-between"
+                  className="h-10 w-full justify-between rounded-xl px-3 text-[13px] font-medium data-[active=true]:bg-primary data-[active=true]:text-primary-foreground hover:bg-sidebar-accent/70"
                 >
                   <div className="flex items-center gap-2">
                     <Icon className="h-4 w-4" />
@@ -206,14 +212,23 @@ export function AppSidebar({
                 <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
               ) : null}
               <CollapsibleContent>
-                <SidebarMenuSub>
+                <SidebarMenuSub className="mx-4 border-l border-sidebar-border/70">
                   {submenu.map((sub) => {
-                    const resolvedSubPath = resolvePath(sub.path)
-                    const isSubItemActive = isPathActive(sub.path)
+                    const resolvedSubPath = resolveNavPath(sub.path)
+                    const isSubItemActive = sub.id === activeSubmenuId
                     return (
                       <SidebarMenuSubItem key={sub.id}>
-                        <SidebarMenuSubButton asChild isActive={isSubItemActive}>
-                          <Link href={resolvedSubPath}>
+                        <SidebarMenuSubButton
+                          asChild
+                          isActive={isSubItemActive}
+                          className="h-8 rounded-lg text-xs data-[active=true]:bg-sidebar-accent/80 data-[active=true]:font-semibold"
+                        >
+                          <Link
+                            href={resolvedSubPath}
+                            prefetch={false}
+                            onMouseEnter={() => prefetchPath(resolvedSubPath)}
+                            onFocus={() => prefetchPath(resolvedSubPath)}
+                          >
                             <span>{sub.label}</span>
                           </Link>
                         </SidebarMenuSubButton>
@@ -234,9 +249,14 @@ export function AppSidebar({
             asChild
             isActive={isActive}
             tooltip={item.label}
-            className="h-9"
+            className="h-10 rounded-xl px-3 text-[13px] font-medium data-[active=true]:bg-primary data-[active=true]:text-primary-foreground hover:bg-sidebar-accent/70"
           >
-            <Link href={resolvedItemPath}>
+            <Link
+              href={resolvedItemPath}
+              prefetch={false}
+              onMouseEnter={() => prefetchPath(resolvedItemPath)}
+              onFocus={() => prefetchPath(resolvedItemPath)}
+            >
               <Icon />
               <span>{item.label}</span>
             </Link>
@@ -249,21 +269,25 @@ export function AppSidebar({
     })
 
   return (
-    <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader className="p-0">
-        <div className="flex h-14 items-center gap-3 px-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2">
+    <Sidebar
+      collapsible="icon"
+      className={cn("border-r border-sidebar-border/70 bg-sidebar/95 backdrop-blur", className)}
+      {...props}
+    >
+      <SidebarHeader className="border-b border-sidebar-border/70 p-0">
+        <div className="flex h-16 items-center gap-3 px-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2">
           <Image src="/logo.svg" alt="Beres logo" width={26} height={26} />
           <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-            <span className="truncate font-semibold text-foreground">
+            <span className="truncate text-[15px] font-semibold text-foreground">
               {businessName ?? "Beres.io"}
             </span>
-            <span className="truncate text-[11px] text-muted-foreground font-normal uppercase tracking-wide">
+            <span className="truncate text-[10px] text-muted-foreground font-semibold uppercase tracking-[0.18em]">
               {businessTypeLabel ? `${businessTypeLabel} dashboard` : "Owner Dashboard"}
             </span>
           </div>
         </div>
       </SidebarHeader>
-      <SidebarContent className="px-2">
+      <SidebarContent className="px-2 py-3">
         <SidebarMenu className="gap-1">
           {isNavLoading ? (
             <>
@@ -281,7 +305,7 @@ export function AppSidebar({
               {baseItems.length > 0 ? (
                 <>
                   {hasGroupedNav ? (
-                    <div className="px-3 pt-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    <div className="px-3 pt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                       Menu Dasar
                     </div>
                   ) : null}
@@ -291,7 +315,7 @@ export function AppSidebar({
               {verticalItems.length > 0 ? (
                 <>
                   <SidebarSeparator />
-                  <div className="px-3 pt-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  <div className="px-3 pt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                     {businessTypeLabel ? `Menu ${businessTypeLabel}` : "Menu Vertical"}
                   </div>
                   {renderNavItems(verticalItems)}

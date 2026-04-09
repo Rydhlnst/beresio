@@ -114,7 +114,7 @@ export function OrgSwitcher({
                 <SidebarMenuItem key={org.id}>
                   <SidebarMenuButton
                     isActive={isActive}
-                    className="h-9 gap-3"
+                    className="h-10 gap-3 rounded-xl px-3 text-[13px] font-medium data-[active=true]:bg-primary data-[active=true]:text-primary-foreground hover:bg-sidebar-accent/70"
                     onClick={() => handleSelect(org)}
                   >
                     <span

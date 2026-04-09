@@ -19,11 +19,27 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+    metadataBase: new URL(
+        process.env.NEXT_PUBLIC_APP_URL
+            ?? process.env.NEXT_PUBLIC_SITE_URL
+            ?? "https://app.beres.io"
+    ),
     title: {
-        default: "Beres App — Owner Dashboard",
+        default: "Beres App - Owner Dashboard",
         template: "%s | Beres",
     },
     description: "Command center for Beres business owners",
+    robots: {
+        index: false,
+        follow: false,
+        googleBot: {
+            index: false,
+            follow: false,
+            "max-snippet": -1,
+            "max-image-preview": "none",
+            "max-video-preview": -1,
+        },
+    },
 };
 
 export default function RootLayout({

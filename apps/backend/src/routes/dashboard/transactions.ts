@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { z } from 'zod'
 import { authMiddleware } from '../../middleware/auth'
 import { getOrgId, getUserId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
@@ -18,8 +19,30 @@ type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_
 type Variables = { db: any; user: any; session: any }
 
 const DEFAULT_LIMIT = 50
-const ALLOWED_STATUS = ['pending', 'paid', 'refunded']
-const ALLOWED_TYPE = ['sale', 'dp', 'pelunasan', 'refund']
+const ALLOWED_STATUS = ['pending', 'paid', 'refunded'] as const
+const ALLOWED_TYPE = ['sale', 'dp', 'pelunasan', 'refund'] as const
+
+const transactionItemSchema = z.object({
+    productId: z.string().trim().min(1, 'productId is required'),
+    quantity: z.coerce.number().finite().gt(0, 'quantity must be > 0'),
+    unitPrice: z.coerce.number().finite().min(0, 'unitPrice must be >= 0'),
+})
+
+const createTransactionSchema = z.object({
+    branchId: z.string().trim().min(1, 'branchId is required'),
+    customerId: z.string().trim().min(1).nullable().optional(),
+    status: z.enum(ALLOWED_STATUS).default('paid'),
+    type: z.enum(ALLOWED_TYPE).default('sale'),
+    paymentMethod: z.string().trim().min(1).nullable().optional(),
+    notes: z.string().nullable().optional(),
+    discountAmount: z.coerce.number().finite().min(0, 'discountAmount must be >= 0').default(0),
+    taxAmount: z.coerce.number().finite().min(0, 'taxAmount must be >= 0').default(0),
+    items: z.array(transactionItemSchema).min(1, 'items are required'),
+})
+
+function getValidationMessage(error: z.ZodError, fallback = 'Invalid payload') {
+    return error.issues[0]?.message ?? fallback
+}
 
 async function recordStockMovement(tx: any, input: {
     orgId: string
@@ -126,7 +149,7 @@ transactionsRouter.get('/', authMiddleware, async (c) => {
         })))
     } catch (err: any) {
         console.error('[transactions/list]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -203,7 +226,7 @@ transactionsRouter.get('/:id', authMiddleware, async (c) => {
         })
     } catch (err: any) {
         console.error('[transactions/detail]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -222,22 +245,24 @@ transactionsRouter.post('/', authMiddleware, async (c) => {
             }
         })()
         const body = await c.req.json().catch(() => null)
+        const parsedBody = createTransactionSchema.safeParse(body)
+        if (!parsedBody.success) {
+            return errors.badRequest(c, getValidationMessage(parsedBody.error))
+        }
 
-        const branchId = body?.branchId
-        const customerId = body?.customerId ?? null
-        const status = body?.status ?? 'paid'
-        const type = body?.type ?? 'sale'
-        const paymentMethod = body?.paymentMethod ?? null
-        const notes = body?.notes ?? null
-        const discountAmount = Number(body?.discountAmount ?? 0)
-        const taxAmount = Number(body?.taxAmount ?? 0)
-        const items = Array.isArray(body?.items) ? body.items : []
+        const {
+            branchId,
+            customerId,
+            status,
+            type,
+            paymentMethod,
+            notes,
+            discountAmount,
+            taxAmount,
+            items,
+        } = parsedBody.data
 
-        if (!branchId) return errors.badRequest(c, 'branchId is required')
         if (!hasBranchAccess(branchIds, branchId)) return errors.forbidden(c, 'No access to branch')
-        if (items.length === 0) return errors.badRequest(c, 'items are required')
-        if (!ALLOWED_STATUS.includes(status)) return errors.badRequest(c, 'Invalid status')
-        if (!ALLOWED_TYPE.includes(type)) return errors.badRequest(c, 'Invalid type')
 
         const [branchRow] = await db
             .select({ id: branches.id })
@@ -255,15 +280,7 @@ transactionsRouter.post('/', authMiddleware, async (c) => {
             if (!customerRow) return errors.badRequest(c, 'Customer not found')
         }
 
-        const normalizedItems = items.map((item: any) => ({
-            productId: String(item?.productId ?? ''),
-            quantity: Number(item?.quantity ?? 0),
-            unitPrice: Number(item?.unitPrice ?? 0),
-        }))
-
-        if (normalizedItems.some((item: any) => !item.productId || item.quantity <= 0 || item.unitPrice < 0)) {
-            return errors.badRequest(c, 'Invalid item payload')
-        }
+        const normalizedItems = items
 
         const productIds = normalizedItems.map((item: any) => item.productId)
         const productRows = await db
@@ -318,13 +335,6 @@ transactionsRouter.post('/', authMiddleware, async (c) => {
             const nextQty = available + stockDelta * item.quantity
             if (nextQty < 0) return errors.badRequest(c, 'Insufficient stock')
             stockMap.set(productInfo.inventoryProductId, nextQty)
-        }
-
-        if (!Number.isFinite(discountAmount) || discountAmount < 0) {
-            return errors.badRequest(c, 'Invalid discountAmount')
-        }
-        if (!Number.isFinite(taxAmount) || taxAmount < 0) {
-            return errors.badRequest(c, 'Invalid taxAmount')
         }
 
         const subtotal = normalizedItems.reduce(
@@ -435,6 +445,6 @@ transactionsRouter.post('/', authMiddleware, async (c) => {
         if (err?.message === 'INSUFFICIENT_STOCK') {
             return errors.badRequest(c, 'Insufficient stock')
         }
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })

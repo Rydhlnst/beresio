@@ -9,7 +9,7 @@ import { ErrorRetryAction } from "@/components/dashboard/shared/error-retry-acti
 import { ErrorToast } from "@/components/dashboard/shared/error-toast";
 
 export const metadata: Metadata = {
-    title: "Cabang | Beres",
+    title: "Cabang",
     description: "Kelola cabang dan performa singkat",
 };
 
