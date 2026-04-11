@@ -21,7 +21,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Tab One',
+          title: 'Vertical',
           tabBarIcon: ({ color }) => (
             <SymbolView
               name={{
@@ -52,7 +52,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="two"
         options={{
-          title: 'Tab Two',
+          title: 'Sandbox',
           tabBarIcon: ({ color }) => (
             <SymbolView
               name={{
@@ -64,6 +64,27 @@ export default function TabLayout() {
               size={28}
             />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="vertical/[businessType]"
+        options={{
+          href: null,
+          headerShown: false,
+        }}
+      />
+      <Tabs.Screen
+        name="vertical/[businessType]/[moduleId]"
+        options={{
+          href: null,
+          headerShown: false,
+        }}
+      />
+      <Tabs.Screen
+        name="vertical/[businessType]/[moduleId]/flow/[action]"
+        options={{
+          href: null,
+          headerShown: false,
         }}
       />
     </Tabs>

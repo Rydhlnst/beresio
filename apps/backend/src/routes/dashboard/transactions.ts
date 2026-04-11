@@ -14,6 +14,7 @@ import {
     transactions,
 } from '@beresio/db'
 import { getAccessibleBranchIds, getBranchAccessContext, hasBranchAccess } from '../../lib/branch-access'
+import { requireBranchContext } from '../../middleware/branch-context'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
 type Variables = { db: any; user: any; session: any }
@@ -231,7 +232,7 @@ transactionsRouter.get('/:id', authMiddleware, async (c) => {
 })
 
 // POST /api/dashboard/transactions
-transactionsRouter.post('/', authMiddleware, async (c) => {
+transactionsRouter.post('/', authMiddleware, requireBranchContext(), async (c) => {
     try {
         const db = c.get('db')
         const orgId = await getOrgId(c)

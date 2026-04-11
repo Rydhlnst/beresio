@@ -58,7 +58,7 @@ export function LoginForm() {
             if (error) {
                 toast.error("Email atau password tidak valid");
             } else {
-                push("/dashboard");
+                push("/");
                 refresh();
             }
         } catch (err) {
@@ -73,7 +73,7 @@ export function LoginForm() {
         try {
             await authClient.signIn.social({
                 provider: "google",
-                callbackURL: "/dashboard",
+                callbackURL: "/",
             });
         } catch (err) {
             toast.error("Failed to sign in with Google");

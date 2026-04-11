@@ -14,6 +14,7 @@ export type BusinessNavResponse = {
     id: string;
     name: string;
     type: BusinessType;
+    mode?: "single" | "multi";
     config: Record<string, unknown>;
   };
   role?: {

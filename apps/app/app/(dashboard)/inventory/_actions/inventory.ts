@@ -1,7 +1,7 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { apiClient } from "@/lib/api-client";
+import { buildBranchScopedHeaders, persistActiveBranchId } from "@/lib/branch-context.server";
 
 // ============================================
 // PRODUCT ACTIONS
@@ -23,10 +23,10 @@ type UpdateProductInput = {
 };
 
 export async function createProductAction(input: CreateProductInput) {
-    const cookie = (await cookies()).toString();
+    const headers = await buildBranchScopedHeaders();
     const res = await (apiClient as any).api.dashboard.inventory.products.$post(
         { json: input },
-        { headers: { cookie } }
+        { headers }
     );
 
     if (!res.ok) {
@@ -39,10 +39,10 @@ export async function createProductAction(input: CreateProductInput) {
 }
 
 export async function updateProductAction(productId: string, input: UpdateProductInput) {
-    const cookie = (await cookies()).toString();
+    const headers = await buildBranchScopedHeaders();
     const res = await (apiClient as any).api.dashboard.inventory.products[":id"].$patch(
         { param: { id: productId }, json: input },
-        { headers: { cookie } }
+        { headers }
     );
 
     if (!res.ok) {
@@ -55,10 +55,10 @@ export async function updateProductAction(productId: string, input: UpdateProduc
 }
 
 export async function deleteProductAction(productId: string) {
-    const cookie = (await cookies()).toString();
+    const headers = await buildBranchScopedHeaders();
     const res = await (apiClient as any).api.dashboard.inventory.products[":id"].$delete(
         { param: { id: productId } },
-        { headers: { cookie } }
+        { headers }
     );
 
     if (!res.ok) {
@@ -90,10 +90,11 @@ type TransferInput = {
 };
 
 export async function createInventoryAdjustmentAction(input: AdjustmentInput) {
-    const cookie = (await cookies()).toString();
+    await persistActiveBranchId(input.branchId);
+    const headers = await buildBranchScopedHeaders({ branchId: input.branchId });
     const res = await (apiClient as any).api.dashboard.inventory.adjustments.$post(
         { json: input },
-        { headers: { cookie } }
+        { headers }
     );
 
     if (!res.ok) {
@@ -106,10 +107,11 @@ export async function createInventoryAdjustmentAction(input: AdjustmentInput) {
 }
 
 export async function createInventoryTransferAction(input: TransferInput) {
-    const cookie = (await cookies()).toString();
+    await persistActiveBranchId(input.fromBranchId);
+    const headers = await buildBranchScopedHeaders({ branchId: input.fromBranchId });
     const res = await (apiClient as any).api.dashboard.inventory.transfers.$post(
         { json: input },
-        { headers: { cookie } }
+        { headers }
     );
 
     if (!res.ok) {
@@ -125,10 +127,10 @@ export async function updateInventoryTransferStatusAction(
     transferId: string,
     status: "approved" | "rejected" | "cancelled"
 ) {
-    const cookie = (await cookies()).toString();
+    const headers = await buildBranchScopedHeaders();
     const res = await (apiClient as any).api.dashboard.inventory.transfers[":id"].$patch(
         { param: { id: transferId }, json: { status } },
-        { headers: { cookie } }
+        { headers }
     );
 
     if (!res.ok) {

@@ -34,6 +34,12 @@ vi.mock("../../lib/stock", () => ({
     resolveInventoryBySku: vi.fn(async () => new Map()),
 }));
 
+vi.mock("../../lib/fnb-domain", () => ({
+    appendDomainEvent: vi.fn(async () => undefined),
+    canTransitionOrderStatus: vi.fn(() => true),
+    projectDomainEvent: vi.fn(() => null),
+}));
+
 import { ordersRouter } from "./orders";
 
 function createOrdersContractApp(db: any) {
@@ -54,6 +60,9 @@ function createDbForCreate(capture: { insertedOrder?: any }) {
             select: () => ({
                 from: () => ({
                     where: () => ({
+                        orderBy: () => ({
+                            limit: async () => [],
+                        }),
                         limit: async () => [],
                     }),
                 }),
@@ -177,7 +186,10 @@ describe("orders contract compatibility", () => {
 
         const res = await app.request("/api/dashboard/orders/ord-1", {
             method: "PATCH",
-            headers: { "content-type": "application/json" },
+            headers: {
+                "content-type": "application/json",
+                "x-branch-id": "br-1",
+            },
             body: JSON.stringify({
                 status: "done",
                 type: "walkin",
@@ -230,7 +242,10 @@ describe("orders contract compatibility", () => {
 
         const res = await app.request("/api/dashboard/orders/ord-1", {
             method: "PATCH",
-            headers: { "content-type": "application/json" },
+            headers: {
+                "content-type": "application/json",
+                "x-branch-id": "br-1",
+            },
             body: JSON.stringify({
                 guestCount: 0,
             }),

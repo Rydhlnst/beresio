@@ -10,6 +10,7 @@ export const metadata: Metadata = {
 export default async function PickupPage() {
     const activeOrg = await getActiveOrganizationContext();
     if (!activeOrg) redirect("/login");
-    if (activeOrg.businessType !== "laundry") redirect("/dashboard");
+    if (activeOrg.businessType !== "laundry") redirect("/");
     redirect("/laundry/orders?orderType=pickup");
 }
+

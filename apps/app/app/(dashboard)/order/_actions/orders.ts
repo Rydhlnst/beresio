@@ -1,8 +1,8 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { apiClient } from "@/lib/api-client";
 import type { OrderStatusInput, OrderTypeInput } from "@beresio/db";
+import { buildBranchScopedHeaders, persistActiveBranchId } from "@/lib/branch-context.server";
 
 type OrderItemInput = {
     name: string;
@@ -37,10 +37,11 @@ export type UpdateOrderInput = {
 };
 
 export async function createOrderAction(input: CreateOrderInput) {
-    const cookie = (await cookies()).toString();
+    await persistActiveBranchId(input.branchId);
+    const headers = await buildBranchScopedHeaders({ branchId: input.branchId });
     const res = await (apiClient as any).api.dashboard.orders.$post(
         { json: input },
-        { headers: { cookie } }
+        { headers }
     );
 
     if (!res.ok) {
@@ -53,10 +54,10 @@ export async function createOrderAction(input: CreateOrderInput) {
 }
 
 export async function updateOrderAction(orderId: string, input: UpdateOrderInput) {
-    const cookie = (await cookies()).toString();
+    const headers = await buildBranchScopedHeaders();
     const res = await (apiClient as any).api.dashboard.orders[":id"].$patch(
         { param: { id: orderId }, json: input },
-        { headers: { cookie } }
+        { headers }
     );
 
     if (!res.ok) {
@@ -69,10 +70,10 @@ export async function updateOrderAction(orderId: string, input: UpdateOrderInput
 }
 
 export async function updateOrderItemsAction(orderId: string, items: OrderItemInput[]) {
-    const cookie = (await cookies()).toString();
+    const headers = await buildBranchScopedHeaders();
     const res = await (apiClient as any).api.dashboard.orders[":id"].items.$patch(
         { param: { id: orderId }, json: { items, eventNote: "Item order diperbarui" } },
-        { headers: { cookie } }
+        { headers }
     );
 
     if (!res.ok) {

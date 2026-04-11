@@ -44,6 +44,81 @@ describe("laundry routes", () => {
         resetLaundryRuntimeMetrics();
     });
 
+    it("[OK] [AC-SVC-01] GET /services returns laundry services list", async () => {
+        const db = createDbMock({
+            selectResults: [[
+                {
+                    id: "svc-1",
+                    branchId: "br-1",
+                    name: "Cuci Kiloan",
+                    unit: "kg",
+                    basePrice: 7000,
+                    isActive: true,
+                },
+            ]],
+        });
+        const app = createLaundryApp(db);
+
+        const res = await app.request("/api/dashboard/laundry/services?branchId=br-1");
+        const body = await res.json();
+
+        expect(res.status).toBe(200);
+        expect(body.success).toBe(true);
+        expect(body.data).toHaveLength(1);
+        expect(body.data[0]).toMatchObject({ name: "Cuci Kiloan" });
+    });
+
+    it("[OK] [AC-SVC-02] POST /services creates laundry service", async () => {
+        const db = createDbMock({
+            insertResults: [[{
+                id: "svc-new",
+                branchId: "br-1",
+                name: "Setrika",
+                unit: "kg",
+                basePrice: 5000,
+                isActive: true,
+            }]],
+        });
+        const app = createLaundryApp(db);
+
+        const res = await app.request("/api/dashboard/laundry/services", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+                branchId: "br-1",
+                name: "Setrika",
+                unit: "kg",
+                basePrice: 5000,
+            }),
+        });
+        const body = await res.json();
+
+        expect(res.status).toBe(200);
+        expect(body.success).toBe(true);
+        expect(body.data).toMatchObject({ id: "svc-new", name: "Setrika" });
+    });
+
+    it("[ERR] [AC-SVC-03] PATCH /services returns 404 when service missing", async () => {
+        const db = createDbMock({
+            selectResults: [[]],
+        });
+        const app = createLaundryApp(db);
+
+        const res = await app.request("/api/dashboard/laundry/services", {
+            method: "PATCH",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+                id: "svc-missing",
+                name: "Express Wash",
+            }),
+        });
+        const body = await res.json();
+
+        expect(res.status).toBe(404);
+        expect(body.success).toBe(false);
+        expect(body.error.message).toContain("Service not found");
+    });
+
     it("POST /orders creates order for walk_in with initial payment", async () => {
         const db = createDbMock({
             selectResults: [
@@ -531,6 +606,254 @@ describe("laundry routes", () => {
             failed: 1,
             deadLetter: 1,
         });
+    });
+
+    it("[OK] [AC-REP-02] GET /reports/orders-by-status returns grouped status totals", async () => {
+        const db = createDbMock({
+            selectResults: [[
+                { status: "received", total: 4 },
+                { status: "processing", total: 3 },
+                { status: "completed", total: 2 },
+            ]],
+        });
+        const app = createLaundryApp(db);
+
+        const res = await app.request("/api/dashboard/laundry/reports/orders-by-status?branchId=br-1");
+        const body = await res.json();
+
+        expect(res.status).toBe(200);
+        expect(body.success).toBe(true);
+        expect(body.data).toEqual([
+            { status: "received", total: 4 },
+            { status: "processing", total: 3 },
+            { status: "completed", total: 2 },
+        ]);
+    });
+
+    it("[OK] [AC-REP-03] GET /reports/outstanding-payments returns outstanding rows", async () => {
+        const db = createDbMock({
+            selectResults: [[
+                {
+                    id: "ord-1",
+                    orderNumber: "LDR-001",
+                    customerName: "Budi",
+                    customerPhone: "0812",
+                    totalAmount: 20000,
+                    paidAmount: 5000,
+                    remainingAmount: 15000,
+                    status: "processing",
+                    createdAt: new Date("2026-04-09T02:00:00.000Z"),
+                },
+            ]],
+        });
+        const app = createLaundryApp(db);
+
+        const res = await app.request("/api/dashboard/laundry/reports/outstanding-payments?branchId=br-1&limit=20");
+        const body = await res.json();
+
+        expect(res.status).toBe(200);
+        expect(body.success).toBe(true);
+        expect(body.data).toHaveLength(1);
+        expect(body.data[0]).toMatchObject({
+            orderNumber: "LDR-001",
+            remainingAmount: 15000,
+        });
+    });
+
+    it("[ERR] [AC-WA-01] GET /settings/wa-template rejects missing branchId", async () => {
+        const app = createLaundryApp(createDbMock());
+
+        const res = await app.request("/api/dashboard/laundry/settings/wa-template");
+        const body = await res.json();
+
+        expect(res.status).toBe(400);
+        expect(body.success).toBe(false);
+        expect(body.error.message).toContain("branchId is required");
+    });
+
+    it("[OK] [AC-WA-02] PATCH /settings/wa-template updates template for allowed role", async () => {
+        const db = createDbMock({
+            selectResults: [
+                [{ roleLegacy: "branch_manager", roleSlug: null, roleName: null }],
+                [{ metadata: null }],
+            ],
+            updateResults: [[]],
+        });
+        const app = createLaundryApp(db);
+
+        const res = await app.request("/api/dashboard/laundry/settings/wa-template", {
+            method: "PATCH",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+                branchId: "br-1",
+                template: "Halo {{customerName}}, order {{orderNumber}} siap diambil.",
+            }),
+        });
+        const body = await res.json();
+
+        expect(res.status).toBe(200);
+        expect(body.success).toBe(true);
+        expect(body.data).toMatchObject({ branchId: "br-1" });
+    });
+
+    it("[OK] [AC-ORD-01] GET /orders returns normalized order list", async () => {
+        const db = createDbMock({
+            selectResults: [[
+                {
+                    id: "ord-1",
+                    orderNumber: "LDR-009",
+                    status: "received",
+                    orderType: "walk_in",
+                    totalAmount: 12000,
+                    paidAmount: 0,
+                    remainingAmount: 12000,
+                    paymentStatus: "pending",
+                    customerName: "Dina",
+                    customerPhone: "08123",
+                    customerAddress: null,
+                    notes: null,
+                    branchId: "br-1",
+                    branchName: "Cabang Utama",
+                    createdAt: new Date("2026-04-09T01:00:00.000Z"),
+                    estimatedCompletedAt: null,
+                    assignedDriverId: null,
+                    assignedDriverName: null,
+                },
+            ]],
+        });
+        const app = createLaundryApp(db);
+
+        const res = await app.request("/api/dashboard/laundry/orders?branchId=br-1&limit=20");
+        const body = await res.json();
+
+        expect(res.status).toBe(200);
+        expect(body.success).toBe(true);
+        expect(body.data).toHaveLength(1);
+        expect(body.data[0]).toMatchObject({
+            id: "ord-1",
+            orderNumber: "LDR-009",
+            branchName: "Cabang Utama",
+        });
+    });
+
+    it("[OK] [AC-ORD-02] GET /orders/:id returns detail with items/payments/timeline", async () => {
+        const db = createDbMock({
+            selectResults: [
+                [{
+                    id: "ord-1",
+                    organizationId: "org-1",
+                    branchId: "br-1",
+                    orderNumber: "LDR-010",
+                    status: "processing",
+                }],
+                [{
+                    id: "item-1",
+                    orderId: "ord-1",
+                    serviceName: "Cuci Kiloan",
+                    quantity: "2.00",
+                    lineTotal: 14000,
+                    createdAt: new Date("2026-04-09T01:10:00.000Z"),
+                }],
+                [{
+                    id: "pay-1",
+                    orderId: "ord-1",
+                    amount: 5000,
+                    createdAt: new Date("2026-04-09T01:15:00.000Z"),
+                }],
+                [{
+                    id: "hist-1",
+                    orderId: "ord-1",
+                    fromStatus: "received",
+                    toStatus: "processing",
+                    createdAt: new Date("2026-04-09T01:20:00.000Z"),
+                }],
+            ],
+        });
+        const app = createLaundryApp(db);
+
+        const res = await app.request("/api/dashboard/laundry/orders/ord-1");
+        const body = await res.json();
+
+        expect(res.status).toBe(200);
+        expect(body.success).toBe(true);
+        expect(body.data.items).toHaveLength(1);
+        expect(body.data.payments).toHaveLength(1);
+        expect(body.data.timeline).toHaveLength(1);
+    });
+
+    it("[OK] [AC-PAY-01] GET /orders/:id/payments returns payment history rows", async () => {
+        const db = createDbMock({
+            selectResults: [
+                [{ id: "ord-1", branchId: "br-1" }],
+                [
+                    { id: "pay-1", orderId: "ord-1", amount: 5000 },
+                    { id: "pay-2", orderId: "ord-1", amount: 3000 },
+                ],
+            ],
+        });
+        const app = createLaundryApp(db);
+
+        const res = await app.request("/api/dashboard/laundry/orders/ord-1/payments");
+        const body = await res.json();
+
+        expect(res.status).toBe(200);
+        expect(body.success).toBe(true);
+        expect(body.data).toHaveLength(2);
+        expect(body.data[0].id).toBe("pay-1");
+    });
+
+    it("[OK] [AC-SSE-01] GET /stream/orders emits SSE retry and order-status event", async () => {
+        const createdAt = new Date("2026-04-10T03:00:00.000Z");
+        const db = createDbMock({
+            selectResults: [[
+                {
+                    id: "hist-1",
+                    orderId: "ord-1",
+                    fromStatus: "received",
+                    toStatus: "processing",
+                    note: "Mulai proses",
+                    actorId: "user-1",
+                    createdAt,
+                    branchId: "br-1",
+                },
+            ]],
+        });
+        const app = createLaundryApp(db);
+        const controller = new AbortController();
+
+        const res = await app.request("/api/dashboard/laundry/stream/orders", {
+            method: "GET",
+            signal: controller.signal,
+        });
+
+        expect(res.status).toBe(200);
+        expect(res.headers.get("content-type")).toContain("text/event-stream");
+
+        const reader = res.body?.getReader();
+        expect(reader).toBeTruthy();
+        const decoder = new TextDecoder();
+        let payload = "";
+
+        for (let i = 0; i < 6; i += 1) {
+            const chunk = await Promise.race([
+                reader!.read(),
+                new Promise<{ done: true; value?: undefined }>((resolve) => {
+                    setTimeout(() => resolve({ done: true }), 100);
+                }),
+            ]);
+            if (chunk.done) break;
+            payload += decoder.decode(chunk.value);
+            if (payload.includes("event: order-status") && payload.includes("\"orderId\":\"ord-1\"")) {
+                break;
+            }
+        }
+
+        expect(payload).toContain("retry: 2000");
+        expect(payload).toContain("event: order-status");
+        expect(payload).toContain("\"orderId\":\"ord-1\"");
+
+        controller.abort();
+        await reader?.cancel().catch(() => undefined);
     });
 
     it("GET /orders enforces branch access", async () => {

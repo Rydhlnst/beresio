@@ -47,6 +47,11 @@ export const auth = (db: any) => betterAuth({
                             type: "string",
                             required: true
                         },
+                        mode: {
+                            type: "string",
+                            required: false,
+                            defaultValue: "single",
+                        },
                         subscriptionPlan: {
                             type: "string",
                             required: false,

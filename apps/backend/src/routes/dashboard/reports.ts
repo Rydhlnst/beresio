@@ -5,6 +5,7 @@ import { errors, ok } from '../../lib/errors'
 import { and, eq, gte, lte, sql, inArray } from 'drizzle-orm'
 import { branches, orders, payments } from '@beresio/db'
 import { getAccessibleBranchIds, getBranchAccessContext, hasBranchAccess } from '../../lib/branch-access'
+import { getOrganizationBranchAggregate, resolveScopedBranchIds } from '../../lib/organization-aggregates'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
 type Variables = { db: any; user: any; session: any }
@@ -71,7 +72,6 @@ reportsRouter.get('/catalog', authMiddleware, async (c) => {
 // GET /api/dashboard/reports/summary
 reportsRouter.get('/summary', authMiddleware, async (c) => {
     try {
-        const db = c.get('db')
         const orgId = await getOrgId(c)
         const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId)
         const range = c.req.query('range')
@@ -92,59 +92,29 @@ reportsRouter.get('/summary', authMiddleware, async (c) => {
             })
         }
 
-        const paymentConditions = [
-            eq(payments.organizationId, orgId),
-            eq(payments.status, 'SUCCESS'),
-            gte(payments.createdAt, from),
-            lte(payments.createdAt, to),
-        ]
         if (branchId) {
             if (!hasBranchAccess(branchIds, branchId)) {
                 return errors.forbidden(c, 'No access to branch')
             }
-            paymentConditions.push(eq(payments.branchId, branchId))
-        } else {
-            paymentConditions.push(inArray(payments.branchId, branchIds))
         }
 
-        const orderConditions = [
-            eq(orders.organizationId, orgId),
-            gte(orders.createdAt, from),
-            lte(orders.createdAt, to),
-        ]
-        if (branchId) {
-            if (!hasBranchAccess(branchIds, branchId)) {
-                return errors.forbidden(c, 'No access to branch')
-            }
-            orderConditions.push(eq(orders.branchId, branchId))
-        } else {
-            orderConditions.push(inArray(orders.branchId, branchIds))
-        }
+        const scopedBranchIds = await resolveScopedBranchIds(
+            c,
+            orgId,
+            branchId ? [branchId] : undefined
+        )
+        const aggregate = await getOrganizationBranchAggregate(c, orgId, {
+            branchIds: scopedBranchIds,
+            range: { from, to },
+        })
 
-        const [revenueRows, orderRows] = await Promise.all([
-            db
-                .select({
-                    revenue: sql<number>`COALESCE(SUM(${payments.amount}), 0)`.as('revenue'),
-                })
-                .from(payments)
-                .where(and(...paymentConditions)),
-            db
-                .select({
-                    total: sql<number>`COUNT(*)`.as('total'),
-                    completed: sql<number>`COUNT(*) FILTER (WHERE ${orders.status} = 'completed')`.as('completed'),
-                    cancelled: sql<number>`COUNT(*) FILTER (WHERE ${orders.status} = 'cancelled')`.as('cancelled'),
-                })
-                .from(orders)
-                .where(and(...orderConditions)),
-        ])
-
-        const totalOrders = Number(orderRows[0]?.total ?? 0)
-        const completedOrders = Number(orderRows[0]?.completed ?? 0)
-        const cancelledOrders = Number(orderRows[0]?.cancelled ?? 0)
+        const totalOrders = aggregate.totalOrders
+        const completedOrders = aggregate.completedOrders
+        const cancelledOrders = aggregate.cancelledOrders
         const cancellationRate = totalOrders === 0 ? 0 : Math.round((cancelledOrders / totalOrders) * 1000) / 10
 
         return ok(c, {
-            revenueTotal: Number(revenueRows[0]?.revenue ?? 0),
+            revenueTotal: aggregate.revenueTotal,
             completedOrders,
             cancellationRate,
             range: { from, to },

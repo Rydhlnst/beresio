@@ -77,7 +77,7 @@ export function CreateOrgForm() {
             toast.success("Organisasi baru berhasil dibuat!");
             
             // Redirect to dashboard after creating additional org
-            push("/dashboard");
+            push("/");
             refresh();
         } catch (error) {
             toast.error("Terjadi kesalahan sistem. Silakan coba lagi nanti.");
@@ -153,7 +153,7 @@ export function CreateOrgForm() {
                                 variant="outline"
                                 className="flex-1"
                                 disabled={isLoading}
-                                onClick={() => push("/dashboard")}
+                                onClick={() => push("/")}
                             >
                                 Batal
                             </Button>
@@ -174,3 +174,4 @@ export function CreateOrgForm() {
         </Card>
     );
 }
+

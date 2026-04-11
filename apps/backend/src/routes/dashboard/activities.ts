@@ -3,8 +3,9 @@ import { z } from 'zod'
 import { authMiddleware } from '../../middleware/auth'
 import { getOrgId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
-import { and, eq, lt, desc } from 'drizzle-orm'
+import { and, desc, eq, lt, sql } from 'drizzle-orm'
 import { activityLogs, user } from '@beresio/db'
+import { getBranchAccessContext, hasBranchAccess } from '../../lib/branch-access'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
 type Variables = { db: any; user: any; session: any }
@@ -14,6 +15,7 @@ const ACTIVITY_TYPES = ['RBAC', 'PAYMENT', 'AUTH', 'SYSTEM', 'BRANCH', 'CUSTOMER
 const listActivitiesQuerySchema = z.object({
     limit: z.coerce.number().int().min(1).max(50).default(20),
     cursor: z.string().trim().min(1).optional(),
+    branchId: z.string().trim().min(1).optional(),
     type: z.preprocess(
         (value) => (typeof value === 'string' ? value.trim().toUpperCase() : value),
         z.enum(ACTIVITY_TYPES).optional()
@@ -46,19 +48,36 @@ activitiesRouter.get('/', authMiddleware, async (c) => {
         const parsedQuery = listActivitiesQuerySchema.safeParse({
             limit: c.req.query('limit') ?? 20,
             cursor: c.req.query('cursor') ?? undefined,
+            branchId: c.req.query('branchId') ?? undefined,
             type: c.req.query('type') ?? undefined,
         })
         if (!parsedQuery.success) {
             return errors.badRequest(c, getValidationMessage(parsedQuery.error))
         }
 
-        const { limit, cursor, type: typeFilter } = parsedQuery.data
+        const { limit, cursor, branchId, type: typeFilter } = parsedQuery.data
+
+        const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId)
+        if (!isOrgWide && branchIds.length === 0) {
+            return errors.forbidden(c, 'No branch access')
+        }
+        if (branchId && !isOrgWide && !hasBranchAccess(branchIds, branchId)) {
+            return errors.forbidden(c, 'No access to branch')
+        }
 
         // Build where conditions
         const conditions = [eq(activityLogs.organizationId, orgId)]
 
         if (typeFilter) {
             conditions.push(eq(activityLogs.type, typeFilter.toUpperCase()))
+        }
+        if (branchId) {
+            conditions.push(
+                sql`(
+                    (${activityLogs.entityType} = 'branch' AND ${activityLogs.entityId} = ${branchId})
+                    OR (${activityLogs.metadata} ILIKE ${`%"branchId":"${branchId}"%`})
+                )`
+            )
         }
 
         // Cursor: get items created before the cursor item's createdAt

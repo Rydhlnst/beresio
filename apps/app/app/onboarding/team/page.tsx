@@ -1,94 +1,119 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
-import { MapPinned, PhoneCall, Route } from "lucide-react";
 import { eq, sql } from "drizzle-orm";
+import { Mail, Shield, Users } from "lucide-react";
 
 import { auth } from "@/lib/auth";
-import { branches, createDbNextjs } from "@beresio/db";
-
+import { branches, createDbNextjs, organization } from "@beresio/db";
+import { apiClient } from "@/lib/api-client";
 import { TeamOnboardingForm } from "./_components/team-onboarding-form";
 
 export const metadata = {
-  title: "Daftarkan Cabang Pertama",
-  description: "Lengkapi data cabang pertama (nama, lokasi, alamat, dan kontak) untuk mulai operasional",
+    title: "Invite Team",
+    description: "Undang anggota tim (opsional) sebelum masuk dashboard.",
 };
 
+function parseOnboardingMetadata(raw: string | null | undefined) {
+    if (!raw) return {};
+    try {
+        const parsed = JSON.parse(raw) as Record<string, unknown>;
+        return parsed.onboarding && typeof parsed.onboarding === "object"
+            ? (parsed.onboarding as Record<string, unknown>)
+            : {};
+    } catch {
+        return {};
+    }
+}
+
 export default async function OnboardingTeamPage() {
-  const db = createDbNextjs(process.env.DATABASE_URL!);
-  const authInstance = auth(db);
+    const db = createDbNextjs(process.env.DATABASE_URL!);
+    const authInstance = auth(db);
+    const reqHeaders = await headers();
+    const session = await authInstance.api.getSession({ headers: reqHeaders });
 
-  const session = await authInstance.api.getSession({
-    headers: await headers(),
-  });
+    if (!session) {
+        redirect("/login");
+    }
 
-  if (!session) {
-    redirect("/login");
-  }
+    const orgData = await authInstance.api.listOrganizations({ headers: reqHeaders });
+    if (!orgData || orgData.length === 0) {
+        redirect("/onboarding/org");
+    }
 
-  const orgData = await authInstance.api.listOrganizations({
-    headers: await headers(),
-  });
+    const orgId = (session as any)?.activeOrganizationId ?? orgData[0]?.id;
+    if (!orgId) {
+        redirect("/onboarding/org");
+    }
 
-  const hasOrg = orgData && orgData.length > 0;
+    const [orgRow] = await db
+        .select({
+            metadata: organization.metadata,
+        })
+        .from(organization)
+        .where(eq(organization.id, orgId))
+        .limit(1);
 
-  if (!hasOrg) {
-    redirect("/onboarding/org");
-  }
+    const onboardingMeta = parseOnboardingMetadata(orgRow?.metadata ?? null);
+    if (onboardingMeta.modeSelected !== true) {
+        redirect("/onboarding/mode");
+    }
 
-  const organizationId = (session as any)?.activeOrganizationId ?? orgData?.[0]?.id;
-
-  const branchCountRows = organizationId
-    ? await db
+    const branchCountRows = await db
         .select({ count: sql<number>`count(*)` })
         .from(branches)
-        .where(eq(branches.organizationId, organizationId))
-    : [{ count: 0 }];
+        .where(eq(branches.organizationId, orgId));
 
-  const hasBranch = Number(branchCountRows[0]?.count ?? 0) > 0;
+    const hasBranch = Number(branchCountRows[0]?.count ?? 0) > 0;
+    if (!hasBranch) {
+        redirect("/onboarding/branch");
+    }
 
-  if (hasBranch) {
-    redirect("/dashboard");
-  }
+    const cookie = reqHeaders.get("cookie") || "";
+    const [rolesRes, branchesRes] = await Promise.all([
+        (apiClient as any).api.dashboard.team.roles.$get(undefined, { headers: { cookie } }),
+        (apiClient as any).api.dashboard.branches.$get(undefined, { headers: { cookie } }),
+    ]);
 
-  return (
-    <div className="grid gap-7 xl:grid-cols-[minmax(0,0.4fr)_minmax(0,1fr)] xl:items-start">
-      <aside className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 md:p-6">
-        <div className="space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Step 2</p>
-          <h2 className="text-2xl font-semibold leading-tight text-slate-900">Setup cabang operasional pertama</h2>
-          <p className="text-sm leading-relaxed text-slate-600">
-            Isi lokasi dan kontak cabang utama agar order, assignment, serta laporan langsung punya konteks area.
-          </p>
+    const rolesBody = rolesRes.ok ? await rolesRes.json().catch(() => null) : null;
+    const branchesBody = branchesRes.ok ? await branchesRes.json().catch(() => null) : null;
+    const roles = ((rolesBody as any)?.data ?? []) as Array<{ id: string; name: string; slug: string }>;
+    const branchItems = Array.isArray((branchesBody as any)?.data)
+        ? ((branchesBody as any)?.data as Array<{ id: string; name: string; code: string }>)
+        : ((((branchesBody as any)?.data?.data ?? []) as Array<{ id: string; name: string; code: string }>));
+
+    return (
+        <div className="flex h-full w-full items-center justify-center overflow-hidden">
+            <section className="w-full max-w-[760px] rounded-2xl border border-border bg-card p-5 shadow-sm md:p-7">
+                <div className="space-y-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary">Step 4</p>
+                    <h2 className="text-2xl font-semibold leading-tight text-foreground">Invite team (opsional)</h2>
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                        Undang anggota tim sekarang, atau lewati dan tambahkan nanti dari menu Tim.
+                    </p>
+                </div>
+
+                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                    <div className="rounded-xl border border-border bg-muted/40 px-3 py-3">
+                        <Mail className="h-4 w-4 text-primary" />
+                        <p className="mt-2 text-sm font-semibold text-foreground">Undangan email</p>
+                        <p className="text-xs text-muted-foreground">Kirim invite ke anggota tim inti.</p>
+                    </div>
+                    <div className="rounded-xl border border-border bg-muted/40 px-3 py-3">
+                        <Shield className="h-4 w-4 text-primary" />
+                        <p className="mt-2 text-sm font-semibold text-foreground">Role-based access</p>
+                        <p className="text-xs text-muted-foreground">Pilih role akses saat invite.</p>
+                    </div>
+                    <div className="rounded-xl border border-border bg-muted/40 px-3 py-3">
+                        <Users className="h-4 w-4 text-primary" />
+                        <p className="mt-2 text-sm font-semibold text-foreground">Bisa skip</p>
+                        <p className="text-xs text-muted-foreground">Masuk dashboard sekarang dan lanjut nanti.</p>
+                    </div>
+                </div>
+
+                <div className="mt-6">
+                    <TeamOnboardingForm roles={roles} branches={branchItems} />
+                </div>
+            </section>
         </div>
-
-        <div className="mt-6 space-y-3">
-          <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3">
-            <MapPinned className="mt-0.5 h-4 w-4 text-slate-500" />
-            <div>
-              <p className="text-sm font-semibold text-slate-900">Alamat lengkap & wilayah</p>
-              <p className="text-xs text-slate-600">Pastikan provinsi, kota, kecamatan, dan kelurahan akurat.</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3">
-            <PhoneCall className="mt-0.5 h-4 w-4 text-slate-500" />
-            <div>
-              <p className="text-sm font-semibold text-slate-900">Kontak operasional</p>
-              <p className="text-xs text-slate-600">Nomor ini dipakai untuk komunikasi internal cabang.</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3">
-            <Route className="mt-0.5 h-4 w-4 text-slate-500" />
-            <div>
-              <p className="text-sm font-semibold text-slate-900">Siap untuk transaksi</p>
-              <p className="text-xs text-slate-600">Setelah submit, onboarding selesai dan kamu langsung masuk dashboard.</p>
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-7">
-        <TeamOnboardingForm organizationId={organizationId} />
-      </section>
-    </div>
-  );
+    );
 }

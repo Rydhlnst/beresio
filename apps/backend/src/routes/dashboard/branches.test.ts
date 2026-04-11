@@ -20,8 +20,11 @@ const createBranchesApp = (db: any) =>
 describe("branches routes", () => {
     it("GET / returns branch list", async () => {
         const db = createDbMock({
-            selectResults: [[
-                {
+            selectResults: [
+                [{ count: 1 }],
+                [],
+                [],
+                [{
                     id: "br-1",
                     name: "Sudirman",
                     code: "SDM",
@@ -31,17 +34,18 @@ describe("branches routes", () => {
                     revenue: 1200000,
                     orders: 12,
                     staffCount: 4,
-                },
-            ]],
+                }],
+            ],
         });
         const app = createBranchesApp(db);
 
         const res = await app.request("/api/dashboard/branches");
         const body = await res.json();
+        const rows = Array.isArray(body.data?.data) ? body.data.data : [];
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
-        expect(body.data[0]).toMatchObject({
+        expect(rows[0]).toMatchObject({
             id: "br-1",
             name: "Sudirman",
             code: "SDM",

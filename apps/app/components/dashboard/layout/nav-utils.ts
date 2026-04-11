@@ -2,7 +2,7 @@ import type { BusinessNavItem } from "./nav-config"
 
 const ROUTE_PREFIX_ALIASES: Array<[string, string]> = [
   ["/laporan", "/reports"],
-  ["/cabang", "/branches"],
+  ["/branches", "/cabang"],
   ["/tim", "/team"],
   ["/menu", "/menus"],
   ["/meja", "/tables"],

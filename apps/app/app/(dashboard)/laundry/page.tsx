@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export default async function LaundryPage() {
     const activeOrg = await getActiveOrganizationContext();
     if (!activeOrg) redirect("/login");
-    if (activeOrg.businessType !== "laundry") redirect("/dashboard");
+    if (activeOrg.businessType !== "laundry") redirect("/");
 
     const rpc = apiClient as any;
     const cookie = (await headers()).get("cookie") || "";
@@ -66,3 +66,4 @@ export default async function LaundryPage() {
         />
     );
 }
+

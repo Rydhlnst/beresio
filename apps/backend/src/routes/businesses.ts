@@ -291,6 +291,15 @@ const BUSINESS_TYPE_ALIASES: Record<string, keyof typeof NAV_REGISTRY> = {
 
 const PRIVILEGED_LAUNDRY_ROLE_SLUGS = new Set(['owner', 'admin', 'branch_manager'])
 const IMPLIED_LAUNDRY_BASE_PERMISSIONS = ['dashboard.read', 'branch.read', 'team.read', 'settings.read']
+const IMPLIED_LAUNDRY_SINGLE_TENANT_MANAGEMENT_PERMISSIONS = [
+    'crm.read',
+    'order.read',
+    'order.create',
+    'inventory.read',
+    'report.read',
+    'pickup.read',
+    'laundry.service.manage',
+]
 
 function normalizeBusinessType(input: string | null | undefined): keyof typeof NAV_REGISTRY {
     if (input && input in NAV_REGISTRY) return input as keyof typeof NAV_REGISTRY
@@ -340,6 +349,7 @@ businessesRouter.get('/:id/navigation', authMiddleware, async (c) => {
                 id: organization.id,
                 name: organization.name,
                 businessType: organization.businessType,
+                mode: organization.mode,
                 metadata: organization.metadata,
             })
             .from(organization)
@@ -376,7 +386,9 @@ businessesRouter.get('/:id/navigation', authMiddleware, async (c) => {
                 .where(eq(rolePermissions.roleId, roleId))
             : []
 
-        const permissions = permissionsRows.map((row: any) => row.permission)
+        const permissions = permissionsRows
+            .map((row: { permission?: string }) => row.permission)
+            .filter((permission: string | undefined): permission is string => typeof permission === 'string')
 
         let role: RoleInfo | null = null
         if (roleId) {
@@ -399,10 +411,19 @@ businessesRouter.get('/:id/navigation', authMiddleware, async (c) => {
 
         const normalizedType = normalizeBusinessType(orgRow.businessType)
         const roleSlug = (role?.slug ?? membership.roleLegacy ?? '').toLowerCase()
-        const effectivePermissionsSet = new Set(permissions)
+        const hasExplicitPermissions = permissions.length > 0
+        const effectivePermissionsSet = new Set<string>(permissions)
         if (normalizedType === 'laundry' && PRIVILEGED_LAUNDRY_ROLE_SLUGS.has(roleSlug)) {
             for (const permission of IMPLIED_LAUNDRY_BASE_PERMISSIONS) {
                 effectivePermissionsSet.add(permission)
+            }
+
+            // Single-tenant laundry organizations often start with legacy owner/admin roles
+            // that have no role_permissions rows yet. Keep the management modules visible.
+            if (orgRow.mode === 'single' && !hasExplicitPermissions && (roleSlug === 'owner' || roleSlug === 'admin')) {
+                for (const permission of IMPLIED_LAUNDRY_SINGLE_TENANT_MANAGEMENT_PERMISSIONS) {
+                    effectivePermissionsSet.add(permission)
+                }
             }
         }
         const effectivePermissions = [...effectivePermissionsSet]
@@ -444,6 +465,7 @@ businessesRouter.get('/:id/navigation', authMiddleware, async (c) => {
                 id: orgRow.id,
                 name: orgRow.name,
                 type: normalizedType,
+                mode: orgRow.mode,
                 config,
             },
             role,

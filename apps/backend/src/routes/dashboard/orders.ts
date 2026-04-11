@@ -26,6 +26,7 @@ import {
 } from '../../lib/stock'
 import { getAccessibleBranchIds, getBranchAccessContext, hasBranchAccess } from '../../lib/branch-access'
 import { appendDomainEvent, canTransitionOrderStatus, projectDomainEvent } from '../../lib/fnb-domain'
+import { requireBranchContext } from '../../middleware/branch-context'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
 type Variables = { db: any; user: any; session: any }
@@ -618,7 +619,7 @@ ordersRouter.get('/:id', authMiddleware, async (c) => {
 })
 
 // POST /api/dashboard/orders
-ordersRouter.post('/', authMiddleware, async (c) => {
+ordersRouter.post('/', authMiddleware, requireBranchContext(), async (c) => {
     try {
         const db = c.get('db')
         let orgId: string
@@ -904,7 +905,7 @@ ordersRouter.post('/', authMiddleware, async (c) => {
 })
 
 // PATCH /api/dashboard/orders/:id
-ordersRouter.patch('/:id', authMiddleware, async (c) => {
+ordersRouter.patch('/:id', authMiddleware, requireBranchContext(), async (c) => {
     try {
         const db = c.get('db')
         let orgId: string
@@ -1169,7 +1170,7 @@ ordersRouter.patch('/:id', authMiddleware, async (c) => {
 })
 
 // PATCH /api/dashboard/orders/:id/hold
-ordersRouter.patch('/:id/hold', authMiddleware, async (c) => {
+ordersRouter.patch('/:id/hold', authMiddleware, requireBranchContext(), async (c) => {
     try {
         const db = c.get('db')
         let orgId: string
@@ -1266,7 +1267,7 @@ ordersRouter.patch('/:id/hold', authMiddleware, async (c) => {
 })
 
 // POST /api/dashboard/orders/:id/split
-ordersRouter.post('/:id/split', authMiddleware, async (c) => {
+ordersRouter.post('/:id/split', authMiddleware, requireBranchContext(), async (c) => {
     try {
         const db = c.get('db')
         let orgId: string
@@ -1397,7 +1398,7 @@ ordersRouter.post('/:id/split', authMiddleware, async (c) => {
 })
 
 // POST /api/dashboard/orders/merge
-ordersRouter.post('/merge', authMiddleware, async (c) => {
+ordersRouter.post('/merge', authMiddleware, requireBranchContext(), async (c) => {
     try {
         const db = c.get('db')
         let orgId: string
@@ -1551,7 +1552,7 @@ ordersRouter.post('/merge', authMiddleware, async (c) => {
 })
 
 // PATCH /api/dashboard/orders/:id/items
-ordersRouter.patch('/:id/items', authMiddleware, async (c) => {
+ordersRouter.patch('/:id/items', authMiddleware, requireBranchContext(), async (c) => {
     try {
         const db = c.get('db')
         let orgId: string

@@ -270,5 +270,6 @@ export default async function OrderPage({ searchParams }: { searchParams: Promis
         return renderRetailPosPage();
     }
 
-    redirect("/dashboard");
+    redirect("/");
 }
+

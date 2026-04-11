@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { createDbNextjs } from "@beresio/db";
 import { LoginForm } from "../_components/LoginForm";
+import { resolveDashboardRoutingTarget } from "@/lib/dashboard-routing.server";
 
 export const metadata = {
     title: "Masuk",
@@ -14,7 +15,8 @@ export default async function LoginPage() {
     const session = await auth(db).api.getSession({ headers: await headers() });
 
     if (session) {
-        redirect("/dashboard");
+        const routing = await resolveDashboardRoutingTarget();
+        redirect(routing?.targetPath ?? "/");
     }
 
     return (

@@ -55,7 +55,7 @@ export function JoinForm({ initialToken }: JoinFormProps) {
                 }
 
                 toast.success("Berhasil bergabung ke bisnis!");
-                push("/dashboard");
+                push("/");
             } catch (error) {
                 toast.error("Terjadi kesalahan. Coba lagi.");
                 setAutoAccepting(false);
@@ -80,7 +80,7 @@ export function JoinForm({ initialToken }: JoinFormProps) {
             }
 
             toast.success("Berhasil bergabung ke bisnis!");
-            push("/dashboard");
+            push("/");
         } catch {
             toast.error("Terjadi kesalahan. Coba lagi.");
         } finally {

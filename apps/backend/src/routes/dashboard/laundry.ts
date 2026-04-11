@@ -156,7 +156,18 @@ function parseMetadata(raw: string | null | undefined) {
     }
 }
 
-function buildDateRange(dateFrom?: string, dateTo?: string) {
+function buildDateRange(
+    dateFrom?: string,
+    dateTo?: string,
+    options?: { defaultToToday?: boolean }
+) {
+    if (!dateFrom && !dateTo && options?.defaultToToday) {
+        const today = new Date().toISOString().slice(0, 10);
+        const from = new Date(`${today}T00:00:00.000Z`);
+        const to = new Date(`${today}T23:59:59.999Z`);
+        return { from, to };
+    }
+
     let from: Date | undefined;
     let to: Date | undefined;
     if (dateFrom) {
@@ -470,7 +481,7 @@ laundryRouter.get(
             const dateFrom = c.req.query("dateFrom");
             const dateTo = c.req.query("dateTo");
 
-            const range = buildDateRange(dateFrom, dateTo);
+            const range = buildDateRange(dateFrom, dateTo, { defaultToToday: true });
             if ("error" in range) return errors.badRequest(c, range.error);
 
             const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId);

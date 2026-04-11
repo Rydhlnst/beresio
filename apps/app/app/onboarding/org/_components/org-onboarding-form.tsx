@@ -75,7 +75,7 @@ export function OrgOnboardingForm() {
       }
 
       toast.success("Bisnis berhasil didaftarkan!");
-      replace("/onboarding/team");
+      replace("/onboarding/mode");
     } catch {
       toast.error("Terjadi kesalahan sistem. Silakan coba lagi nanti.");
     } finally {
@@ -84,20 +84,20 @@ export function OrgOnboardingForm() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="space-y-1">
-        <h3 className="text-xl font-semibold text-slate-900">Informasi Usaha</h3>
-        <p className="text-sm text-slate-600">Nama ini adalah entitas bisnis utama yang menaungi seluruh cabang.</p>
+        <h3 className="text-xl font-semibold text-foreground">Informasi Usaha</h3>
+        <p className="text-sm text-muted-foreground">Nama ini adalah entitas bisnis utama yang menaungi seluruh cabang.</p>
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField
             control={form.control}
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                <FormLabel className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                   Nama Usaha Utama
                 </FormLabel>
                 <FormControl>
@@ -113,7 +113,7 @@ export function OrgOnboardingForm() {
             name="businessType"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                <FormLabel className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                   Tipe Bisnis
                 </FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
@@ -139,7 +139,7 @@ export function OrgOnboardingForm() {
           />
 
           <div className="flex items-center justify-end pt-2">
-            <Button type="submit" className="min-w-52" disabled={isLoading}>
+            <Button type="submit" className="min-w-44" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

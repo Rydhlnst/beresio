@@ -1,12 +1,7 @@
-import Link from "next/link";
 import { Metadata } from "next";
-import { headers } from "next/headers";
-import { Button } from "@repo/ui/button";
-import { SectionCard } from "@/components/dashboard/shared/section-card";
-import { apiClient } from "@/lib/api-client";
-import { CardEmptyState } from "@/components/dashboard/shared/card-empty-state";
-import { AlertTriangle } from "lucide-react";
-import { archiveHighlightAction } from "../_actions/highlights";
+import { redirect } from "next/navigation";
+
+import { resolveDashboardRoutingTarget } from "@/lib/dashboard-routing.server";
 
 type HighlightPageProps = {
     params: Promise<{ highlightId: string }>;
@@ -14,70 +9,17 @@ type HighlightPageProps = {
 
 export async function generateMetadata({ params }: HighlightPageProps): Promise<Metadata> {
     const { highlightId } = await params;
-    const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://app.beres.io";
 
     return {
-        title: `Detail Highlight ${highlightId}`,
-        description: "Detail highlight dashboard",
-        alternates: {
-            canonical: `${appBaseUrl}/dashboard/highlights/${highlightId}`,
-        },
+        title: `Legacy Dashboard Highlight ${highlightId}`,
+        description: "Redirect legacy route ke dashboard canonical.",
     };
 }
 
-export default async function DashboardHighlightDetailPage({ params }: HighlightPageProps) {
-    const { highlightId } = await params;
-    const cookie = (await headers()).get("cookie") || "";
-    const highlightRes = await apiClient.api.dashboard.highlights[":id"].$get(
-        { param: { id: highlightId } },
-        { headers: { cookie } }
-    );
-
-    if (!highlightRes.ok) {
-        console.error("Failed to fetch highlight:", await highlightRes.text());
+export default async function DashboardHighlightDetailPage(_props: HighlightPageProps) {
+    const routing = await resolveDashboardRoutingTarget();
+    if (!routing) {
+        redirect("/login");
     }
-
-    const body = highlightRes.ok ? await highlightRes.json() : null;
-    const highlight = (body as any)?.data ?? null;
-
-    return (
-        <div className="space-y-6">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <h1 className="text-2xl font-semibold text-foreground">Detail Highlight</h1>
-                    <p className="text-sm text-muted-foreground mt-2">
-                        ID highlight: {highlightId}
-                    </p>
-                </div>
-                <Button variant="outline" className="h-9 text-xs font-semibold" asChild>
-                    <Link href="/dashboard/highlights">Kembali</Link>
-                </Button>
-            </div>
-
-            {!highlight ? (
-                <CardEmptyState
-                    icon={AlertTriangle}
-                    title="Highlight tidak ditemukan"
-                    description="Highlight ini mungkin sudah dihapus atau diarsipkan."
-                />
-            ) : (
-                <SectionCard title="Ringkasan" description="Preview highlight di dashboard.">
-                    <div className="space-y-2 text-sm">
-                        <p className="font-semibold text-foreground">{highlight.title ?? "Judul highlight"}</p>
-                        <p className="text-xs text-muted-foreground">
-                            {highlight.description ?? "Belum ada deskripsi highlight."}
-                        </p>
-                    </div>
-                    <div className="mt-4 flex gap-2">
-                        <Button className="h-9 text-xs font-semibold">Edit Highlight</Button>
-                        <form action={archiveHighlightAction.bind(null, highlight.id)}>
-                            <Button variant="outline" className="h-9 text-xs font-semibold" type="submit">
-                                Arsipkan
-                            </Button>
-                        </form>
-                    </div>
-                </SectionCard>
-            )}
-        </div>
-    );
+    redirect(routing.targetPath);
 }

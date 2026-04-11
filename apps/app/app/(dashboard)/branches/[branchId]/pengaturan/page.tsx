@@ -1,54 +1,28 @@
-import Link from "next/link";
-import { Metadata } from "next";
-import { Button } from "@repo/ui/button";
-import { Input } from "@repo/ui/input";
-import { SectionCard } from "@/components/dashboard/shared/section-card";
+import { redirect } from "next/navigation";
+import { resolveCanonicalBranchPathByBranchId, resolveDashboardRoutingTarget } from "@/lib/dashboard-routing.server";
 
-type CabangSettingsPageProps = {
+type BranchLegacySettingsPageProps = {
     params: Promise<{ branchId: string }>;
 };
 
-export async function generateMetadata({ params }: CabangSettingsPageProps): Promise<Metadata> {
+export async function generateMetadata({ params }: BranchLegacySettingsPageProps) {
     const { branchId } = await params;
-    const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://app.beres.io";
-
     return {
         title: `Pengaturan Cabang ${branchId}`,
-        description: "Konfigurasi cabang",
-        alternates: {
-            canonical: `${appBaseUrl}/cabang/${branchId}/pengaturan`,
-        },
+        description: "Legacy route redirect ke branch dashboard canonical.",
     };
 }
 
-export default async function CabangSettingsPage({ params }: CabangSettingsPageProps) {
+export default async function BranchLegacySettingsPage({ params }: BranchLegacySettingsPageProps) {
     const { branchId } = await params;
+    const canonicalPath = await resolveCanonicalBranchPathByBranchId(branchId);
+    if (!canonicalPath) {
+        const routing = await resolveDashboardRoutingTarget();
+        if (!routing) {
+            redirect("/login");
+        }
+        redirect(routing.targetPath);
+    }
 
-    return (
-        <div className="space-y-6">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <h1 className="text-2xl font-semibold text-foreground">Pengaturan Cabang</h1>
-                    <p className="text-sm text-muted-foreground mt-2">
-                        ID cabang: {branchId}
-                    </p>
-                </div>
-                <Button variant="outline" className="h-9 text-xs font-semibold" asChild>
-                    <Link href={`/cabang/${branchId}`}>Kembali</Link>
-                </Button>
-            </div>
-
-            <SectionCard title="Info Cabang" description="Perbarui data cabang.">
-                <div className="grid gap-4 sm:grid-cols-2">
-                    <Input placeholder="Nama cabang" />
-                    <Input placeholder="Nomor telepon" />
-                    <Input placeholder="Alamat lengkap" />
-                    <Input placeholder="Kota / Area" />
-                </div>
-                <div className="mt-4">
-                    <Button className="h-9 text-xs font-semibold">Simpan Perubahan</Button>
-                </div>
-            </SectionCard>
-        </div>
-    );
+    redirect(canonicalPath);
 }

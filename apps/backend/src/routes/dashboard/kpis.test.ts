@@ -14,6 +14,19 @@ vi.mock("../../lib/auth-context", () => ({
     getOrgId: vi.fn(async () => "org-1"),
 }));
 
+vi.mock("../../lib/organization-aggregates", () => ({
+    getOrganizationBranchAggregate: vi.fn(async () => ({
+        totalBranches: 4,
+        activeBranches: 3,
+        activeStaff: 8,
+        revenueTotal: 2500000,
+        totalOrders: 15,
+        completedOrders: 12,
+        cancelledOrders: 1,
+    })),
+    resolveScopedBranchIds: vi.fn(async () => []),
+}));
+
 import { kpisRouter } from "./kpis";
 const createKpisApp = (db: any) =>
     createTestApp(kpisRouter, "/api/dashboard/kpis", db);
@@ -21,19 +34,10 @@ const createKpisApp = (db: any) =>
 describe("kpis routes", () => {
     describe("GET /", () => {
         it("returns KPIs for today", async () => {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
             const db = createDbMock({
                 selectResults: [
-                    // Revenue result
-                    [{ total: 2500000 }],
-                    // Orders result
-                    [{ total: 15 }],
                     // Customers result
                     [{ total: 3 }],
-                    // Branches result
-                    [{ active: 3, total: 4 }],
                 ],
             });
             const app = createKpisApp(db);
@@ -53,12 +57,19 @@ describe("kpis routes", () => {
         });
 
         it("returns zero values when no data", async () => {
+            const { getOrganizationBranchAggregate } = await import("../../lib/organization-aggregates");
+            vi.mocked(getOrganizationBranchAggregate).mockResolvedValueOnce({
+                totalBranches: 0,
+                activeBranches: 0,
+                activeStaff: 0,
+                revenueTotal: 0,
+                totalOrders: 0,
+                completedOrders: 0,
+                cancelledOrders: 0,
+            } as any);
             const db = createDbMock({
                 selectResults: [
                     [{ total: 0 }],
-                    [{ total: 0 }],
-                    [{ total: 0 }],
-                    [{ active: 0, total: 0 }],
                 ],
             });
             const app = createKpisApp(db);

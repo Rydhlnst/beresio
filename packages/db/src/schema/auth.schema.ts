@@ -1,4 +1,6 @@
-import { pgTable, text, timestamp, boolean, uuid, varchar, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, uuid, varchar, index, uniqueIndex, pgEnum } from "drizzle-orm/pg-core";
+
+export const orgModeEnum = pgEnum("org_mode", ["single", "multi"]);
 
 export const user = pgTable("user", {
     id: text("id").primaryKey(),
@@ -61,6 +63,7 @@ export const organization = pgTable("organization", {
     metadata: text("metadata"),
     // Additional fields requested
     businessType: text("business_type").notNull(),
+    mode: orgModeEnum("mode").notNull().default("single"),
     subscriptionPlan: text("subscription_plan").default("starter"),
     logoUrl: text("logo_url")
 });

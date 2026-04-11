@@ -13,6 +13,11 @@ type Bindings = {
   BETTER_AUTH_URL: string
   INTERNAL_API_SECRET?: string
   CORS_ALLOWED_ORIGINS?: string
+  LAUNDRY_WA_PROVIDER_URL?: string
+  LAUNDRY_WA_PROVIDER_TOKEN?: string
+  LAUNDRY_WA_TIMEOUT_MS?: string
+  LAUNDRY_WA_MAX_ATTEMPTS?: string
+  LAUNDRY_WA_RETRY_BASE_SECONDS?: string
 }
 
 type Variables = {

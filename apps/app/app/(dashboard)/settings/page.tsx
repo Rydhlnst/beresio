@@ -19,6 +19,7 @@ type OrganizationData = {
     name: string;
     slug?: string | null;
     businessType?: string | null;
+    mode?: "single" | "multi" | null;
     subscriptionPlan?: string | null;
     logoUrl?: string | null;
     metadata?: unknown;

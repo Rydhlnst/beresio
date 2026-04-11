@@ -38,47 +38,41 @@ export default async function OnboardingOrgPage() {
   const hasOrg = orgData && orgData.length > 0;
 
   if (hasOrg) {
-    redirect("/dashboard");
+    redirect("/");
   }
 
   return (
-    <div className="grid gap-7 xl:grid-cols-[minmax(0,0.4fr)_minmax(0,1fr)] xl:items-start">
-      <aside className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 md:p-6">
+    <div className="flex h-full w-full items-center justify-center overflow-hidden">
+      <section className="w-full max-w-[760px] max-h-full overflow-y-auto rounded-2xl border border-border bg-card p-5 shadow-sm md:p-7">
         <div className="space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Step 1</p>
-          <h2 className="text-2xl font-semibold leading-tight text-slate-900">Daftarkan organisasi bisnismu</h2>
-          <p className="text-sm leading-relaxed text-slate-600">
+          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary">Step 1</p>
+          <h2 className="text-2xl font-semibold leading-tight text-foreground">Daftarkan organisasi bisnismu</h2>
+          <p className="text-sm leading-relaxed text-muted-foreground">
             Kita simpan identitas usaha utama dulu, lalu lanjut setup cabang pertama sebagai titik operasional.
           </p>
         </div>
 
-        <div className="mt-6 space-y-3">
-          <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3">
-            <Building2 className="mt-0.5 h-4 w-4 text-slate-500" />
-            <div>
-              <p className="text-sm font-semibold text-slate-900">Entitas usaha tunggal</p>
-              <p className="text-xs text-slate-600">Menjadi parent untuk seluruh cabang dan tim.</p>
-            </div>
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-xl border border-border bg-muted/40 px-3 py-3">
+            <Building2 className="h-4 w-4 text-primary" />
+            <p className="mt-2 text-sm font-semibold text-foreground">Entitas usaha tunggal</p>
+            <p className="text-xs text-muted-foreground">Menjadi parent untuk seluruh cabang dan tim.</p>
           </div>
-          <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3">
-            <ShieldCheck className="mt-0.5 h-4 w-4 text-slate-500" />
-            <div>
-              <p className="text-sm font-semibold text-slate-900">Akses role otomatis</p>
-              <p className="text-xs text-slate-600">Role owner dan permission dasar di-bootstrap setelah submit.</p>
-            </div>
+          <div className="rounded-xl border border-border bg-muted/40 px-3 py-3">
+            <ShieldCheck className="h-4 w-4 text-primary" />
+            <p className="mt-2 text-sm font-semibold text-foreground">Akses role otomatis</p>
+            <p className="text-xs text-muted-foreground">Role owner dan permission dasar di-bootstrap setelah submit.</p>
           </div>
-          <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3">
-            <Sparkles className="mt-0.5 h-4 w-4 text-slate-500" />
-            <div>
-              <p className="text-sm font-semibold text-slate-900">Lanjut tanpa setup ulang</p>
-              <p className="text-xs text-slate-600">Data ini dipakai langsung di langkah cabang berikutnya.</p>
-            </div>
+          <div className="rounded-xl border border-border bg-muted/40 px-3 py-3">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <p className="mt-2 text-sm font-semibold text-foreground">Lanjut tanpa setup ulang</p>
+            <p className="text-xs text-muted-foreground">Data ini dipakai langsung di langkah cabang berikutnya.</p>
           </div>
         </div>
-      </aside>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-7">
-        <OrgOnboardingForm />
+        <div className="mt-6">
+          <OrgOnboardingForm />
+        </div>
       </section>
     </div>
   );

@@ -25,6 +25,7 @@ type MemberOption = {
 
 type BranchCreateWizardClientProps = {
     members: MemberOption[];
+    orgOverviewPath: string;
 };
 
 const STEPS = [
@@ -32,7 +33,7 @@ const STEPS = [
     { id: 2, label: "Assign Tim", description: "Pilih anggota untuk cabang ini." },
 ];
 
-export function BranchCreateWizardClient({ members }: BranchCreateWizardClientProps) {
+export function BranchCreateWizardClient({ members, orgOverviewPath }: BranchCreateWizardClientProps) {
     const router = useTransitionRouter();
     const [step, setStep] = useState<1 | 2>(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -135,14 +136,14 @@ export function BranchCreateWizardClient({ members }: BranchCreateWizardClientPr
             if (failed > 0) {
                 setIsSubmitting(false);
                 toast.error(`Cabang dibuat, tapi ${failed} assignment gagal.`);
-                router.push("/cabang");
+                router.push(orgOverviewPath);
                 return;
             }
         }
 
         setIsSubmitting(false);
         toast.success("Cabang berhasil dibuat!");
-        router.push("/cabang");
+        router.push(orgOverviewPath);
     };
 
     const defaultValues = branchPayload
@@ -172,7 +173,7 @@ export function BranchCreateWizardClient({ members }: BranchCreateWizardClientPr
                     </p>
                 </div>
                 <Button variant="outline" className="h-9 text-xs font-semibold" asChild>
-                    <Link href="/cabang">Kembali</Link>
+                    <Link href={orgOverviewPath}>Kembali</Link>
                 </Button>
             </div>
 

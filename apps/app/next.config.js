@@ -28,6 +28,15 @@ const nextConfig = {
     experimental: {
         optimizePackageImports: ["lucide-react", "@repo/ui", "framer-motion", "recharts"],
     },
+    async redirects() {
+        return [
+            {
+                source: "/branches/:path*",
+                destination: "/cabang/:path*",
+                permanent: false,
+            },
+        ];
+    },
 };
 
 export default nextConfig;

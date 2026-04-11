@@ -2,17 +2,97 @@ import { Hono } from 'hono'
 import { authMiddleware } from '../../middleware/auth'
 import { getOrgId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
-import { sql, and, eq, gt, gte } from 'drizzle-orm'
-import { orders, customers, branches } from '@beresio/db'
+import { and, eq, gte, inArray, sql } from 'drizzle-orm'
+import { customers, inventoryStocks, orders, pickupOrders } from '@beresio/db'
+import { getOrganizationBranchAggregate, resolveScopedBranchIds } from '../../lib/organization-aggregates'
+import { getBranchAccessContext, hasBranchAccess } from '../../lib/branch-access'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
 type Variables = { db: any; user: any; session: any }
 
 export const kpisRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
+async function resolveKpiScope(c: any, orgId: string) {
+    const requestedBranchId = c.req.query('branchId') ?? c.req.header('x-branch-id') ?? null
+    if (requestedBranchId) {
+        const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId)
+        if (!isOrgWide && !hasBranchAccess(branchIds, requestedBranchId)) {
+            return { ok: false as const, response: errors.forbidden(c, 'No access to branch') }
+        }
+    }
+
+    const scopedBranchIds = await resolveScopedBranchIds(
+        c,
+        orgId,
+        requestedBranchId ? [requestedBranchId] : undefined
+    )
+
+    return {
+        ok: true as const,
+        requestedBranchId,
+        scopedBranchIds,
+    }
+}
+
+async function loadKpis(c: any, orgId: string, scopedBranchIds: string[]) {
+    const db = c.get('db')
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const [customerResult, aggregate, activeDeliveriesResult, lowStockResult] = await Promise.all([
+        db
+            .select({ total: sql<number>`COUNT(*)` })
+            .from(customers)
+            .where(
+                and(
+                    eq(customers.organizationId, orgId),
+                    gte(customers.createdAt, today)
+                )
+            ),
+        getOrganizationBranchAggregate(c, orgId, {
+            branchIds: scopedBranchIds,
+            range: { from: today, to: null },
+        }),
+        scopedBranchIds.length === 0
+            ? Promise.resolve([{ total: 0 }])
+            : db
+                .select({ total: sql<number>`COUNT(*)` })
+                .from(pickupOrders)
+                .innerJoin(orders, eq(pickupOrders.orderId, orders.id))
+                .where(and(
+                    eq(pickupOrders.organizationId, orgId),
+                    inArray(orders.branchId, scopedBranchIds),
+                    sql`${pickupOrders.status} <> 'Selesai'`
+                )),
+        scopedBranchIds.length === 0
+            ? Promise.resolve([{ total: 0 }])
+            : db
+                .select({ total: sql<number>`COUNT(*)` })
+                .from(inventoryStocks)
+                .where(and(
+                    eq(inventoryStocks.organizationId, orgId),
+                    inArray(inventoryStocks.branchId, scopedBranchIds),
+                    sql`${inventoryStocks.minThreshold} > 0`,
+                    sql`${inventoryStocks.quantity} <= ${inventoryStocks.minThreshold}`
+                )),
+    ])
+
+    return {
+        omzetHariIni: aggregate.revenueTotal,
+        pesananHariIni: aggregate.totalOrders,
+        pelangganBaru: Number(customerResult[0]?.total ?? 0),
+        activeBranches: aggregate.activeBranches,
+        totalBranches: aggregate.totalBranches,
+        activeStaff: aggregate.activeStaff,
+        totalRevenueToday: aggregate.revenueTotal,
+        totalOrdersToday: aggregate.totalOrders,
+        activeDeliveries: Number(activeDeliveriesResult[0]?.total ?? 0),
+        lowStockAlerts: Number(lowStockResult[0]?.total ?? 0),
+    }
+}
+
 kpisRouter.get('/', authMiddleware, async (c) => {
     try {
-        const db = c.get('db')
         let orgId: string
         try {
             orgId = await getOrgId(c)
@@ -20,68 +100,80 @@ kpisRouter.get('/', authMiddleware, async (c) => {
             return errors.unauthorized(c, 'No organization context')
         }
 
-        // 1. Omzet Hari Ini: SUM total_amount of orders created today
-        // 2. Pesanan Hari Ini: COUNT orders created today
-        // 3. Pelanggan Baru: COUNT customers created today
-        // 4. Cabang Aktif: Active vs Total count
+        const resolvedScope = await resolveKpiScope(c, orgId)
+        if (!resolvedScope.ok) return resolvedScope.response
 
-        const today = new Date()
-        today.setHours(0, 0, 0, 0)
-
-        const [revenueResult, ordersResult, customerResult, branchResult] = await Promise.all([
-            // Omzet Hari Ini
-            db
-                .select({ total: sql<number>`COALESCE(SUM(${orders.totalAmount}), 0)` })
-                .from(orders)
-                .where(
-                    and(
-                        eq(orders.organizationId, orgId),
-                        eq(orders.paymentStatus, 'paid'),
-                        gte(orders.createdAt, today)
-                    )
-                ),
-
-            // Pesanan Hari Ini
-            db
-                .select({ total: sql<number>`COUNT(*)` })
-                .from(orders)
-                .where(
-                    and(
-                        eq(orders.organizationId, orgId),
-                        gte(orders.createdAt, today)
-                    )
-                ),
-
-            // Pelanggan Baru (Today)
-            db
-                .select({ total: sql<number>`COUNT(*)` })
-                .from(customers)
-                .where(
-                    and(
-                        eq(customers.organizationId, orgId),
-                        gte(customers.createdAt, today)
-                    )
-                ),
-
-            // Cabang Aktif vs Total
-            db
-                .select({
-                    active: sql<number>`COUNT(*) FILTER (WHERE ${branches.isActive} = true)`,
-                    total: sql<number>`COUNT(*)`,
-                })
-                .from(branches)
-                .where(eq(branches.organizationId, orgId)),
-        ])
-
-        return ok(c, {
-            omzetHariIni: Number(revenueResult[0]?.total ?? 0),
-            pesananHariIni: Number(ordersResult[0]?.total ?? 0),
-            pelangganBaru: Number(customerResult[0]?.total ?? 0),
-            activeBranches: Number(branchResult[0]?.active ?? 0),
-            totalBranches: Number(branchResult[0]?.total ?? 0),
+        const payload = await loadKpis(c, orgId, resolvedScope.scopedBranchIds)
+        return ok(c, payload, {
+            scope: resolvedScope.requestedBranchId ? "branch" : "organization",
+            branchId: resolvedScope.requestedBranchId,
         })
     } catch (err: any) {
         console.error('[kpis]', err)
         return errors.internal(c, err.message)
     }
+})
+
+kpisRouter.get('/stream', authMiddleware, async (c) => {
+    let orgId: string
+    try {
+        orgId = await getOrgId(c)
+    } catch {
+        return errors.unauthorized(c, 'No organization context')
+    }
+
+    const resolvedScope = await resolveKpiScope(c, orgId)
+    if (!resolvedScope.ok) return resolvedScope.response
+
+    const scopedBranchIds = resolvedScope.scopedBranchIds
+    const encoder = new TextEncoder()
+    let timer: ReturnType<typeof setInterval> | null = null
+
+    const stream = new ReadableStream({
+        async start(controller) {
+            const write = (chunk: string) => controller.enqueue(encoder.encode(chunk))
+            const emit = async () => {
+                try {
+                    const payload = await loadKpis(c, orgId, scopedBranchIds)
+                    write(`event: kpi\ndata: ${JSON.stringify(payload)}\n\n`)
+                } catch (err: any) {
+                    write(`event: error\ndata: ${JSON.stringify({ message: "kpi_stream_error", detail: err?.message ?? "unknown" })}\n\n`)
+                }
+            }
+
+            write(`retry: 5000\n\n`)
+            await emit()
+            timer = setInterval(() => {
+                void emit()
+            }, 15000)
+
+            const abort = () => {
+                if (timer) {
+                    clearInterval(timer)
+                    timer = null
+                }
+                try {
+                    controller.close()
+                } catch {
+                    // no-op
+                }
+            }
+
+            c.req.raw.signal?.addEventListener('abort', abort, { once: true })
+        },
+        cancel() {
+            if (timer) {
+                clearInterval(timer)
+                timer = null
+            }
+        },
+    })
+
+    return new Response(stream, {
+        headers: {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache, no-transform",
+            Connection: "keep-alive",
+        },
+    })
 })

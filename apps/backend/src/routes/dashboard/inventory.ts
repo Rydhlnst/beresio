@@ -23,6 +23,7 @@ import {
     recordVariantStockMovement,
 } from '../../lib/stock'
 import { getAccessibleBranchIds, getBranchAccessContext, hasBranchAccess } from '../../lib/branch-access'
+import { requireBranchContext } from '../../middleware/branch-context'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
 type Variables = { db: any; user: any; session: any }
@@ -166,7 +167,7 @@ inventoryRouter.get('/products', authMiddleware, async (c) => {
 })
 
 // DELETE /api/dashboard/inventory/products/:id
-inventoryRouter.delete('/products/:id', authMiddleware, async (c) => {
+inventoryRouter.delete('/products/:id', authMiddleware, requireBranchContext(), async (c) => {
     try {
         const db = c.get('db')
         const orgId = await getOrgId(c)
@@ -266,7 +267,7 @@ inventoryRouter.get('/adjustments', authMiddleware, async (c) => {
 })
 
 // POST /api/dashboard/inventory/adjustments
-inventoryRouter.post('/adjustments', authMiddleware, async (c) => {
+inventoryRouter.post('/adjustments', authMiddleware, requireBranchContext(), async (c) => {
     try {
         const db = c.get('db')
         const orgId = await getOrgId(c)
@@ -399,7 +400,11 @@ inventoryRouter.get('/transfers', authMiddleware, async (c) => {
 })
 
 // POST /api/dashboard/inventory/transfers
-inventoryRouter.post('/transfers', authMiddleware, async (c) => {
+inventoryRouter.post(
+    '/transfers',
+    authMiddleware,
+    requireBranchContext({ payloadKeys: ['fromBranchId', 'branchId'] }),
+    async (c) => {
     try {
         const db = c.get('db')
         const orgId = await getOrgId(c)
@@ -481,7 +486,7 @@ inventoryRouter.post('/transfers', authMiddleware, async (c) => {
 })
 
 // PATCH /api/dashboard/inventory/transfers/:id
-inventoryRouter.patch('/transfers/:id', authMiddleware, async (c) => {
+inventoryRouter.patch('/transfers/:id', authMiddleware, requireBranchContext(), async (c) => {
     try {
         const db = c.get('db')
         const orgId = await getOrgId(c)
@@ -638,7 +643,7 @@ inventoryRouter.get('/movements', authMiddleware, async (c) => {
 })
 
 // PATCH /api/dashboard/inventory/stocks/threshold
-inventoryRouter.patch('/stocks/threshold', authMiddleware, async (c) => {
+inventoryRouter.patch('/stocks/threshold', authMiddleware, requireBranchContext(), async (c) => {
     try {
         const db = c.get('db')
         const orgId = await getOrgId(c)
@@ -759,7 +764,7 @@ inventoryRouter.get('/variant-stocks', authMiddleware, async (c) => {
 })
 
 // POST /api/dashboard/inventory/variant-stocks/adjust
-inventoryRouter.post('/variant-stocks/adjust', authMiddleware, async (c) => {
+inventoryRouter.post('/variant-stocks/adjust', authMiddleware, requireBranchContext(), async (c) => {
     try {
         const db = c.get('db')
         const orgId = await getOrgId(c)
@@ -822,7 +827,7 @@ inventoryRouter.post('/variant-stocks/adjust', authMiddleware, async (c) => {
 })
 
 // PATCH /api/dashboard/inventory/variant-stocks/threshold
-inventoryRouter.patch('/variant-stocks/threshold', authMiddleware, async (c) => {
+inventoryRouter.patch('/variant-stocks/threshold', authMiddleware, requireBranchContext(), async (c) => {
     try {
         const db = c.get('db')
         const orgId = await getOrgId(c)

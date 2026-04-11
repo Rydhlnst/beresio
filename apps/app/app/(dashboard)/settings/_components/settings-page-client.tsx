@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import {
@@ -20,6 +21,7 @@ type SettingsPageClientProps = {
         name: string;
         slug?: string | null;
         businessType?: string | null;
+        mode?: "single" | "multi" | null;
         subscriptionPlan?: string | null;
         logoUrl?: string | null;
         metadata?: unknown;
@@ -61,6 +63,10 @@ function getMetadataValue(metadata: unknown, key: string): string | null {
     const value = (metadata as Record<string, unknown>)[key];
     if (typeof value === "string") return value;
     return null;
+}
+
+function getApiBaseUrl() {
+    return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
 }
 
 function ToggleSwitch({
@@ -135,6 +141,10 @@ export function SettingsPageClient({ organization, billing, isOwner }: SettingsP
     const [emailUpdates, setEmailUpdates] = useState(false);
     const [muteSounds, setMuteSounds] = useState(false);
     const [pushTimeout, setPushTimeout] = useState("10");
+    const [orgMode, setOrgMode] = useState<"single" | "multi">(
+        organization?.mode === "multi" ? "multi" : "single"
+    );
+    const [isModeSubmitting, setIsModeSubmitting] = useState(false);
 
     useEffect(() => {
         if (!sections.find((section) => section.id === activeSection)) {
@@ -154,6 +164,34 @@ export function SettingsPageClient({ organization, billing, isOwner }: SettingsP
     const memberUsage = billing?.usage?.members;
     const branchLimit = branchUsage?.limit === null ? "Tak terbatas" : (branchUsage?.limit ?? "-");
     const memberLimit = memberUsage?.limit === null ? "Tak terbatas" : (memberUsage?.limit ?? "-");
+
+    const handleUpgradeMode = async () => {
+        if (!isOwner || orgMode === "multi") return;
+
+        setIsModeSubmitting(true);
+        try {
+            const res = await fetch(`${getApiBaseUrl()}/api/dashboard/organization`, {
+                method: "PATCH",
+                credentials: "include",
+                headers: {
+                    "content-type": "application/json",
+                },
+                body: JSON.stringify({ mode: "multi" }),
+            });
+            const body = await res.json().catch(() => null);
+            if (!res.ok || !(body as any)?.success) {
+                toast.error((body as any)?.error?.message || "Gagal upgrade mode organisasi.");
+                return;
+            }
+
+            setOrgMode("multi");
+            toast.success("Mode organisasi berhasil di-upgrade ke Multi Branch.");
+        } catch {
+            toast.error("Terjadi kesalahan sistem. Coba lagi.");
+        } finally {
+            setIsModeSubmitting(false);
+        }
+    };
 
     return (
         <div className="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)]">
@@ -194,6 +232,10 @@ export function SettingsPageClient({ organization, billing, isOwner }: SettingsP
 
                 {activeSection === "Organisasi" && (
                     <div className="space-y-6">
+                        <div className="rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-xs text-amber-900">
+                            Perubahan langsung di level organisasi tetap tersedia, tetapi tidak direkomendasikan.
+                            Untuk operasional harian, utamakan CRUD dari level cabang agar data dan audit lebih akurat.
+                        </div>
                         <div className="rounded-xl border border-border/60 bg-background/40 p-6 space-y-6">
                             <div>
                                 <h3 className="text-sm font-semibold text-foreground mb-4">Logo Organisasi</h3>
@@ -219,6 +261,37 @@ export function SettingsPageClient({ organization, billing, isOwner }: SettingsP
                             </div>
                             <Button className="h-9 text-xs font-semibold">Simpan Perubahan</Button>
                         </div>
+                        <SettingsGroup
+                            title="Business Mode"
+                            description="SINGLE hanya 1 cabang, MULTI untuk ekspansi cabang."
+                        >
+                            <div className="px-4 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                    <p className="text-sm font-semibold text-foreground">
+                                        Mode saat ini: {orgMode === "multi" ? "Multi Branch" : "Single Branch"}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        Upgrade mode bersifat satu arah: single ke multi.
+                                    </p>
+                                </div>
+                                {isOwner ? (
+                                    <Button
+                                        variant={orgMode === "multi" ? "outline" : "default"}
+                                        className="h-9 text-xs font-semibold"
+                                        disabled={orgMode === "multi" || isModeSubmitting}
+                                        onClick={handleUpgradeMode}
+                                    >
+                                        {orgMode === "multi"
+                                            ? "Mode Multi Aktif"
+                                            : isModeSubmitting
+                                                ? "Memproses..."
+                                                : "Upgrade ke Multi"}
+                                    </Button>
+                                ) : (
+                                    <p className="text-xs text-muted-foreground">Hanya owner yang bisa upgrade mode.</p>
+                                )}
+                            </div>
+                        </SettingsGroup>
                         <SettingsGroup
                             title="Alamat & Legalitas"
                             description="Informasi yang muncul di invoice atau kontrak."

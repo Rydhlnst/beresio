@@ -1,10 +1,11 @@
 import { auth } from "@/lib/auth";
-import { branches, createDbNextjs } from "@beresio/db";
+import { branches, createDbNextjs, organization } from "@beresio/db";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { BusinessNavResponse, BusinessNavItem } from "@/components/dashboard/layout/nav-config";
 import { DashboardShell } from "@/components/dashboard/layout/dashboard-shell";
 import { eq, sql } from "drizzle-orm";
+import { buildBranchDashboardPath, buildOrgDashboardPath, resolveDashboardRoutingTarget } from "@/lib/dashboard-routing.server";
 
 type OrgRecord = {
     id: string;
@@ -14,6 +15,64 @@ type OrgRecord = {
     subscriptionPlan?: string | null;
     businessType?: string | null;
 };
+
+function cloneNavItem(item: BusinessNavItem): BusinessNavItem {
+    return {
+        ...item,
+        submenu: item.submenu?.map(cloneNavItem),
+    };
+}
+
+function parseMetadata(metadata: string | null | undefined): Record<string, unknown> {
+    if (!metadata) return {};
+    try {
+        return JSON.parse(metadata) as Record<string, unknown>;
+    } catch {
+        return {};
+    }
+}
+
+function normalizeNavItems(
+    items: BusinessNavItem[],
+    options: {
+        orgSlug: string;
+        orgPath: string;
+        branchPath: string;
+        mode: "single" | "multi";
+        isOrgLevelRole: boolean;
+        branches: Array<{ id: string; slug: string; name: string }>;
+    }
+) {
+    const mapped = items
+        .map((item) => cloneNavItem(item))
+        .filter((item) => {
+            if (item.id === "cabang" && (!options.isOrgLevelRole || options.mode !== "multi")) {
+                return false;
+            }
+            return true;
+        })
+        .map((item) => {
+            if (item.id === "dashboard") {
+                item.path = options.mode === "multi" && options.isOrgLevelRole
+                    ? options.orgPath
+                    : options.branchPath;
+            }
+            if (item.id === "cabang" && options.mode === "multi" && options.isOrgLevelRole) {
+                item.path = options.branches[0]?.slug
+                    ? buildBranchDashboardPath(options.orgSlug, options.branches[0].slug)
+                    : options.orgPath;
+                item.submenu = options.branches.map((branch) => ({
+                    id: `branch-${branch.id}`,
+                    label: branch.name,
+                    icon: "building",
+                    path: buildBranchDashboardPath(options.orgSlug, branch.slug),
+                }));
+            }
+            return item;
+        });
+
+    return mapped;
+}
 
 async function readJsonBodySafe<T>(response: Response): Promise<{ data: T | null; rawText: string }> {
     const rawText = await response.text();
@@ -59,6 +118,10 @@ export default async function DashboardLayout({
         (session as any)?.activeOrganizationId ?? organizations[0]?.id;
     const activeOrganization =
         organizations.find((org) => org.id === activeOrganizationId) ?? organizations[0];
+    const routing = await resolveDashboardRoutingTarget();
+    if (!routing) {
+        redirect("/login");
+    }
 
     const cookie = reqHeaders.get("cookie") || "";
     const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
@@ -111,6 +174,20 @@ export default async function DashboardLayout({
         navLoaded = true;
     }
 
+    const [orgMeta] = activeOrganization?.id
+        ? await db
+            .select({ metadata: organization.metadata })
+            .from(organization)
+            .where(eq(organization.id, activeOrganization.id))
+            .limit(1)
+        : [{ metadata: null }];
+
+    const metadata = parseMetadata(orgMeta?.metadata ?? null);
+    const onboardingMeta = (metadata.onboarding && typeof metadata.onboarding === "object")
+        ? (metadata.onboarding as Record<string, unknown>)
+        : {};
+    const modeSelected = onboardingMeta.modeSelected === true;
+
     const branchCountRows = activeOrganization?.id
         ? await db
             .select({ count: sql<number>`count(*)` })
@@ -121,8 +198,33 @@ export default async function DashboardLayout({
     const hasBranch = Number(branchCountRows[0]?.count ?? 0) > 0;
 
     if (!hasBranch) {
-        redirect("/onboarding/team");
+        if (!modeSelected) {
+            redirect("/onboarding/mode");
+        }
+        redirect("/onboarding/branch");
     }
+
+    const orgPath = buildOrgDashboardPath(routing.orgSlug);
+    const branchPath = routing.defaultBranchCode
+        ? buildBranchDashboardPath(routing.orgSlug, routing.defaultBranchCode)
+        : routing.targetPath;
+
+    const navOptions = {
+        orgSlug: routing.orgSlug,
+        orgPath,
+        branchPath,
+        mode: routing.mode,
+        isOrgLevelRole: routing.isOrgLevelRole,
+        branches: routing.accessibleBranches.map((branch) => ({
+            id: branch.id,
+            slug: branch.slug,
+            name: branch.name,
+        })),
+    };
+
+    navItems = normalizeNavItems(navItems, navOptions);
+    navBaseItems = normalizeNavItems(navBaseItems, navOptions);
+    navVerticalItems = normalizeNavItems(navVerticalItems, navOptions);
 
     const activePlan = activeOrganization?.plan ?? "starter";
 

@@ -26,6 +26,10 @@ function formatCurrency(value: number) {
     }).format(value ?? 0);
 }
 
+function todayIsoDate() {
+    return new Date().toISOString().slice(0, 10);
+}
+
 type SearchParams = {
     branchId?: string;
     dateFrom?: string;
@@ -34,9 +38,12 @@ type SearchParams = {
 
 export default async function LaundryReportsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
     const resolvedSearchParams = await searchParams;
+    const fallbackDate = todayIsoDate();
+    const effectiveDateFrom = resolvedSearchParams.dateFrom ?? fallbackDate;
+    const effectiveDateTo = resolvedSearchParams.dateTo ?? fallbackDate;
     const activeOrg = await getActiveOrganizationContext();
     if (!activeOrg) redirect("/login");
-    if (activeOrg.businessType !== "laundry") redirect("/dashboard");
+    if (activeOrg.businessType !== "laundry") redirect("/");
 
     const rpc = apiClient as any;
     const cookie = (await headers()).get("cookie") || "";
@@ -45,8 +52,8 @@ export default async function LaundryReportsPage({ searchParams }: { searchParam
             {
                 query: {
                     branchId: resolvedSearchParams.branchId,
-                    dateFrom: resolvedSearchParams.dateFrom,
-                    dateTo: resolvedSearchParams.dateTo,
+                    dateFrom: effectiveDateFrom,
+                    dateTo: effectiveDateTo,
                 },
             },
             { headers: { cookie } }
@@ -99,8 +106,8 @@ export default async function LaundryReportsPage({ searchParams }: { searchParam
                         </option>
                     ))}
                 </select>
-                <input type="date" name="dateFrom" defaultValue={resolvedSearchParams.dateFrom ?? ""} className="h-9 rounded-md border px-3 text-sm" />
-                <input type="date" name="dateTo" defaultValue={resolvedSearchParams.dateTo ?? ""} className="h-9 rounded-md border px-3 text-sm" />
+                <input type="date" name="dateFrom" defaultValue={effectiveDateFrom} className="h-9 rounded-md border px-3 text-sm" />
+                <input type="date" name="dateTo" defaultValue={effectiveDateTo} className="h-9 rounded-md border px-3 text-sm" />
                 <button type="submit" className="h-9 rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground">
                     Terapkan Filter
                 </button>
@@ -163,3 +170,4 @@ export default async function LaundryReportsPage({ searchParams }: { searchParam
         </div>
     );
 }
+
