@@ -9,8 +9,26 @@
   "vars": {
     "DATABASE_URL": "",
     "BETTER_AUTH_SECRET": "",
-    "BETTER_AUTH_URL": ""
+    "BETTER_AUTH_URL": "",
+    "UPSTASH_REDIS_REST_URL": "",
+    "UPSTASH_REDIS_REST_TOKEN": ""
   },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "LAUNDRY_REALTIME_HUB",
+        "class_name": "LaundryRealtimeHub"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1_laundry_realtime_hub",
+      "new_sqlite_classes": [
+        "LaundryRealtimeHub"
+      ]
+    }
+  ],
   // "kv_namespaces": [
   //   {
   //     "binding": "MY_KV_NAMESPACE",

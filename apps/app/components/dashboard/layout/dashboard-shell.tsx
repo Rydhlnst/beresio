@@ -5,6 +5,7 @@ import { SidebarProvider, SidebarInset } from "@repo/ui/sidebar";
 import { AppSidebar } from "./app-sidebar";
 import { DashboardHeader } from "./dashboard-header";
 import { UpgradeBanner } from "./upgrade-banner";
+import { FnbLiveRefreshClient } from "../realtime/fnb-live-refresh-client";
 import type { OrgSwitcherItem } from "./org-switcher";
 import type { BusinessNavItem } from "./nav-config";
 
@@ -76,6 +77,7 @@ export function DashboardShell({
                         businessType={businessType}
                     />
                     <SidebarInset className="flex-1 overflow-hidden bg-secondary/25">
+                        <FnbLiveRefreshClient businessType={businessType} />
                         <DashboardHeader
                             organizationName={organizationName}
                             roleName={roleName ?? null}

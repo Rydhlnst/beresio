@@ -47,6 +47,25 @@ function getApiUrl(path: string) {
     return `${base}${path}`;
 }
 
+function getLaundryWsUrl() {
+    const configuredBase = process.env.NEXT_PUBLIC_API_URL
+        ?? (typeof window !== "undefined" ? window.location.origin : "");
+    if (!configuredBase) return "";
+
+    const normalizedBase = configuredBase.endsWith("/")
+        ? configuredBase.slice(0, -1)
+        : configuredBase;
+
+    if (normalizedBase.startsWith("https://")) {
+        return `wss://${normalizedBase.slice("https://".length)}/api/dashboard/laundry/ws`;
+    }
+    if (normalizedBase.startsWith("http://")) {
+        return `ws://${normalizedBase.slice("http://".length)}/api/dashboard/laundry/ws`;
+    }
+
+    return `${normalizedBase}/api/dashboard/laundry/ws`;
+}
+
 export function LaundryOverviewClient({
     initialSummary,
     initialByStatus,
@@ -102,19 +121,78 @@ export function LaundryOverviewClient({
 
     useEffect(() => {
         if (!enableSse) return;
-        const eventSource = new EventSource(getApiUrl("/api/dashboard/laundry/stream/orders"), {
-            withCredentials: true,
-        });
-        eventSource.addEventListener("order-status", () => {
-            void fetch(getApiUrl("/api/dashboard/laundry/reports/summary"), { credentials: "include" })
-                .then((res) => res.ok ? res.json() : null)
-                .then((payload) => {
-                    const data = (payload as { data?: SummaryData } | null)?.data;
-                    if (data) setSummary(data);
-                })
-                .catch(() => null);
-        });
-        return () => eventSource.close();
+        let socket: WebSocket | null = null;
+        let eventSource: EventSource | null = null;
+        let closed = false;
+
+        const refreshSummary = async () => {
+            const response = await fetch(getApiUrl("/api/dashboard/laundry/reports/summary"), {
+                credentials: "include",
+            }).catch(() => null);
+            if (!response?.ok) return;
+            const payload = await response.json().catch(() => null);
+            const data = (payload as { data?: SummaryData } | null)?.data;
+            if (data) setSummary(data);
+        };
+
+        const openSseFallback = () => {
+            if (closed || eventSource) return;
+            eventSource = new EventSource(getApiUrl("/api/dashboard/laundry/stream/orders"), {
+                withCredentials: true,
+            });
+            eventSource.addEventListener("order-status", () => {
+                void refreshSummary();
+            });
+        };
+
+        const wsUrl = getLaundryWsUrl();
+        if (!wsUrl) {
+            openSseFallback();
+        } else {
+            try {
+                socket = new WebSocket(wsUrl);
+                socket.addEventListener("message", (event) => {
+                    if (typeof event.data !== "string") return;
+                    try {
+                        const payload = JSON.parse(event.data) as {
+                            eventType?: string;
+                            type?: string;
+                        };
+                        const type = payload.eventType ?? payload.type;
+                        if (
+                            type === "ORDER_CREATED"
+                            || type === "ORDER_STATUS_CHANGED"
+                            || type === "PAYMENT_RECORDED"
+                            || type === "DRIVER_ASSIGNED"
+                        ) {
+                            void refreshSummary();
+                        }
+                    } catch {
+                        // ignore malformed realtime payload
+                    }
+                });
+                socket.addEventListener("error", () => {
+                    openSseFallback();
+                });
+                socket.addEventListener("close", () => {
+                    openSseFallback();
+                });
+            } catch {
+                openSseFallback();
+            }
+        }
+
+        return () => {
+            closed = true;
+            if (socket) {
+                socket.close();
+                socket = null;
+            }
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+            }
+        };
     }, [enableSse]);
 
     const topStatuses = useMemo(() => {

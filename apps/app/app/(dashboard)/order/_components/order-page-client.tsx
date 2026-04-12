@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
@@ -47,6 +47,10 @@ import { useForm } from "@tanstack/react-form";
 import { z } from "zod";
 import { createOrderAction, updateOrderAction, updateOrderItemsAction } from "../_actions/orders";
 import { updateCustomerAction } from "../_actions/customers";
+import {
+    FNB_REALTIME_EVENT_NAME,
+    type FnbRealtimeClientEvent,
+} from "@/components/dashboard/realtime/fnb-realtime-events";
 
 type LaundryOrderStatus =
     | "received"
@@ -279,6 +283,37 @@ function paymentStatusLabel(status: string) {
     return "Menunggu";
 }
 
+function getApiBaseUrl() {
+    const configuredBase = process.env.NEXT_PUBLIC_API_URL
+        ?? (typeof window !== "undefined" ? window.location.origin : "");
+    if (!configuredBase) return "";
+    return configuredBase.endsWith("/") ? configuredBase.slice(0, -1) : configuredBase;
+}
+
+function getApiUrl(path: string) {
+    return `${getApiBaseUrl()}${path}`;
+}
+
+function normalizeSummary(order: OrderSummary) {
+    return {
+        ...order,
+        status: normalizeOrderStatus(order.status),
+        type: normalizeOrderType(order.type),
+    };
+}
+
+function normalizeDetail(order: OrderDetail) {
+    return {
+        ...order,
+        status: normalizeOrderStatus(order.status),
+        type: normalizeOrderType(order.type),
+        events: order.events.map((event) => ({
+            ...event,
+            status: normalizeOrderStatus(event.status),
+        })),
+    };
+}
+
 export function OrderPageClient({
     orders: ordersInput,
     branches,
@@ -294,26 +329,11 @@ export function OrderPageClient({
         ? customers
         : (customers as unknown as { data?: CustomerOption[] })?.data ?? [];
     const { refresh, replace } = useTransitionRouter();
-    const orders = useMemo(() => {
-        return ordersInput.map((order) => ({
-            ...order,
-            status: normalizeOrderStatus(order.status),
-            type: normalizeOrderType(order.type),
-        }));
-    }, [ordersInput]);
-
-    const selectedOrder = useMemo(() => {
-        if (!selectedOrderInput) return null;
-        return {
-            ...selectedOrderInput,
-            status: normalizeOrderStatus(selectedOrderInput.status),
-            type: normalizeOrderType(selectedOrderInput.type),
-            events: selectedOrderInput.events.map((event) => ({
-                ...event,
-                status: normalizeOrderStatus(event.status),
-            })),
-        };
-    }, [selectedOrderInput]);
+    const [orders, setOrders] = useState(() => ordersInput.map(normalizeSummary));
+    const [selectedOrder, setSelectedOrder] = useState<OrderDetail | null>(
+        selectedOrderInput ? normalizeDetail(selectedOrderInput) : null
+    );
+    const realtimeRefreshTimerRef = useRef<number | null>(null);
 
     const normalizedFilterStatus = filters.status ? normalizeOrderStatus(filters.status) : "";
     const normalizedFilterType = filters.type ? normalizeOrderType(filters.type) : "";
@@ -338,12 +358,71 @@ export function OrderPageClient({
     const [customerError, setCustomerError] = useState<string | null>(null);
 
     useEffect(() => {
+        setOrders(ordersInput.map(normalizeSummary));
+    }, [ordersInput]);
+
+    useEffect(() => {
+        setSelectedOrder(selectedOrderInput ? normalizeDetail(selectedOrderInput) : null);
+    }, [selectedOrderInput]);
+
+    const refreshOrdersList = useCallback(async () => {
+        const params = new URLSearchParams();
+        if (activeStatus !== "all") params.set("status", activeStatus);
+        if (filters.branchId) params.set("branchId", filters.branchId);
+        if (normalizedFilterType) params.set("type", normalizedFilterType);
+        const query = searchQuery.trim();
+        if (query) params.set("q", query);
+        if (filters.dateFrom) params.set("dateFrom", filters.dateFrom);
+        if (filters.dateTo) params.set("dateTo", filters.dateTo);
+
+        const suffix = params.toString();
+        const response = await fetch(
+            getApiUrl(`/api/dashboard/orders${suffix ? `?${suffix}` : ""}`),
+            { credentials: "include" }
+        ).catch(() => null);
+        if (!response?.ok) return;
+
+        const payload = await response.json().catch(() => null) as { data?: OrderSummary[] } | null;
+        const rows = Array.isArray(payload?.data) ? payload.data : [];
+        const normalized = rows.map(normalizeSummary);
+        setOrders(normalized);
+
+        setSelectedOrder((current) => {
+            if (!current) return current;
+            const stillExists = normalized.some((order) => order.id === current.id);
+            return stillExists ? current : null;
+        });
+    }, [activeStatus, filters.branchId, normalizedFilterType, searchQuery, filters.dateFrom, filters.dateTo]);
+
+    const refreshSelectedOrder = useCallback(async (targetOrderId?: string | null) => {
+        const orderId = targetOrderId?.trim() || selectedOrderId || selectedOrder?.id || null;
+        if (!orderId) return;
+
+        const response = await fetch(
+            getApiUrl(`/api/dashboard/orders/${encodeURIComponent(orderId)}`),
+            { credentials: "include" }
+        ).catch(() => null);
+        if (!response?.ok) {
+            if (response?.status === 404) {
+                setSelectedOrder(null);
+            }
+            return;
+        }
+
+        const payload = await response.json().catch(() => null) as { data?: OrderDetail | null } | null;
+        if (payload?.data) {
+            setSelectedOrder(normalizeDetail(payload.data));
+        }
+    }, [selectedOrderId, selectedOrder?.id]);
+
+    useEffect(() => {
         const interval = window.setInterval(() => {
             if (document.visibilityState !== "visible") return;
-            refresh();
+            void refreshOrdersList();
+            void refreshSelectedOrder();
         }, 45000);
         return () => window.clearInterval(interval);
-    }, [refresh]);
+    }, [refreshOrdersList, refreshSelectedOrder]);
 
     useEffect(() => {
         setSearchQuery(filters.q);
@@ -370,6 +449,44 @@ export function OrderPageClient({
         if (!updateCustomerId || updateCustomerId === "none") return null;
         return normalizedCustomers.find((customer) => customer.id === updateCustomerId) ?? null;
     }, [normalizedCustomers, updateCustomerId]);
+
+    useEffect(() => {
+        const onRealtime = (event: Event) => {
+            const detail = (event as CustomEvent<FnbRealtimeClientEvent>).detail;
+            if (!detail) return;
+            if (detail.eventType === "connected" || detail.eventType === "ping" || detail.eventType === "pong") {
+                return;
+            }
+
+            if (realtimeRefreshTimerRef.current) {
+                window.clearTimeout(realtimeRefreshTimerRef.current);
+                realtimeRefreshTimerRef.current = null;
+            }
+
+            realtimeRefreshTimerRef.current = window.setTimeout(() => {
+                realtimeRefreshTimerRef.current = null;
+
+                const payload = (detail.payload && typeof detail.payload === "object")
+                    ? detail.payload
+                    : null;
+                const orderIdFromPayload = payload && typeof payload.orderId === "string"
+                    ? payload.orderId
+                    : null;
+
+                void refreshOrdersList();
+                void refreshSelectedOrder(orderIdFromPayload);
+            }, 350);
+        };
+
+        window.addEventListener(FNB_REALTIME_EVENT_NAME, onRealtime as EventListener);
+        return () => {
+            window.removeEventListener(FNB_REALTIME_EVENT_NAME, onRealtime as EventListener);
+            if (realtimeRefreshTimerRef.current) {
+                window.clearTimeout(realtimeRefreshTimerRef.current);
+                realtimeRefreshTimerRef.current = null;
+            }
+        };
+    }, [refreshOrdersList, refreshSelectedOrder]);
 
     useEffect(() => {
         const handle = window.setTimeout(() => {

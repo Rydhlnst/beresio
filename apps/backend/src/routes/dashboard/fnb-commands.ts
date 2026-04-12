@@ -9,6 +9,7 @@ import {
 } from "@beresio/db";
 import { authMiddleware } from "../../middleware/auth";
 import { getOrgId, getUserId } from "../../lib/auth-context";
+import { errors } from "../../lib/errors";
 import { appendDomainEvent, canTransitionOrderStatus, projectDomainEvent, runFnbProjectorUntilCaughtUp } from "../../lib/fnb-domain";
 import { ensureIdempotencyKeyOrError, runIdempotentCommand } from "../../lib/idempotency";
 import {
@@ -19,8 +20,22 @@ import {
     type BranchScope,
 } from "../../lib/permissions";
 import { ManualPaymentProviderAdapter } from "../../lib/payment-provider";
+import {
+    connectFnbWebSocket,
+    invalidateKpiCache,
+    publishFnbDomainEvent,
+    shouldInvalidateKpiForFnbEvent,
+} from "../../lib/realtime";
 
-type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string };
+type Bindings = {
+    DATABASE_URL: string;
+    BETTER_AUTH_SECRET: string;
+    BETTER_AUTH_URL: string;
+    UPSTASH_REDIS_REST_URL?: string;
+    UPSTASH_REDIS_REST_TOKEN?: string;
+    LAUNDRY_REALTIME_HUB?: any;
+    FNB_REALTIME_HUB?: any;
+};
 type Variables = { db: any; user: any; session: any };
 
 const fnbCommandRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>();
@@ -37,6 +52,30 @@ const replayProjectorSchema = z.object({
     batchSize: z.coerce.number().int().min(1).max(1000).optional().default(100),
     maxBatches: z.coerce.number().int().min(1).max(200).optional().default(10),
 });
+
+function resolveWebSocketBranchId(branchScope: BranchScope) {
+    const requested = branchScope.requestedBranchIds?.[0] ?? null;
+    if (requested) return { ok: true as const, branchId: requested };
+
+    if (branchScope.isOrgWide) {
+        return { ok: true as const, branchId: null as string | null };
+    }
+
+    const effective = branchScope.effectiveBranchIds ?? [];
+    if (effective.length === 1) {
+        return { ok: true as const, branchId: effective[0] ?? null };
+    }
+
+    if (effective.length === 0) {
+        return { ok: false as const, code: "FORBIDDEN", message: "No access to branch" };
+    }
+
+    return {
+        ok: false as const,
+        code: "BAD_REQUEST",
+        message: "branchId is required for websocket when access covers multiple branches",
+    };
+}
 
 async function resolveOrderBranchId(c: any): Promise<string | null> {
     const db = c.get("db");
@@ -101,6 +140,18 @@ async function executeOrderLifecycleCommand(
                 }
 
                 const targetStatus = EVENT_TO_STATUS[input.eventType];
+                if (!targetStatus) {
+                    return {
+                        status: 400,
+                        body: {
+                            success: false,
+                            error: {
+                                code: "BAD_REQUEST",
+                                message: `Unsupported event type: ${input.eventType}`,
+                            },
+                        },
+                    };
+                }
                 if (!canTransitionOrderStatus(orderRow.status, targetStatus)) {
                     return {
                         status: 400,
@@ -157,8 +208,21 @@ async function executeOrderLifecycleCommand(
                     .where(and(eq(orders.id, orderRow.id), eq(orders.organizationId, orgId)))
                     .limit(1);
 
-                return { status: 200, body: { success: true, data: updatedOrder } };
+                return {
+                    status: 200,
+                    body: { success: true, data: updatedOrder },
+                    event,
+                };
             });
+
+            if (result.status === 200 && result.event) {
+                await Promise.all([
+                    publishFnbDomainEvent(c, result.event),
+                    shouldInvalidateKpiForFnbEvent(result.event.eventType)
+                        ? invalidateKpiCache(c, orgId)
+                        : Promise.resolve(),
+                ]);
+            }
 
             return result;
         },
@@ -422,12 +486,112 @@ fnbCommandRouter.post(
                         .where(and(eq(orders.id, orderRow.id), eq(orders.organizationId, orgId)))
                         .limit(1);
 
-                    return { status: 200, body: { success: true, data: { order: updated, payment: settleResult } } };
+                    return {
+                        status: 200,
+                        body: { success: true, data: { order: updated, payment: settleResult } },
+                        event,
+                    };
                 });
+
+                if (result.status === 200 && result.event) {
+                    await Promise.all([
+                        publishFnbDomainEvent(c, result.event),
+                        shouldInvalidateKpiForFnbEvent(result.event.eventType)
+                            ? invalidateKpiCache(c, orgId)
+                            : Promise.resolve(),
+                    ]);
+                }
 
                 return result;
             },
         });
+    }
+);
+
+fnbCommandRouter.get(
+    "/ws/orders",
+    authMiddleware,
+    requireOrganization,
+    requirePermission("order.read"),
+    requireBranchAccess((c) => c.req.query("branchId") ?? null, { allowMissing: true }),
+    async (c) => {
+        try {
+            const orgId = await getOrgId(c);
+            const branchScope = getBranchScope(c);
+            const resolvedBranch = resolveWebSocketBranchId(branchScope);
+            if (!resolvedBranch.ok) {
+                return resolvedBranch.code === "FORBIDDEN"
+                    ? errors.forbidden(c, resolvedBranch.message)
+                    : errors.badRequest(c, resolvedBranch.message);
+            }
+
+            return connectFnbWebSocket(c, {
+                orgId,
+                stream: "orders",
+                branchId: resolvedBranch.branchId,
+            });
+        } catch (err: any) {
+            console.error("[fnb/ws/orders]", err);
+            return errors.internal(c);
+        }
+    }
+);
+
+fnbCommandRouter.get(
+    "/ws/kds",
+    authMiddleware,
+    requireOrganization,
+    requirePermission("kds.read"),
+    requireBranchAccess((c) => c.req.query("branchId") ?? null, { allowMissing: true }),
+    async (c) => {
+        try {
+            const orgId = await getOrgId(c);
+            const branchScope = getBranchScope(c);
+            const resolvedBranch = resolveWebSocketBranchId(branchScope);
+            if (!resolvedBranch.ok) {
+                return resolvedBranch.code === "FORBIDDEN"
+                    ? errors.forbidden(c, resolvedBranch.message)
+                    : errors.badRequest(c, resolvedBranch.message);
+            }
+
+            return connectFnbWebSocket(c, {
+                orgId,
+                stream: "kds",
+                branchId: resolvedBranch.branchId,
+            });
+        } catch (err: any) {
+            console.error("[fnb/ws/kds]", err);
+            return errors.internal(c);
+        }
+    }
+);
+
+fnbCommandRouter.get(
+    "/ws/tables",
+    authMiddleware,
+    requireOrganization,
+    requirePermission("tables.read"),
+    requireBranchAccess((c) => c.req.query("branchId") ?? null, { allowMissing: true }),
+    async (c) => {
+        try {
+            const orgId = await getOrgId(c);
+            const branchScope = getBranchScope(c);
+            const resolvedBranch = resolveWebSocketBranchId(branchScope);
+            if (!resolvedBranch.ok) {
+                return resolvedBranch.code === "FORBIDDEN"
+                    ? errors.forbidden(c, resolvedBranch.message)
+                    : errors.badRequest(c, resolvedBranch.message);
+            }
+
+            return connectFnbWebSocket(c, {
+                orgId,
+                stream: "tables",
+                branchId: resolvedBranch.branchId,
+            });
+        } catch (err: any) {
+            console.error("[fnb/ws/tables]", err);
+            return errors.internal(c);
+        }
     }
 );
 

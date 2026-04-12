@@ -29,8 +29,20 @@ import {
     incrementLaundryOrderCreateAttempts,
     incrementLaundryValidationRejects,
 } from "../../lib/laundry-metrics";
+import {
+    connectLaundryWebSocket,
+    invalidateKpiCache,
+    publishLaundryRealtime,
+} from "../../lib/realtime";
 
-type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string };
+type Bindings = {
+    DATABASE_URL: string;
+    BETTER_AUTH_SECRET: string;
+    BETTER_AUTH_URL: string;
+    UPSTASH_REDIS_REST_URL?: string;
+    UPSTASH_REDIS_REST_TOKEN?: string;
+    LAUNDRY_REALTIME_HUB?: any;
+};
 type Variables = { db: any; user: any; session: any };
 
 type LaundryRole = "owner" | "admin" | "branch_manager" | "laundry_worker" | "cashier" | "driver";
@@ -364,6 +376,32 @@ async function appendLaundryDomainEvent(tx: any, input: {
             payload: laundryDomainEvents.payload,
         });
     return event;
+}
+
+async function emitLaundryRealtimeEvent(c: any, event: {
+    id: string;
+    sequence: number;
+    organizationId: string;
+    branchId: string | null;
+    eventType: string;
+    occurredAt: Date | string;
+    payload: Record<string, unknown>;
+}) {
+    const occurredAtDate = new Date(event.occurredAt ?? Date.now());
+    const occurredAt = Number.isFinite(occurredAtDate.getTime())
+        ? occurredAtDate.toISOString()
+        : new Date().toISOString();
+
+    await publishLaundryRealtime(c, {
+        channel: "laundry",
+        orgId: event.organizationId,
+        branchId: event.branchId,
+        eventId: event.id,
+        sequence: Number(event.sequence ?? 0),
+        eventType: event.eventType,
+        occurredAt,
+        payload: event.payload ?? {},
+    });
 }
 
 async function resolveWaTemplate(tx: any, orgId: string, branchId: string) {
@@ -712,6 +750,32 @@ laundryRouter.get(
 );
 
 laundryRouter.get(
+    "/ws",
+    authMiddleware,
+    requireOrganization,
+    requirePermission("order.read"),
+    async (c) => {
+        try {
+            const orgId = await getOrgId(c);
+            const branchId = c.req.query("branchId");
+
+            const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId);
+            const branchScope = ensureBranchFilter(branchIds, isOrgWide, branchId);
+            if (!branchScope.ok) return errors.forbidden(c, branchScope.message);
+
+            const requestedBranchId = branchScope.effectiveBranchIds?.[0] ?? null;
+            return connectLaundryWebSocket(c, {
+                orgId,
+                branchId: requestedBranchId,
+            });
+        } catch (err: any) {
+            console.error("[laundry/ws]", err);
+            return errors.internal(c);
+        }
+    }
+);
+
+laundryRouter.get(
     "/settings/wa-template",
     authMiddleware,
     requireOrganization,
@@ -985,7 +1049,7 @@ laundryRouter.patch(
             }
 
             const actorId = actorContext.userId;
-            const [updated] = await db.transaction(async (tx: any) => {
+            const statusUpdate = await db.transaction(async (tx: any) => {
                 const [row] = await tx
                     .update(laundryOrders)
                     .set({
@@ -1034,8 +1098,16 @@ laundryRouter.patch(
                     },
                 });
 
-                return [row];
+                return {
+                    updatedOrder: row,
+                    domainEvent,
+                };
             });
+
+            await Promise.all([
+                invalidateKpiCache(c, orgId),
+                emitLaundryRealtimeEvent(c, statusUpdate.domainEvent),
+            ]);
 
             logLaundryAction({
                 action: "order.status.update",
@@ -1045,7 +1117,7 @@ laundryRouter.patch(
                 orderId,
                 actorId,
             });
-            return ok(c, updated);
+            return ok(c, statusUpdate.updatedOrder);
         } catch (err: any) {
             console.error("[laundry/orders/status]", err);
             logLaundryAction({
@@ -1146,7 +1218,7 @@ laundryRouter.patch(
                     .where(and(eq(laundryOrders.organizationId, orgId), eq(laundryOrders.id, orderId)))
                     .returning();
 
-                await appendLaundryDomainEvent(tx, {
+                const domainEvent = await appendLaundryDomainEvent(tx, {
                     orgId,
                     branchId: order.branchId,
                     orderId,
@@ -1160,7 +1232,7 @@ laundryRouter.patch(
                     },
                 });
 
-                return { updatedOrder };
+                return { updatedOrder, domainEvent };
             });
             if ("error" in assignment) {
                 logLaundryAction({
@@ -1175,6 +1247,11 @@ laundryRouter.patch(
                 if (assignment.status === 403) return errors.forbidden(c, assignment.error);
                 return errors.badRequest(c, assignment.error);
             }
+
+            await Promise.all([
+                invalidateKpiCache(c, orgId),
+                emitLaundryRealtimeEvent(c, assignment.domainEvent),
+            ]);
 
             logLaundryAction({
                 action: "order.driver.assign",
@@ -1341,7 +1418,7 @@ laundryRouter.post(
                     .where(and(eq(laundryOrders.organizationId, orgId), eq(laundryOrders.id, orderId)))
                     .returning();
 
-                await appendLaundryDomainEvent(tx, {
+                const domainEvent = await appendLaundryDomainEvent(tx, {
                     orgId,
                     branchId: order.branchId,
                     orderId,
@@ -1357,8 +1434,13 @@ laundryRouter.post(
                     },
                 });
 
-                return { payment, order: updatedOrder };
+                return { payment, order: updatedOrder, domainEvent };
             });
+
+            await Promise.all([
+                invalidateKpiCache(c, orgId),
+                emitLaundryRealtimeEvent(c, result.domainEvent),
+            ]);
 
             logLaundryAction({
                 action: "order.payment.record",
@@ -1845,7 +1927,17 @@ laundryRouter.post(
                     actorId,
                 });
 
-                await appendLaundryDomainEvent(tx, {
+                const events: Array<{
+                    id: string;
+                    sequence: number;
+                    organizationId: string;
+                    branchId: string | null;
+                    eventType: string;
+                    occurredAt: Date | string;
+                    payload: Record<string, unknown>;
+                }> = [];
+
+                const orderCreatedEvent = await appendLaundryDomainEvent(tx, {
                     orgId,
                     branchId,
                     orderId: order.id,
@@ -1864,9 +1956,10 @@ laundryRouter.post(
                         customerAddress: order.customerAddress,
                     },
                 });
+                events.push(orderCreatedEvent);
 
                 if (paidAmount > 0) {
-                    await appendLaundryDomainEvent(tx, {
+                    const paymentRecordedEvent = await appendLaundryDomainEvent(tx, {
                         orgId,
                         branchId,
                         orderId: order.id,
@@ -1881,20 +1974,34 @@ laundryRouter.post(
                             paymentStatus: order.paymentStatus,
                         },
                     });
+                    events.push(paymentRecordedEvent);
                 }
 
-                return order;
+                return { order, events };
             });
+
+            await Promise.all([
+                invalidateKpiCache(c, orgId),
+                ...created.events.map((event: {
+                    id: string;
+                    sequence: number;
+                    organizationId: string;
+                    branchId: string | null;
+                    eventType: string;
+                    occurredAt: Date | string;
+                    payload: Record<string, unknown>;
+                }) => emitLaundryRealtimeEvent(c, event)),
+            ]);
 
             logLaundryAction({
                 action: "order.create",
                 result: "success",
                 orgId,
                 branchId,
-                orderId: created.id,
+                orderId: created.order.id,
                 actorId,
             });
-            return ok(c, created);
+            return ok(c, created.order);
         } catch (err: any) {
             console.error("[laundry/orders/create]", err);
             if (err?.message === "SERVICE_NOT_FOUND") {

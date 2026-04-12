@@ -144,4 +144,15 @@ describe("fnb command routes", () => {
         expect(body.success).toBe(true);
         expect(body.data.totalProcessed).toBe(2);
     });
+
+    it("GET /ws/orders requires websocket upgrade header", async () => {
+        const app = createApp(createDbMock());
+
+        const res = await app.request("/api/dashboard/fnb/ws/orders");
+        const body = await res.json() as any;
+
+        expect(res.status).toBe(400);
+        expect(body.success).toBe(false);
+        expect(body.error.code).toBe("BAD_REQUEST");
+    });
 });

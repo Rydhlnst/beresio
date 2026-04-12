@@ -6,6 +6,7 @@ import { dashboardRouter } from './routes/dashboard'
 import { businessesRouter } from './routes/businesses'
 import { publicRouter } from './routes/public'
 import { internalRouter } from './routes/internal'
+import { LaundryRealtimeHub } from './lib/realtime'
 
 type Bindings = {
   DATABASE_URL: string
@@ -18,6 +19,9 @@ type Bindings = {
   LAUNDRY_WA_TIMEOUT_MS?: string
   LAUNDRY_WA_MAX_ATTEMPTS?: string
   LAUNDRY_WA_RETRY_BASE_SECONDS?: string
+  UPSTASH_REDIS_REST_URL?: string
+  UPSTASH_REDIS_REST_TOKEN?: string
+  LAUNDRY_REALTIME_HUB?: any
 }
 
 type Variables = {
@@ -78,5 +82,6 @@ const routes = app
   .route('/api/internal', internalRouter)
 
 export type AppType = typeof routes
+export { LaundryRealtimeHub }
 
 export default app

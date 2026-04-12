@@ -26,9 +26,22 @@ import {
 } from '../../lib/stock'
 import { getAccessibleBranchIds, getBranchAccessContext, hasBranchAccess } from '../../lib/branch-access'
 import { appendDomainEvent, canTransitionOrderStatus, projectDomainEvent } from '../../lib/fnb-domain'
+import {
+    invalidateKpiCache,
+    publishFnbDomainEvent,
+    shouldInvalidateKpiForFnbEvent,
+} from '../../lib/realtime'
 import { requireBranchContext } from '../../middleware/branch-context'
 
-type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
+type Bindings = {
+    DATABASE_URL: string
+    BETTER_AUTH_SECRET: string
+    BETTER_AUTH_URL: string
+    UPSTASH_REDIS_REST_URL?: string
+    UPSTASH_REDIS_REST_TOKEN?: string
+    LAUNDRY_REALTIME_HUB?: any
+    FNB_REALTIME_HUB?: any
+}
 type Variables = { db: any; user: any; session: any }
 
 export const ordersRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>()
@@ -849,8 +862,15 @@ ordersRouter.post('/', authMiddleware, requireBranchContext(), async (c) => {
             })
             await projectDomainEvent(tx, domainEvent)
 
-            return { order: orderRow, items: itemRows }
+            return { order: orderRow, items: itemRows, domainEvent }
         })
+
+        await Promise.all([
+            publishFnbDomainEvent(c, created.domainEvent),
+            shouldInvalidateKpiForFnbEvent(created.domainEvent.eventType)
+                ? invalidateKpiCache(c, orgId)
+                : Promise.resolve(),
+        ])
 
         return ok(c, {
             id: created.order.id,
@@ -1025,6 +1045,8 @@ ordersRouter.patch('/:id', authMiddleware, requireBranchContext(), async (c) => 
         })()
 
         const result = await db.transaction(async (tx: any) => {
+            let domainEvent: any = null
+
             if (nextServiceMode === 'dine_in' && nextTableId && !isTerminalOrderStatus(nextStatus)) {
                 await ensureTableForOrder(tx, {
                     orgId,
@@ -1094,22 +1116,26 @@ ordersRouter.patch('/:id', authMiddleware, requireBranchContext(), async (c) => 
                     ready: "ORDER_READY",
                     completed: "ORDER_COMPLETED",
                 }
-                const domainEvent = await appendDomainEvent(tx, {
-                    organizationId: orgId,
-                    branchId: updated.branchId,
-                    aggregateType: 'order',
-                    aggregateId: orderId,
-                    eventType: statusEventMap[normalizedStatus],
-                    actorId,
-                    payload: {
-                        orderId,
-                        previousStatus: existing.status,
-                        nextStatus: normalizedStatus,
-                        tableId: updated.tableId,
-                        sessionId: updated.sessionId,
-                    },
-                })
-                await projectDomainEvent(tx, domainEvent)
+                const emittedEventType = statusEventMap[normalizedStatus]
+                if (emittedEventType) {
+                    const emittedEvent = await appendDomainEvent(tx, {
+                        organizationId: orgId,
+                        branchId: updated.branchId,
+                        aggregateType: 'order',
+                        aggregateId: orderId,
+                        eventType: emittedEventType,
+                        actorId,
+                        payload: {
+                            orderId,
+                            previousStatus: existing.status,
+                            nextStatus: normalizedStatus,
+                            tableId: updated.tableId,
+                            sessionId: updated.sessionId,
+                        },
+                    })
+                    await projectDomainEvent(tx, emittedEvent)
+                    domainEvent = emittedEvent
+                }
             }
 
             const shouldKeepOpenTableSession = (
@@ -1150,10 +1176,22 @@ ordersRouter.patch('/:id', authMiddleware, requireBranchContext(), async (c) => 
                     })
             }
 
-            return updated
+            return {
+                order: updated,
+                domainEvent,
+            }
         })
 
-        return ok(c, result)
+        if (result.domainEvent) {
+            await Promise.all([
+                publishFnbDomainEvent(c, result.domainEvent),
+                shouldInvalidateKpiForFnbEvent(result.domainEvent.eventType)
+                    ? invalidateKpiCache(c, orgId)
+                    : Promise.resolve(),
+            ])
+        }
+
+        return ok(c, result.order)
     } catch (err: any) {
         console.error('[orders/update]', err)
         if (err?.message === 'INSUFFICIENT_STOCK') {

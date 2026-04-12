@@ -6,8 +6,15 @@ import { and, eq, gte, inArray, sql } from 'drizzle-orm'
 import { customers, inventoryStocks, orders, pickupOrders } from '@beresio/db'
 import { getOrganizationBranchAggregate, resolveScopedBranchIds } from '../../lib/organization-aggregates'
 import { getBranchAccessContext, hasBranchAccess } from '../../lib/branch-access'
+import { readKpiCache, writeKpiCache } from '../../lib/realtime'
 
-type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
+type Bindings = {
+    DATABASE_URL: string;
+    BETTER_AUTH_SECRET: string;
+    BETTER_AUTH_URL: string;
+    UPSTASH_REDIS_REST_URL?: string;
+    UPSTASH_REDIS_REST_TOKEN?: string;
+}
 type Variables = { db: any; user: any; session: any }
 
 export const kpisRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>()
@@ -91,6 +98,22 @@ async function loadKpis(c: any, orgId: string, scopedBranchIds: string[]) {
     }
 }
 
+async function loadKpisWithCache(c: any, orgId: string, scopedBranchIds: string[]) {
+    const cached = await readKpiCache<any>(c, {
+        orgId,
+        branchIds: scopedBranchIds,
+    });
+    if (cached) return cached;
+
+    const payload = await loadKpis(c, orgId, scopedBranchIds);
+    await writeKpiCache(c, {
+        orgId,
+        branchIds: scopedBranchIds,
+        data: payload,
+    });
+    return payload;
+}
+
 kpisRouter.get('/', authMiddleware, async (c) => {
     try {
         let orgId: string
@@ -103,7 +126,7 @@ kpisRouter.get('/', authMiddleware, async (c) => {
         const resolvedScope = await resolveKpiScope(c, orgId)
         if (!resolvedScope.ok) return resolvedScope.response
 
-        const payload = await loadKpis(c, orgId, resolvedScope.scopedBranchIds)
+        const payload = await loadKpisWithCache(c, orgId, resolvedScope.scopedBranchIds)
         return ok(c, payload, {
             scope: resolvedScope.requestedBranchId ? "branch" : "organization",
             branchId: resolvedScope.requestedBranchId,
@@ -134,7 +157,7 @@ kpisRouter.get('/stream', authMiddleware, async (c) => {
             const write = (chunk: string) => controller.enqueue(encoder.encode(chunk))
             const emit = async () => {
                 try {
-                    const payload = await loadKpis(c, orgId, scopedBranchIds)
+                    const payload = await loadKpisWithCache(c, orgId, scopedBranchIds)
                     write(`event: kpi\ndata: ${JSON.stringify(payload)}\n\n`)
                 } catch (err: any) {
                     write(`event: error\ndata: ${JSON.stringify({ message: "kpi_stream_error", detail: err?.message ?? "unknown" })}\n\n`)

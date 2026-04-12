@@ -13,9 +13,18 @@ import {
     requirePermission,
 } from '../../lib/permissions'
 import { appendDomainEvent, projectDomainEvent } from '../../lib/fnb-domain'
+import { publishFnbDomainEvent } from '../../lib/realtime'
 import { fnbCommandRouter } from './fnb-commands'
 
-type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
+type Bindings = {
+    DATABASE_URL: string
+    BETTER_AUTH_SECRET: string
+    BETTER_AUTH_URL: string
+    UPSTASH_REDIS_REST_URL?: string
+    UPSTASH_REDIS_REST_TOKEN?: string
+    LAUNDRY_REALTIME_HUB?: any
+    FNB_REALTIME_HUB?: any
+}
 type Variables = { db: any; user: any; session: any }
 
 const TABLE_STATUS = ['available', 'ordering', 'occupied', 'bill_requested', 'cleaning'] as const
@@ -403,7 +412,7 @@ fnbRouter.post('/table-sessions', authMiddleware, requireOrganization, requirePe
             }
         })()
 
-        const [created] = await db.transaction(async (tx: any) => {
+        const created = await db.transaction(async (tx: any) => {
             const [session] = await tx
                 .insert(fnbTableSessions)
                 .values({
@@ -445,10 +454,12 @@ fnbRouter.post('/table-sessions', authMiddleware, requireOrganization, requirePe
             })
             await projectDomainEvent(tx, domainEvent)
 
-            return [session]
+            return { session, domainEvent }
         })
 
-        return ok(c, created)
+        await publishFnbDomainEvent(c, created.domainEvent)
+
+        return ok(c, created.session)
     } catch (err: any) {
         console.error('[fnb/table-sessions/create]', err)
         return errors.internal(c)
@@ -512,7 +523,7 @@ fnbRouter.patch('/table-sessions', authMiddleware, requireOrganization, requireP
         if (notes !== undefined) updates.notes = notes
         if (updates.status === 'closed' || updates.status === 'cancelled') updates.closedAt = new Date()
 
-        const [updated] = await db.transaction(async (tx: any) => {
+        const updated = await db.transaction(async (tx: any) => {
             const [session] = await tx
                 .update(fnbTableSessions)
                 .set(updates)
@@ -542,10 +553,12 @@ fnbRouter.patch('/table-sessions', authMiddleware, requireOrganization, requireP
             })
             await projectDomainEvent(tx, domainEvent)
 
-            return [session]
+            return { session, domainEvent }
         })
 
-        return ok(c, updated)
+        await publishFnbDomainEvent(c, updated.domainEvent)
+
+        return ok(c, updated.session)
     } catch (err: any) {
         console.error('[fnb/table-sessions/update]', err)
         return errors.internal(c)
