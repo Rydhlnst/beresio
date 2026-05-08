@@ -25,6 +25,11 @@ export const session = pgTable("session", {
         .notNull()
         .references(() => user.id),
     activeOrganizationId: text("active_organization_id"),
+}, (table) => {
+    return {
+        idxSessionUser: index("idx_session_user").on(table.userId),
+        idxSessionActiveOrg: index("idx_session_active_org").on(table.activeOrganizationId),
+    };
 });
 
 export const account = pgTable("account", {
@@ -113,6 +118,12 @@ export const member = pgTable("member", {
     status: text("status").notNull().default("active"),
     deactivatedAt: timestamp("deactivated_at"),
     createdAt: timestamp("created_at").notNull()
+}, (table) => {
+    return {
+        idxMemberUser: index("idx_member_user").on(table.userId),
+        idxMemberOrgUser: index("idx_member_org_user").on(table.organizationId, table.userId),
+        idxMemberOrgStatus: index("idx_member_org_status").on(table.organizationId, table.status),
+    };
 });
 
 export const team = pgTable("team", {

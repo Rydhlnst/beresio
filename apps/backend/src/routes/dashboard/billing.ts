@@ -12,14 +12,16 @@ type Variables = { db: any; user: any; session: any }
 export const billingRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
 // Plan limits per tier
-const PLAN_LIMITS: Record<string, { branches: number; members: number }> = {
+const PLAN_LIMITS = {
     starter: { branches: 1, members: 3 },
     growth: { branches: 5, members: 15 },
     pro: { branches: 20, members: 50 },
     enterprise: { branches: Infinity, members: Infinity },
-}
+} as const
 
-const PLAN_NAMES = Object.keys(PLAN_LIMITS) as [string, ...string[]]
+type PlanName = keyof typeof PLAN_LIMITS
+
+const PLAN_NAMES = Object.keys(PLAN_LIMITS) as unknown as [PlanName, ...PlanName[]]
 
 const upgradePlanBodySchema = z.object({
     plan: z.enum(PLAN_NAMES),
@@ -87,8 +89,8 @@ billingRouter.get('/status', authMiddleware, async (c) => {
         const org = orgRows[0]
         if (!org) return errors.notFound(c, 'Organization not found')
 
-        const plan = org.subscriptionPlan ?? 'starter'
-        const limits = PLAN_LIMITS[plan] ?? PLAN_LIMITS['starter']
+        const plan = (org.subscriptionPlan ?? 'starter') as PlanName
+        const limits = PLAN_LIMITS[plan] ?? PLAN_LIMITS.starter
 
         return ok(c, {
             plan,
@@ -144,7 +146,7 @@ billingRouter.post('/upgrade', authMiddleware, async (c) => {
 
         return ok(c, {
             plan,
-            limits: PLAN_LIMITS[plan],
+            limits: PLAN_LIMITS[plan] ?? PLAN_LIMITS.starter,
         })
     } catch (err: any) {
         console.error('[billing/upgrade]', err)

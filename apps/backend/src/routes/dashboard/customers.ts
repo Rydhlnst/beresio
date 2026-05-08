@@ -64,11 +64,14 @@ customersRouter.get('/', authMiddleware, async (c) => {
 
         const conditions = [eq(customers.organizationId, orgId)]
         if (q) {
-            conditions.push(or(
+            const searchCondition = or(
                 ilike(customers.name, `%${q}%`),
                 ilike(customers.phone, `%${q}%`),
                 ilike(customers.email, `%${q}%`)
-            ))
+            )
+            if (searchCondition) {
+                conditions.push(searchCondition)
+            }
         }
 
         const rows = await db

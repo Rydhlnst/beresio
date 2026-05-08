@@ -48,6 +48,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { getNavPathMatchScore, isNavPathActive, resolveNavPath } from "@/components/dashboard/layout/nav-utils"
+import { OnboardingChecklistWidget, type DashboardOnboardingState } from "@/components/dashboard/onboarding/onboarding-dashboard-client"
 
 const ICONS: Record<string, React.ElementType> = {
   basket: ShoppingBasket,
@@ -79,6 +80,7 @@ type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
   isNavLoading?: boolean
   businessName?: string | null
   businessType?: string | null
+  onboarding?: DashboardOnboardingState | null
 }
 
 export function AppSidebar({
@@ -90,6 +92,7 @@ export function AppSidebar({
   isNavLoading = false,
   businessName,
   businessType,
+  onboarding,
   className,
   ...props
 }: AppSidebarProps) {
@@ -324,6 +327,8 @@ export function AppSidebar({
             </>
           )}
         </SidebarMenu>
+        <SidebarSeparator />
+        <OnboardingChecklistWidget state={onboarding ?? null} />
         <SidebarSeparator />
         <OrgSwitcher
           organizations={organizations}

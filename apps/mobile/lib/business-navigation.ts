@@ -61,6 +61,18 @@ async function readJsonBodySafe<T>(response: Response): Promise<{ data: T | null
     }
 }
 
+function detectHtmlInterception(contentType: string | null, rawText: string): string | null {
+    const sample = `${contentType ?? ""}\n${rawText.slice(0, 600)}`.toLowerCase();
+    const looksLikeHtml = sample.includes("text/html") || sample.includes("<!doctype html");
+    if (!looksLikeHtml) return null;
+
+    if (sample.includes("malwarebytes")) {
+        return "Response looks blocked by Malwarebytes Web Protection.";
+    }
+
+    return "API expected JSON but got HTML response.";
+}
+
 export function normalizeBusinessType(input: string | null | undefined): BusinessType {
     if (input === "laundry" || input === "fnb" || input === "retail") return input;
     if (!input) return "retail";
@@ -106,7 +118,9 @@ export async function fetchBusinessNavigation(businessId: string) {
             };
         }
 
-        const fallbackMessage = body?.error?.message
+        const interceptionHint = detectHtmlInterception(response.headers.get("content-type"), rawText);
+        const fallbackMessage = interceptionHint
+            || body?.error?.message
             || rawText.slice(0, 240)
             || `Request failed with status ${response.status}`;
 

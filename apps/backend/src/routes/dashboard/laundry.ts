@@ -1,12 +1,18 @@
 import { Hono } from "hono";
-import { and, desc, eq, gte, gt, inArray, lte, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, gt, inArray, lte, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
     branches,
     canTransitionLaundryOrderStatus,
+    customerOrderIntakeEvents,
+    customerOrderIntakeItems,
+    customerOrderIntakes,
     customers,
+    isLaundryFinalStatus,
     isLaundryOrderStatus,
     laundryDomainEvents,
+    laundryLoyaltyLedger,
+    laundryMachines,
     laundryNotificationOutbox,
     laundryOrderItems,
     laundryOrderStatusHistory,
@@ -20,10 +26,11 @@ import {
 } from "@beresio/db";
 import { authMiddleware } from "../../middleware/auth";
 import { errors, ok } from "../../lib/errors";
-import { getOrgId, getUserId } from "../../lib/auth-context";
-import { getBranchAccessContext, hasBranchAccess } from "../../lib/branch-access";
-import { requireOrganization, requirePermission } from "../../lib/permissions";
+import { getUserId } from "../../lib/auth-context";
+import { requireOrganization, requirePermission, resolveAccessScope } from "../../lib/permissions";
 import { generateLaundryOrderNumber } from "../../lib/laundry-order-number";
+import { parseJsonRecord, parseJsonStringArray } from "../../lib/safe-json";
+import { resolvePaymentProviderAdapter } from "../../lib/payment-provider";
 import {
     getLaundryRuntimeMetrics,
     incrementLaundryOrderCreateAttempts,
@@ -42,6 +49,14 @@ type Bindings = {
     UPSTASH_REDIS_REST_URL?: string;
     UPSTASH_REDIS_REST_TOKEN?: string;
     LAUNDRY_REALTIME_HUB?: any;
+    LAUNDRY_PAYMENT_PROVIDER?: string;
+    LAUNDRY_PAYMENT_TIMEOUT_MS?: string;
+    XENDIT_SECRET_KEY?: string;
+    XENDIT_BASE_URL?: string;
+    XENDIT_WEBHOOK_SECRET?: string;
+    MIDTRANS_SERVER_KEY?: string;
+    MIDTRANS_BASE_URL?: string;
+    MIDTRANS_WEBHOOK_SECRET?: string;
 };
 type Variables = { db: any; user: any; session: any };
 
@@ -53,9 +68,31 @@ const ORG_WIDE_ROLE = new Set(["owner", "admin", "administrator", "super_admin",
 const DEFAULT_ORDER_LIMIT = 50;
 const PHONE_DIGITS_MIN = 8;
 const PHONE_DIGITS_MAX = 15;
-const LAUNDRY_OUTBOX_TRIGGER_STATUSES = new Set(["ready_for_pickup", "out_for_delivery", "completed"]);
+const LAUNDRY_OUTBOX_TRIGGER_STATUSES = new Set(["ready", "out_for_delivery", "completed"]);
 const DEFAULT_WA_TEMPLATE =
     "Halo {{customerName}}, order {{orderNumber}} status terbaru: {{status}}. Sisa pembayaran: Rp {{remainingAmount}}.";
+const LOYALTY_POINT_DIVISOR_RP = 10_000;
+const CANCELLABLE_STATUSES = new Set([
+    "created",
+    "confirmed",
+    "pickup_requested",
+    "picked_up",
+    "washing",
+    "drying",
+    "ready",
+    "out_for_delivery",
+]);
+const STATUS_TIMESTAMP_MAP: Record<string, keyof typeof laundryOrders.$inferInsert> = {
+    confirmed: "confirmedAt",
+    pickup_requested: "pickupRequestedAt",
+    picked_up: "pickedUpAt",
+    washing: "washingAt",
+    drying: "dryingAt",
+    ready: "readyAt",
+    out_for_delivery: "outForDeliveryAt",
+    completed: "completedAt",
+    cancelled: "cancelledAt",
+};
 const LAUNDRY_DOMAIN_EVENT_TYPES = {
     ORDER_CREATED: "ORDER_CREATED",
     ORDER_STATUS_CHANGED: "ORDER_STATUS_CHANGED",
@@ -122,8 +159,50 @@ const patchStatusSchema = z.object({
     note: z.string().optional().nullable(),
 });
 
+const patchStatusCorrectionSchema = z.object({
+    status: z.string().trim().min(1, "status is required"),
+    reason: z.string().trim().min(5, "reason is required").max(500),
+});
+
 const patchDriverSchema = z.object({
     driverId: z.string().trim().min(1).nullable(),
+});
+
+const patchMachineSchema = z.object({
+    machineId: z.string().trim().min(1).nullable(),
+});
+
+const createMachineSchema = z.object({
+    branchId: z.string().trim().min(1, "branchId is required"),
+    code: z.string().trim().min(1, "code is required").max(40),
+    name: z.string().trim().min(1, "name is required").max(120),
+    kind: z.enum(["washer", "dryer", "combo"]).optional().default("washer"),
+    dailyCapacityKg: z.coerce.number().int().min(0).optional().default(0),
+    isActive: z.boolean().optional().default(true),
+    notes: z.string().trim().max(300).optional().nullable(),
+});
+
+const patchMachineMasterSchema = z.object({
+    id: z.string().trim().min(1, "id is required"),
+    code: z.string().trim().min(1).max(40).optional(),
+    name: z.string().trim().min(1).max(120).optional(),
+    kind: z.enum(["washer", "dryer", "combo"]).optional(),
+    status: z.enum(["available", "busy", "maintenance"]).optional(),
+    dailyCapacityKg: z.coerce.number().int().min(0).optional(),
+    isActive: z.boolean().optional(),
+    notes: z.string().trim().max(300).optional().nullable(),
+}).superRefine((payload, ctx) => {
+    if (
+        payload.code === undefined
+        && payload.name === undefined
+        && payload.kind === undefined
+        && payload.status === undefined
+        && payload.dailyCapacityKg === undefined
+        && payload.isActive === undefined
+        && payload.notes === undefined
+    ) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "No changes provided", path: [] });
+    }
 });
 
 const createPaymentSchema = z.object({
@@ -137,6 +216,28 @@ const patchWaTemplateSchema = z.object({
     template: z.string().trim().min(1, "template is required"),
 });
 
+const orderIntakeListQuerySchema = z.object({
+    branchId: z.string().trim().min(1).optional(),
+    status: z.enum([
+        "draft_submission",
+        "pending_verification",
+        "accepted",
+        "rejected",
+        "cancelled",
+        "expired",
+        "converted",
+    ]).optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional().default(50),
+});
+
+const acceptOrderIntakeSchema = z.object({
+    note: z.string().trim().max(500).optional().nullable(),
+});
+
+const rejectOrderIntakeSchema = z.object({
+    reason: z.string().trim().min(3, "reason is required").max(500),
+});
+
 function getValidationMessage(error: z.ZodError, fallback = "Invalid payload") {
     return error.issues[0]?.message ?? fallback;
 }
@@ -146,26 +247,49 @@ function normalizeRoleList(input: unknown): string[] {
     const trimmed = input.trim();
     if (!trimmed) return [];
     if (trimmed.startsWith("[")) {
-        try {
-            const parsed = JSON.parse(trimmed);
-            if (Array.isArray(parsed)) {
-                return parsed.map((v) => (typeof v === "string" ? v.toLowerCase().trim() : "")).filter(Boolean);
-            }
-        } catch {
-            // no-op
-        }
+        const parsed = parseJsonStringArray(trimmed);
+        if (parsed) return parsed;
     }
     return trimmed.split(",").map((v) => v.toLowerCase().trim()).filter(Boolean);
 }
 
 function parseMetadata(raw: string | null | undefined) {
-    if (!raw) return {};
-    try {
-        const parsed = JSON.parse(raw);
-        return parsed && typeof parsed === "object" ? parsed : {};
-    } catch {
-        return {};
+    return parseJsonRecord(raw);
+}
+
+async function getOrgId(c: any): Promise<string> {
+    const resolved = await resolveAccessScope(c, { requireBranchAccess: false });
+    if (!resolved.ok) {
+        throw new Error("NO_ORG_CONTEXT");
     }
+    return resolved.value.orgId;
+}
+
+async function getBranchAccessContext(c: any, _orgId: string): Promise<{ branchIds: string[]; isOrgWide: boolean }> {
+    const resolved = await resolveAccessScope(c, { requireBranchAccess: false });
+    if (!resolved.ok) {
+        return { branchIds: [], isOrgWide: false };
+    }
+    return {
+        branchIds: resolved.value.accessibleBranchIds,
+        isOrgWide: resolved.value.isOrgWide,
+    };
+}
+
+function hasBranchAccess(branchIds: string[], branchId?: string | null) {
+    if (!branchId) return false;
+    return branchIds.includes(branchId);
+}
+
+function resolveLaundryTemplateFromMetadata(
+    metadata: Record<string, unknown>,
+    branchId: string
+) {
+    const settings = (metadata["settings"] as Record<string, unknown> | undefined) ?? {};
+    const laundry = (settings["laundry"] as Record<string, unknown> | undefined) ?? {};
+    const waTemplates = (laundry["waTemplates"] as Record<string, string> | undefined) ?? {};
+    const waTemplate = typeof laundry["waTemplate"] === "string" ? laundry["waTemplate"] : undefined;
+    return waTemplates[branchId] ?? waTemplate ?? DEFAULT_WA_TEMPLATE;
 }
 
 function buildDateRange(
@@ -215,9 +339,53 @@ function normalizeAddress(value: string | null | undefined) {
     return normalized || null;
 }
 
+function validateOperationalAddress(value: string | null) {
+    if (!value) return { ok: false as const, message: "customerAddress is required" };
+    const normalized = value.trim();
+    if (normalized.length < 10) return { ok: false as const, message: "customerAddress is too short" };
+    const words = normalized.split(/\s+/).filter(Boolean);
+    if (words.length < 3) return { ok: false as const, message: "customerAddress must include more detail" };
+    const hasStreetNumber = /\d/.test(normalized);
+    if (!hasStreetNumber) return { ok: false as const, message: "customerAddress should include house/building number" };
+    return { ok: true as const };
+}
+
 function isValidOperationalPhone(phone: string | null) {
     if (!phone) return false;
     return phone.length >= PHONE_DIGITS_MIN && phone.length <= PHONE_DIGITS_MAX;
+}
+
+function formatLaundryStatusLabel(status: string) {
+    const map: Record<string, string> = {
+        created: "CREATED",
+        confirmed: "CONFIRMED",
+        pickup_requested: "PICKUP REQUESTED",
+        picked_up: "PICKED UP",
+        washing: "WASHING",
+        drying: "DRYING",
+        ready: "READY",
+        out_for_delivery: "OUT FOR DELIVERY",
+        completed: "COMPLETED",
+        cancelled: "CANCELLED",
+    };
+    return map[status] ?? status.toUpperCase();
+}
+
+function buildStatusTimestampPatch(nextStatus: string) {
+    const patch: Record<string, Date | null> = {};
+    const key = STATUS_TIMESTAMP_MAP[nextStatus];
+    if (key) {
+        patch[key] = new Date();
+    }
+    if (nextStatus !== "completed") patch.completedAt = null;
+    if (nextStatus !== "cancelled") patch.cancelledAt = null;
+    return patch;
+}
+
+function createPaymentIdempotencyKey(orderId: string, rawHeader: string | undefined) {
+    const cleaned = (rawHeader ?? "").trim();
+    if (cleaned) return cleaned.slice(0, 120);
+    return `pay-${orderId}-${Date.now()}`;
 }
 
 function logLaundryAction(input: {
@@ -328,7 +496,7 @@ function canRoleUpdateStatus(
     if (hasAnyRole(roleContext, PRIVILEGED_STATUS_ROLE)) return true;
     if (!roleContext.roles.includes("driver")) return false;
     if (!roleContext.userId || order.assignedDriverId !== roleContext.userId) return false;
-    return nextStatus === "out_for_delivery" || nextStatus === "completed";
+    return nextStatus === "picked_up" || nextStatus === "out_for_delivery" || nextStatus === "completed";
 }
 
 function canRoleAssignDriver(
@@ -404,6 +572,49 @@ async function emitLaundryRealtimeEvent(c: any, event: {
     });
 }
 
+async function applyCompletionLoyalty(tx: any, input: {
+    orgId: string;
+    orderId: string;
+    customerId: string | null;
+    totalAmount: number;
+    actorId: string | null;
+}) {
+    if (!input.customerId) return null;
+    const pointsDelta = Math.max(0, Math.floor(Number(input.totalAmount ?? 0) / LOYALTY_POINT_DIVISOR_RP));
+    const spendingDelta = Math.max(0, Number(input.totalAmount ?? 0));
+
+    const [ledger] = await tx
+        .insert(laundryLoyaltyLedger)
+        .values({
+            organizationId: input.orgId,
+            customerId: input.customerId,
+            orderId: input.orderId,
+            eventType: "order_completed",
+            pointsDelta,
+            spendingDelta,
+            note: "Auto reward on completed laundry order",
+        })
+        .onConflictDoNothing({
+            target: [laundryLoyaltyLedger.orderId, laundryLoyaltyLedger.eventType],
+        })
+        .returning({ id: laundryLoyaltyLedger.id });
+
+    if (!ledger) return null;
+
+    await tx
+        .update(customers)
+        .set({
+            loyaltyPoints: sql`COALESCE(${customers.loyaltyPoints}, 0) + ${pointsDelta}`,
+            totalSpentRp: sql`COALESCE(${customers.totalSpentRp}, 0) + ${spendingDelta}`,
+        })
+        .where(and(
+            eq(customers.organizationId, input.orgId),
+            eq(customers.id, input.customerId)
+        ));
+
+    return { pointsDelta, spendingDelta };
+}
+
 async function resolveWaTemplate(tx: any, orgId: string, branchId: string) {
     const [orgRow] = await tx
         .select({ metadata: organization.metadata })
@@ -411,9 +622,7 @@ async function resolveWaTemplate(tx: any, orgId: string, branchId: string) {
         .where(eq(organization.id, orgId))
         .limit(1);
     const metadata = parseMetadata(orgRow?.metadata ?? null);
-    return metadata?.settings?.laundry?.waTemplates?.[branchId]
-        ?? metadata?.settings?.laundry?.waTemplate
-        ?? DEFAULT_WA_TEMPLATE;
+    return resolveLaundryTemplateFromMetadata(metadata, branchId);
 }
 
 async function enqueueLaundryNotificationOutbox(tx: any, input: {
@@ -436,7 +645,7 @@ async function enqueueLaundryNotificationOutbox(tx: any, input: {
         customerPhone: input.order.customerPhone,
         orderId: input.order.id,
         orderNumber: input.order.orderNumber,
-        status: input.order.status,
+        status: formatLaundryStatusLabel(input.order.status),
         remainingAmount: input.order.remainingAmount,
     };
 
@@ -608,6 +817,87 @@ laundryRouter.get(
             return ok(c, rows.map((row: any) => ({ status: row.status, total: Number(row.total ?? 0) })));
         } catch (err: any) {
             console.error("[laundry/reports/orders-by-status]", err);
+            return errors.internal(c);
+        }
+    }
+);
+
+laundryRouter.get(
+    "/reports/workload",
+    authMiddleware,
+    requireOrganization,
+    requirePermission("report.read"),
+    async (c) => {
+        try {
+            const db = c.get("db");
+            const orgId = await getOrgId(c);
+            const branchId = c.req.query("branchId");
+            const days = Math.min(Number(c.req.query("days") ?? "7"), 30);
+
+            const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId);
+            const branchScope = ensureBranchFilter(branchIds, isOrgWide, branchId);
+            if (!branchScope.ok) return errors.forbidden(c, branchScope.message);
+
+            const from = new Date();
+            from.setHours(0, 0, 0, 0);
+            from.setDate(from.getDate() - (days - 1));
+
+            const orderConditions = [
+                eq(laundryOrders.organizationId, orgId),
+                gte(laundryOrders.createdAt, from),
+            ];
+            const machineConditions = [eq(laundryMachines.organizationId, orgId)];
+            if (branchScope.effectiveBranchIds && branchScope.effectiveBranchIds.length === 1) {
+                orderConditions.push(eq(laundryOrders.branchId, branchScope.effectiveBranchIds[0]!));
+                machineConditions.push(eq(laundryMachines.branchId, branchScope.effectiveBranchIds[0]!));
+            } else if (branchScope.effectiveBranchIds && branchScope.effectiveBranchIds.length > 1) {
+                orderConditions.push(inArray(laundryOrders.branchId, branchScope.effectiveBranchIds));
+                machineConditions.push(inArray(laundryMachines.branchId, branchScope.effectiveBranchIds));
+            }
+
+            const [dailyRows, machineRows] = await Promise.all([
+                db
+                    .select({
+                        date: sql<string>`to_char(date_trunc('day', ${laundryOrders.createdAt}), 'YYYY-MM-DD')`,
+                        totalOrders: sql<number>`COUNT(*)`,
+                        activeOrders: sql<number>`COUNT(*) FILTER (WHERE ${laundryOrders.status} NOT IN ('completed', 'cancelled'))`,
+                        completedOrders: sql<number>`COUNT(*) FILTER (WHERE ${laundryOrders.status} = 'completed')`,
+                    })
+                    .from(laundryOrders)
+                    .where(and(...orderConditions))
+                    .groupBy(sql`date_trunc('day', ${laundryOrders.createdAt})`)
+                    .orderBy(sql`date_trunc('day', ${laundryOrders.createdAt}) asc`),
+                db
+                    .select({
+                        totalMachines: sql<number>`COUNT(*)`,
+                        activeMachines: sql<number>`COUNT(*) FILTER (WHERE ${laundryMachines.isActive} = true)`,
+                        busyMachines: sql<number>`COUNT(*) FILTER (WHERE ${laundryMachines.status} = 'busy')`,
+                        maintenanceMachines: sql<number>`COUNT(*) FILTER (WHERE ${laundryMachines.status} = 'maintenance')`,
+                        dailyCapacityKg: sql<number>`COALESCE(SUM(${laundryMachines.dailyCapacityKg}), 0)`,
+                    })
+                    .from(laundryMachines)
+                    .where(and(...machineConditions)),
+            ]);
+
+            return ok(c, {
+                from,
+                days,
+                dailyWorkload: dailyRows.map((row: any) => ({
+                    date: row.date,
+                    totalOrders: Number(row.totalOrders ?? 0),
+                    activeOrders: Number(row.activeOrders ?? 0),
+                    completedOrders: Number(row.completedOrders ?? 0),
+                })),
+                machineCapacity: {
+                    totalMachines: Number(machineRows[0]?.totalMachines ?? 0),
+                    activeMachines: Number(machineRows[0]?.activeMachines ?? 0),
+                    busyMachines: Number(machineRows[0]?.busyMachines ?? 0),
+                    maintenanceMachines: Number(machineRows[0]?.maintenanceMachines ?? 0),
+                    dailyCapacityKg: Number(machineRows[0]?.dailyCapacityKg ?? 0),
+                },
+            });
+        } catch (err: any) {
+            console.error("[laundry/reports/workload]", err);
             return errors.internal(c);
         }
     }
@@ -798,9 +1088,7 @@ laundryRouter.get(
             if (!orgRow) return errors.notFound(c, "Organization not found");
 
             const metadata = parseMetadata(orgRow.metadata);
-            const template = metadata?.settings?.laundry?.waTemplates?.[branchId]
-                ?? metadata?.settings?.laundry?.waTemplate
-                ?? DEFAULT_WA_TEMPLATE;
+            const template = resolveLaundryTemplateFromMetadata(metadata, branchId);
 
             return ok(c, { branchId, template });
         } catch (err: any) {
@@ -839,15 +1127,254 @@ laundryRouter.patch(
             if (!orgRow) return errors.notFound(c, "Organization not found");
 
             const metadata = parseMetadata(orgRow.metadata);
-            metadata.settings = metadata.settings ?? {};
-            metadata.settings.laundry = metadata.settings.laundry ?? {};
-            metadata.settings.laundry.waTemplates = metadata.settings.laundry.waTemplates ?? {};
-            metadata.settings.laundry.waTemplates[branchId] = template;
+            const settings = (metadata["settings"] as Record<string, unknown> | undefined) ?? {};
+            const laundry = (settings["laundry"] as Record<string, unknown> | undefined) ?? {};
+            const waTemplates = (laundry["waTemplates"] as Record<string, string> | undefined) ?? {};
+            waTemplates[branchId] = template;
+            laundry["waTemplates"] = waTemplates;
+            settings["laundry"] = laundry;
+            metadata["settings"] = settings;
 
             await db.update(organization).set({ metadata: JSON.stringify(metadata) }).where(eq(organization.id, orgId));
             return ok(c, { branchId, template });
         } catch (err: any) {
             console.error("[laundry/settings/wa/patch]", err);
+            return errors.internal(c);
+        }
+    }
+);
+
+laundryRouter.get(
+    "/drivers",
+    authMiddleware,
+    requireOrganization,
+    requirePermission("laundry.driver.assign", "order.read"),
+    async (c) => {
+        try {
+            const db = c.get("db");
+            const orgId = await getOrgId(c);
+            const rows = await db
+                .select({
+                    id: user.id,
+                    name: user.name,
+                    email: user.email,
+                    roleSlug: roles.slug,
+                    roleName: roles.name,
+                    roleLegacy: member.role,
+                })
+                .from(member)
+                .innerJoin(user, eq(member.userId, user.id))
+                .leftJoin(roles, eq(member.roleId, roles.id))
+                .where(eq(member.organizationId, orgId));
+
+            const normalized = rows.filter((row: any) => {
+                const roleSet = new Set<string>();
+                if (row.roleSlug) roleSet.add(String(row.roleSlug).toLowerCase().trim());
+                if (row.roleName) roleSet.add(String(row.roleName).toLowerCase().trim());
+                for (const role of normalizeRoleList(row.roleLegacy)) roleSet.add(role);
+                return roleSet.has("driver");
+            }).map((row: any) => ({
+                id: row.id,
+                name: row.name ?? "Driver",
+                email: row.email ?? null,
+            }));
+
+            return ok(c, normalized);
+        } catch (err: any) {
+            console.error("[laundry/drivers/list]", err);
+            return errors.internal(c);
+        }
+    }
+);
+
+laundryRouter.get(
+    "/machines",
+    authMiddleware,
+    requireOrganization,
+    requirePermission("order.read", "laundry.service.manage"),
+    async (c) => {
+        try {
+            const db = c.get("db");
+            const orgId = await getOrgId(c);
+            const branchId = c.req.query("branchId");
+            const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId);
+            const branchScope = ensureBranchFilter(branchIds, isOrgWide, branchId ?? null);
+            if (!branchScope.ok) return errors.forbidden(c, branchScope.message);
+
+            const conditions = [eq(laundryMachines.organizationId, orgId)];
+            if (branchScope.effectiveBranchIds && branchScope.effectiveBranchIds.length === 1) {
+                conditions.push(eq(laundryMachines.branchId, branchScope.effectiveBranchIds[0]!));
+            } else if (branchScope.effectiveBranchIds && branchScope.effectiveBranchIds.length > 1) {
+                conditions.push(inArray(laundryMachines.branchId, branchScope.effectiveBranchIds));
+            }
+
+            const rows = await db
+                .select()
+                .from(laundryMachines)
+                .where(and(...conditions))
+                .orderBy(asc(laundryMachines.code));
+
+            return ok(c, rows);
+        } catch (err: any) {
+            console.error("[laundry/machines/list]", err);
+            return errors.internal(c);
+        }
+    }
+);
+
+laundryRouter.post(
+    "/machines",
+    authMiddleware,
+    requireOrganization,
+    requirePermission("laundry.service.manage"),
+    async (c) => {
+        try {
+            const db = c.get("db");
+            const orgId = await getOrgId(c);
+            const body = await c.req.json().catch(() => null);
+            const parsedBody = createMachineSchema.safeParse(body);
+            if (!parsedBody.success) return errors.badRequest(c, getValidationMessage(parsedBody.error));
+
+            const { branchId } = parsedBody.data;
+            const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId);
+            if (!isOrgWide && !hasBranchAccess(branchIds, branchId)) return errors.forbidden(c, "No access to branch");
+
+            const [created] = await db
+                .insert(laundryMachines)
+                .values({
+                    organizationId: orgId,
+                    branchId,
+                    code: parsedBody.data.code,
+                    name: parsedBody.data.name,
+                    kind: parsedBody.data.kind,
+                    dailyCapacityKg: parsedBody.data.dailyCapacityKg,
+                    isActive: parsedBody.data.isActive,
+                    notes: parsedBody.data.notes ?? null,
+                })
+                .returning();
+
+            return ok(c, created);
+        } catch (err: any) {
+            console.error("[laundry/machines/create]", err);
+            return errors.internal(c);
+        }
+    }
+);
+
+laundryRouter.patch(
+    "/machines",
+    authMiddleware,
+    requireOrganization,
+    requirePermission("laundry.service.manage"),
+    async (c) => {
+        try {
+            const db = c.get("db");
+            const orgId = await getOrgId(c);
+            const body = await c.req.json().catch(() => null);
+            const parsedBody = patchMachineMasterSchema.safeParse(body);
+            if (!parsedBody.success) return errors.badRequest(c, getValidationMessage(parsedBody.error));
+
+            const [existing] = await db
+                .select({ id: laundryMachines.id, branchId: laundryMachines.branchId })
+                .from(laundryMachines)
+                .where(and(eq(laundryMachines.organizationId, orgId), eq(laundryMachines.id, parsedBody.data.id)))
+                .limit(1);
+            if (!existing) return errors.notFound(c, "Machine not found");
+
+            const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId);
+            if (!isOrgWide && !hasBranchAccess(branchIds, existing.branchId)) return errors.forbidden(c, "No access to branch");
+
+            const payload: Record<string, unknown> = {};
+            if (parsedBody.data.code !== undefined) payload.code = parsedBody.data.code;
+            if (parsedBody.data.name !== undefined) payload.name = parsedBody.data.name;
+            if (parsedBody.data.kind !== undefined) payload.kind = parsedBody.data.kind;
+            if (parsedBody.data.status !== undefined) payload.status = parsedBody.data.status;
+            if (parsedBody.data.dailyCapacityKg !== undefined) payload.dailyCapacityKg = parsedBody.data.dailyCapacityKg;
+            if (parsedBody.data.isActive !== undefined) payload.isActive = parsedBody.data.isActive;
+            if (parsedBody.data.notes !== undefined) payload.notes = parsedBody.data.notes ?? null;
+
+            const [updated] = await db
+                .update(laundryMachines)
+                .set(payload)
+                .where(and(eq(laundryMachines.organizationId, orgId), eq(laundryMachines.id, parsedBody.data.id)))
+                .returning();
+
+            return ok(c, updated);
+        } catch (err: any) {
+            console.error("[laundry/machines/update]", err);
+            return errors.internal(c);
+        }
+    }
+);
+
+laundryRouter.patch(
+    "/orders/:id/machine",
+    authMiddleware,
+    requireOrganization,
+    requirePermission("laundry.status.update"),
+    async (c) => {
+        try {
+            const db = c.get("db");
+            const orgId = await getOrgId(c);
+            const orderId = c.req.param("id");
+            const body = await c.req.json().catch(() => null);
+            const parsedBody = patchMachineSchema.safeParse(body);
+            if (!parsedBody.success) return errors.badRequest(c, getValidationMessage(parsedBody.error));
+
+            const [order] = await db
+                .select({
+                    id: laundryOrders.id,
+                    branchId: laundryOrders.branchId,
+                    status: laundryOrders.status,
+                    assignedMachineId: laundryOrders.assignedMachineId,
+                })
+                .from(laundryOrders)
+                .where(and(eq(laundryOrders.organizationId, orgId), eq(laundryOrders.id, orderId)))
+                .limit(1);
+            if (!order) return errors.notFound(c, "Order not found");
+
+            const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId);
+            if (!isOrgWide && !hasBranchAccess(branchIds, order.branchId)) return errors.forbidden(c, "No access to branch");
+
+            let machinePayload: { machineId: string | null; code: string | null; name: string | null } = {
+                machineId: null,
+                code: null,
+                name: null,
+            };
+            if (parsedBody.data.machineId) {
+                const [machine] = await db
+                    .select({
+                        id: laundryMachines.id,
+                        code: laundryMachines.code,
+                        name: laundryMachines.name,
+                        branchId: laundryMachines.branchId,
+                        isActive: laundryMachines.isActive,
+                    })
+                    .from(laundryMachines)
+                    .where(and(
+                        eq(laundryMachines.organizationId, orgId),
+                        eq(laundryMachines.id, parsedBody.data.machineId)
+                    ))
+                    .limit(1);
+                if (!machine) return errors.notFound(c, "Machine not found");
+                if (machine.branchId !== order.branchId) return errors.badRequest(c, "Machine branch mismatch");
+                if (!machine.isActive) return errors.badRequest(c, "Machine is inactive");
+                machinePayload = { machineId: machine.id, code: machine.code, name: machine.name };
+            }
+
+            const [updated] = await db
+                .update(laundryOrders)
+                .set({
+                    assignedMachineId: machinePayload.machineId,
+                    assignedMachineCode: machinePayload.code,
+                    assignedMachineName: machinePayload.name,
+                })
+                .where(and(eq(laundryOrders.organizationId, orgId), eq(laundryOrders.id, orderId)))
+                .returning();
+
+            return ok(c, updated);
+        } catch (err: any) {
+            console.error("[laundry/orders/machine]", err);
             return errors.internal(c);
         }
     }
@@ -968,6 +1495,9 @@ laundryRouter.patch(
                     branchId: laundryOrders.branchId,
                     status: laundryOrders.status,
                     assignedDriverId: laundryOrders.assignedDriverId,
+                    assignedMachineId: laundryOrders.assignedMachineId,
+                    customerId: laundryOrders.customerId,
+                    totalAmount: laundryOrders.totalAmount,
                     orderNumber: laundryOrders.orderNumber,
                     customerName: laundryOrders.customerName,
                     customerPhone: laundryOrders.customerPhone,
@@ -1022,16 +1552,16 @@ laundryRouter.patch(
                 });
                 return errors.badRequest(c, "Invalid status transition");
             }
-            if (nextStatus === "cancelled" && order.status !== "received" && order.status !== "processing") {
+            if (nextStatus === "cancelled" && !CANCELLABLE_STATUSES.has(order.status)) {
                 logLaundryAction({
                     action: "order.status.update",
                     result: "rejected",
                     orgId,
                     branchId: order.branchId,
                     orderId,
-                    reason: "Cancellation only allowed from received or processing",
+                    reason: "Cancellation not allowed from this status",
                 });
-                return errors.badRequest(c, "Cancellation only allowed from received or processing");
+                return errors.badRequest(c, "Cancellation not allowed from this status");
             }
 
             const actorContext = await getActorRoleContext(c, orgId);
@@ -1050,12 +1580,12 @@ laundryRouter.patch(
 
             const actorId = actorContext.userId;
             const statusUpdate = await db.transaction(async (tx: any) => {
+                const timestampPatch = buildStatusTimestampPatch(nextStatus);
                 const [row] = await tx
                     .update(laundryOrders)
                     .set({
                         status: nextStatus,
-                        cancelledAt: nextStatus === "cancelled" ? new Date() : null,
-                        completedAt: nextStatus === "completed" ? new Date() : null,
+                        ...timestampPatch,
                     })
                     .where(and(eq(laundryOrders.organizationId, orgId), eq(laundryOrders.id, orderId)))
                     .returning();
@@ -1084,6 +1614,32 @@ laundryRouter.patch(
                     },
                 });
 
+                let loyaltyReward: { pointsDelta: number; spendingDelta: number } | null = null;
+                if (nextStatus === "completed") {
+                    loyaltyReward = await applyCompletionLoyalty(tx, {
+                        orgId,
+                        orderId,
+                        customerId: order.customerId ?? null,
+                        totalAmount: Number(order.totalAmount ?? 0),
+                        actorId,
+                    });
+                }
+
+                if (order.assignedMachineId) {
+                    const machineStatus = isLaundryFinalStatus(nextStatus)
+                        ? "available"
+                        : (nextStatus === "washing" || nextStatus === "drying" ? "busy" : null);
+                    if (machineStatus) {
+                        await tx
+                            .update(laundryMachines)
+                            .set({ status: machineStatus })
+                            .where(and(
+                                eq(laundryMachines.organizationId, orgId),
+                                eq(laundryMachines.id, order.assignedMachineId)
+                            ));
+                    }
+                }
+
                 await enqueueLaundryNotificationOutbox(tx, {
                     orgId,
                     branchId: order.branchId,
@@ -1101,6 +1657,7 @@ laundryRouter.patch(
                 return {
                     updatedOrder: row,
                     domainEvent,
+                    loyaltyReward,
                 };
             });
 
@@ -1126,6 +1683,142 @@ laundryRouter.patch(
                 orderId: c.req.param("id"),
                 reason: "Unhandled error",
             });
+            return errors.internal(c);
+        }
+    }
+);
+
+laundryRouter.patch(
+    "/orders/:id/status-correction",
+    authMiddleware,
+    requireOrganization,
+    requirePermission("laundry.status.update"),
+    async (c) => {
+        try {
+            const db = c.get("db");
+            const orgId = await getOrgId(c);
+            const orderId = c.req.param("id");
+            const body = await c.req.json().catch(() => null);
+            const parsedBody = patchStatusCorrectionSchema.safeParse(body);
+            if (!parsedBody.success) {
+                return errors.badRequest(c, getValidationMessage(parsedBody.error));
+            }
+
+            const nextStatus = parsedBody.data.status.toLowerCase();
+            if (!isLaundryOrderStatus(nextStatus)) {
+                return errors.badRequest(c, "Invalid laundry status");
+            }
+
+            const [order] = await db
+                .select({
+                    id: laundryOrders.id,
+                    branchId: laundryOrders.branchId,
+                    status: laundryOrders.status,
+                    assignedMachineId: laundryOrders.assignedMachineId,
+                    customerId: laundryOrders.customerId,
+                    totalAmount: laundryOrders.totalAmount,
+                    orderNumber: laundryOrders.orderNumber,
+                })
+                .from(laundryOrders)
+                .where(and(eq(laundryOrders.organizationId, orgId), eq(laundryOrders.id, orderId)))
+                .limit(1);
+            if (!order) return errors.notFound(c, "Order not found");
+
+            const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId);
+            if (!isOrgWide && !hasBranchAccess(branchIds, order.branchId)) return errors.forbidden(c, "No access to branch");
+            if (!isLaundryOrderStatus(order.status)) return errors.badRequest(c, "Current order status is invalid");
+            if (order.status === nextStatus) return errors.badRequest(c, "Order already has this status");
+
+            const actorContext = await getActorRoleContext(c, orgId);
+            const isAllowed = actorContext.roles.some((role) => ORG_WIDE_ROLE.has(role) || role === "branch_manager");
+            if (!isAllowed) return errors.forbidden(c, "Role not allowed for status correction");
+
+            const actorId = actorContext.userId;
+            const corrected = await db.transaction(async (tx: any) => {
+                const [updated] = await tx
+                    .update(laundryOrders)
+                    .set({
+                        status: nextStatus,
+                        ...buildStatusTimestampPatch(nextStatus),
+                    })
+                    .where(and(eq(laundryOrders.organizationId, orgId), eq(laundryOrders.id, orderId)))
+                    .returning();
+
+                await tx.insert(laundryOrderStatusHistory).values({
+                    organizationId: orgId,
+                    branchId: order.branchId,
+                    orderId,
+                    fromStatus: order.status,
+                    toStatus: nextStatus,
+                    note: `[CORRECTION] ${parsedBody.data.reason}`,
+                    actorId,
+                });
+
+                if (order.assignedMachineId) {
+                    const machineStatus = isLaundryFinalStatus(nextStatus)
+                        ? "available"
+                        : (nextStatus === "washing" || nextStatus === "drying" ? "busy" : null);
+                    if (machineStatus) {
+                        await tx
+                            .update(laundryMachines)
+                            .set({ status: machineStatus })
+                            .where(and(
+                                eq(laundryMachines.organizationId, orgId),
+                                eq(laundryMachines.id, order.assignedMachineId)
+                            ));
+                    }
+                }
+
+                if (nextStatus === "completed") {
+                    await applyCompletionLoyalty(tx, {
+                        orgId,
+                        orderId,
+                        customerId: order.customerId ?? null,
+                        totalAmount: Number(order.totalAmount ?? 0),
+                        actorId,
+                    });
+                }
+
+                const domainEvent = await appendLaundryDomainEvent(tx, {
+                    orgId,
+                    branchId: order.branchId,
+                    orderId,
+                    eventType: LAUNDRY_DOMAIN_EVENT_TYPES.ORDER_STATUS_CHANGED,
+                    actorId,
+                    payload: {
+                        orderNumber: order.orderNumber,
+                        previousStatus: order.status,
+                        nextStatus,
+                        corrected: true,
+                        reason: parsedBody.data.reason,
+                    },
+                });
+
+                await enqueueLaundryNotificationOutbox(tx, {
+                    orgId,
+                    branchId: order.branchId,
+                    eventId: domainEvent.id,
+                    order: {
+                        id: orderId,
+                        orderNumber: order.orderNumber,
+                        status: nextStatus,
+                        customerName: null,
+                        customerPhone: null,
+                        remainingAmount: Number(updated?.remainingAmount ?? 0),
+                    },
+                });
+
+                return { updated, domainEvent };
+            });
+
+            await Promise.all([
+                invalidateKpiCache(c, orgId),
+                emitLaundryRealtimeEvent(c, corrected.domainEvent),
+            ]);
+
+            return ok(c, corrected.updated);
+        } catch (err: any) {
+            console.error("[laundry/orders/status-correction]", err);
             return errors.internal(c);
         }
     }
@@ -1394,6 +2087,40 @@ laundryRouter.post(
                 return errors.badRequest(c, "Overpayment is not allowed");
             }
 
+            const paymentIdempotencyKey = createPaymentIdempotencyKey(orderId, c.req.header("Idempotency-Key"));
+            const [existingPayment] = await db
+                .select()
+                .from(laundryPayments)
+                .where(and(
+                    eq(laundryPayments.orderId, orderId),
+                    eq(laundryPayments.idempotencyKey, paymentIdempotencyKey)
+                ))
+                .limit(1);
+            if (existingPayment) {
+                return ok(c, {
+                    idempotent: true,
+                    payment: existingPayment,
+                });
+            }
+
+            const providerAdapter = resolvePaymentProviderAdapter(c.env ?? {});
+            const settlement = await providerAdapter.settlePayment({
+                organizationId: orgId,
+                branchId: order.branchId,
+                orderId,
+                orderNumber: order.orderNumber,
+                amount: parsedBody.data.amount,
+                idempotencyKey: paymentIdempotencyKey,
+                paymentMethod: parsedBody.data.paymentMethod ?? "manual",
+                metadata: {
+                    recordedBy: actorContext.userId,
+                },
+            });
+            if (settlement.status === "FAILED") {
+                return errors.badRequest(c, "Payment provider rejected transaction");
+            }
+            const appliedAmount = settlement.status === "SETTLED" ? parsedBody.data.amount : 0;
+
             const result = await db.transaction(async (tx: any) => {
                 const [payment] = await tx
                     .insert(laundryPayments)
@@ -1402,15 +2129,23 @@ laundryRouter.post(
                         branchId: order.branchId,
                         orderId,
                         amount: parsedBody.data.amount,
+                        provider: settlement.provider,
+                        providerTransactionId: settlement.providerTransactionId,
+                        providerStatus: settlement.status,
+                        idempotencyKey: paymentIdempotencyKey,
+                        reconciliationStatus: settlement.status === "SETTLED" ? "synced" : "pending",
+                        reconciledAt: settlement.status === "SETTLED" ? new Date() : null,
                         paymentMethod: parsedBody.data.paymentMethod ?? "manual",
                         note: parsedBody.data.note ?? null,
                         recordedBy: actorContext.userId,
                     })
                     .returning();
 
-                const paidAmount = Number(order.paidAmount ?? 0) + parsedBody.data.amount;
+                const paidAmount = Number(order.paidAmount ?? 0) + appliedAmount;
                 const remainingAmount = Number(order.totalAmount ?? 0) - paidAmount;
-                const paymentStatus = remainingAmount <= 0 ? "paid" : "partial";
+                const paymentStatus = remainingAmount <= 0
+                    ? "paid"
+                    : (paidAmount <= 0 ? "pending" : "partial");
 
                 const [updatedOrder] = await tx
                     .update(laundryOrders)
@@ -1428,6 +2163,10 @@ laundryRouter.post(
                         orderNumber: order.orderNumber,
                         paymentId: payment.id,
                         amount: payment.amount,
+                        appliedAmount,
+                        provider: settlement.provider,
+                        providerTransactionId: settlement.providerTransactionId,
+                        providerStatus: settlement.status,
                         paymentMethod: payment.paymentMethod ?? "manual",
                         remainingAmount,
                         paymentStatus,
@@ -1464,6 +2203,195 @@ laundryRouter.post(
     }
 );
 
+laundryRouter.post(
+    "/payments/reconcile",
+    authMiddleware,
+    requireOrganization,
+    requirePermission("laundry.payment.record"),
+    async (c) => {
+        try {
+            const db = c.get("db");
+            const orgId = await getOrgId(c);
+            const limit = Math.min(Number(c.req.query("limit") ?? "50"), 200);
+            const providerAdapter = resolvePaymentProviderAdapter(c.env ?? {});
+
+            if (!providerAdapter.reconcilePayment) {
+                return ok(c, { scanned: 0, reconciled: 0, skipped: 0 });
+            }
+
+            const pendingPayments = await db
+                .select()
+                .from(laundryPayments)
+                .where(and(
+                    eq(laundryPayments.organizationId, orgId),
+                    eq(laundryPayments.provider, providerAdapter.name),
+                    eq(laundryPayments.providerStatus, "PENDING")
+                ))
+                .orderBy(asc(laundryPayments.createdAt))
+                .limit(limit);
+
+            let reconciled = 0;
+            let skipped = 0;
+            for (const payment of pendingPayments) {
+                if (!payment.providerTransactionId) {
+                    skipped += 1;
+                    continue;
+                }
+                const latest = await providerAdapter.reconcilePayment({
+                    providerTransactionId: payment.providerTransactionId,
+                });
+
+                await db.transaction(async (tx: any) => {
+                    await tx
+                        .update(laundryPayments)
+                        .set({
+                            providerStatus: latest.status,
+                            reconciliationStatus: latest.status === "SETTLED" ? "synced" : "failed",
+                            reconciledAt: new Date(),
+                        })
+                        .where(eq(laundryPayments.id, payment.id));
+
+                    if (latest.status === "SETTLED" && payment.providerStatus !== "SETTLED") {
+                        const [order] = await tx
+                            .select({
+                                id: laundryOrders.id,
+                                totalAmount: laundryOrders.totalAmount,
+                                paidAmount: laundryOrders.paidAmount,
+                            })
+                            .from(laundryOrders)
+                            .where(eq(laundryOrders.id, payment.orderId))
+                            .limit(1);
+                        if (order) {
+                            const paidAmount = Number(order.paidAmount ?? 0) + Number(payment.amount ?? 0);
+                            const remainingAmount = Math.max(0, Number(order.totalAmount ?? 0) - paidAmount);
+                            const paymentStatus = remainingAmount <= 0
+                                ? "paid"
+                                : (paidAmount <= 0 ? "pending" : "partial");
+                            await tx
+                                .update(laundryOrders)
+                                .set({ paidAmount, remainingAmount, paymentStatus })
+                                .where(eq(laundryOrders.id, payment.orderId));
+                        }
+                    }
+                });
+
+                reconciled += 1;
+            }
+
+            return ok(c, {
+                scanned: pendingPayments.length,
+                reconciled,
+                skipped,
+            });
+        } catch (err: any) {
+            console.error("[laundry/payments/reconcile]", err);
+            return errors.internal(c);
+        }
+    }
+);
+
+laundryRouter.post(
+    "/payments/webhooks/:provider",
+    async (c) => {
+        try {
+            const provider = c.req.param("provider").toLowerCase();
+            if (provider !== "xendit" && provider !== "midtrans") {
+                return errors.badRequest(c, "Unsupported payment provider");
+            }
+
+            const rawBody = await c.req.text();
+            const payload = JSON.parse(rawBody || "{}") as Record<string, unknown>;
+            const adapter = resolvePaymentProviderAdapter({
+                ...c.env,
+                LAUNDRY_PAYMENT_PROVIDER: provider,
+            });
+
+            if (adapter.verifyWebhookSignature) {
+                const headers = Object.fromEntries(c.req.raw.headers.entries());
+                const isValid = await adapter.verifyWebhookSignature({ rawBody, headers });
+                if (!isValid) return errors.forbidden(c, "Invalid webhook signature");
+            }
+
+            const transactionId = String(
+                payload.transaction_id
+                ?? payload.id
+                ?? payload.external_id
+                ?? ""
+            ).trim();
+            if (!transactionId) return errors.badRequest(c, "Missing transaction id");
+
+            const statusRaw = String(
+                payload.status
+                ?? payload.transaction_status
+                ?? payload.transactionStatus
+                ?? "PENDING"
+            ).toUpperCase();
+            const providerStatus = statusRaw === "PAID" || statusRaw === "SETTLEMENT" || statusRaw === "CAPTURE"
+                ? "SETTLED"
+                : (statusRaw === "EXPIRED" || statusRaw === "FAILED" || statusRaw === "CANCEL" || statusRaw === "DENY"
+                    ? "FAILED"
+                    : "PENDING");
+
+            const db = c.get("db");
+            const [payment] = await db
+                .select()
+                .from(laundryPayments)
+                .where(and(
+                    eq(laundryPayments.provider, provider),
+                    eq(laundryPayments.providerTransactionId, transactionId)
+                ))
+                .limit(1);
+            if (!payment) {
+                return ok(c, { accepted: true, matched: false });
+            }
+
+            await db.transaction(async (tx: any) => {
+                await tx
+                    .update(laundryPayments)
+                    .set({
+                        providerStatus,
+                        reconciliationStatus: providerStatus === "SETTLED" ? "synced" : "failed",
+                        reconciledAt: new Date(),
+                    })
+                    .where(eq(laundryPayments.id, payment.id));
+
+                if (providerStatus === "SETTLED" && payment.providerStatus !== "SETTLED") {
+                    const [order] = await tx
+                        .select({
+                            id: laundryOrders.id,
+                            totalAmount: laundryOrders.totalAmount,
+                            paidAmount: laundryOrders.paidAmount,
+                        })
+                        .from(laundryOrders)
+                        .where(eq(laundryOrders.id, payment.orderId))
+                        .limit(1);
+                    if (order) {
+                        const paidAmount = Number(order.paidAmount ?? 0) + Number(payment.amount ?? 0);
+                        const remainingAmount = Math.max(0, Number(order.totalAmount ?? 0) - paidAmount);
+                        const paymentStatus = remainingAmount <= 0
+                            ? "paid"
+                            : (paidAmount <= 0 ? "pending" : "partial");
+                        await tx
+                            .update(laundryOrders)
+                            .set({ paidAmount, remainingAmount, paymentStatus })
+                            .where(eq(laundryOrders.id, payment.orderId));
+                    }
+                }
+            });
+
+            return ok(c, {
+                accepted: true,
+                matched: true,
+                providerStatus,
+                transactionId,
+            });
+        } catch (err: any) {
+            console.error("[laundry/payments/webhook]", err);
+            return errors.internal(c);
+        }
+    }
+);
+
 laundryRouter.get(
     "/orders/:id/receipt",
     authMiddleware,
@@ -1491,15 +2419,12 @@ laundryRouter.get(
             ]);
 
             const metadata = parseMetadata(orgRows[0]?.metadata ?? null);
-            const template =
-                metadata?.settings?.laundry?.waTemplates?.[order.branchId]
-                ?? metadata?.settings?.laundry?.waTemplate
-                ?? DEFAULT_WA_TEMPLATE;
+            const template = resolveLaundryTemplateFromMetadata(metadata, order.branchId);
 
             const waMessageText = buildWaMessage(template, {
                 customerName: order.customerName ?? "Pelanggan",
                 orderNumber: order.orderNumber,
-                status: order.status,
+                status: formatLaundryStatusLabel(order.status),
                 remainingAmount: String(order.remainingAmount),
             });
 
@@ -1627,6 +2552,7 @@ laundryRouter.get(
             const orderType = c.req.query("orderType");
             const q = c.req.query("q");
             const outstanding = c.req.query("outstanding");
+            const priorityMode = c.req.query("priorityMode") === "true";
             const dateFrom = c.req.query("dateFrom");
             const dateTo = c.req.query("dateTo");
             const limit = Math.min(Number(c.req.query("limit") ?? DEFAULT_ORDER_LIMIT), 200);
@@ -1658,7 +2584,7 @@ laundryRouter.get(
                 );
             }
 
-            const rows = await db
+            const baseQuery = db
                 .select({
                     id: laundryOrders.id,
                     orderNumber: laundryOrders.orderNumber,
@@ -1672,18 +2598,40 @@ laundryRouter.get(
                     customerPhone: laundryOrders.customerPhone,
                     customerAddress: laundryOrders.customerAddress,
                     notes: laundryOrders.notes,
+                    sourceChannel: laundryOrders.sourceChannel,
                     branchId: laundryOrders.branchId,
                     branchName: branches.name,
                     createdAt: laundryOrders.createdAt,
                     estimatedCompletedAt: laundryOrders.estimatedCompletedAt,
                     assignedDriverId: laundryOrders.assignedDriverId,
                     assignedDriverName: laundryOrders.assignedDriverName,
+                    assignedMachineId: laundryOrders.assignedMachineId,
+                    assignedMachineCode: laundryOrders.assignedMachineCode,
+                    assignedMachineName: laundryOrders.assignedMachineName,
                 })
                 .from(laundryOrders)
                 .leftJoin(branches, eq(laundryOrders.branchId, branches.id))
-                .where(and(...conditions))
-                .orderBy(desc(laundryOrders.createdAt))
-                .limit(limit);
+                .where(and(...conditions));
+
+            const rows = await (
+                priorityMode
+                    ? baseQuery.orderBy(
+                        sql`case
+                            when ${laundryOrders.status} = 'cancelled' then 99
+                            when ${laundryOrders.status} = 'completed' then 98
+                            when ${laundryOrders.status} = 'out_for_delivery' then 7
+                            when ${laundryOrders.status} = 'ready' then 6
+                            when ${laundryOrders.status} = 'drying' then 5
+                            when ${laundryOrders.status} = 'washing' then 4
+                            when ${laundryOrders.status} = 'picked_up' then 3
+                            when ${laundryOrders.status} = 'pickup_requested' then 2
+                            when ${laundryOrders.status} = 'confirmed' then 1
+                            else 0
+                        end`,
+                        asc(laundryOrders.createdAt)
+                    )
+                    : baseQuery.orderBy(desc(laundryOrders.createdAt))
+            ).limit(limit);
 
             return ok(c, rows);
         } catch (err: any) {
@@ -1792,19 +2740,29 @@ laundryRouter.post(
                 return errors.badRequest(c, "customerId requires phone and address (from profile or manual input)");
             }
 
-            if (
-                (parsedBody.data.orderType === "pickup" || parsedBody.data.orderType === "drop_off")
-                && (!normalizedPhone || !normalizedAddress)
-            ) {
+            if (parsedBody.data.orderType !== "walk_in") {
                 incrementLaundryValidationRejects();
                 logLaundryAction({
                     action: "order.create",
                     result: "rejected",
                     orgId,
                     branchId,
-                    reason: "pickup/drop_off orders require customerPhone and customerAddress",
+                    reason: "Direct dashboard create is only allowed for walk_in",
                 });
-                return errors.badRequest(c, "pickup/drop_off orders require customerPhone and customerAddress");
+                return errors.badRequest(c, "Direct create only supports walk_in. Use order intake flow for pickup/drop_off.");
+            }
+
+            const addressCheck = validateOperationalAddress(normalizedAddress);
+            if (!addressCheck.ok && normalizedAddress) {
+                incrementLaundryValidationRejects();
+                logLaundryAction({
+                    action: "order.create",
+                    result: "rejected",
+                    orgId,
+                    branchId,
+                    reason: addressCheck.message,
+                });
+                return errors.badRequest(c, addressCheck.message);
             }
 
             const serviceIds = items.map((item) => item.serviceId).filter(Boolean) as string[];
@@ -1874,7 +2832,8 @@ laundryRouter.post(
                         branchId,
                         customerId: customerProfile?.id ?? parsedBody.data.customerId ?? null,
                         orderNumber,
-                        status: "received",
+                        sourceChannel: "operator_dashboard",
+                        status: "created",
                         orderType: parsedBody.data.orderType,
                         customerName: normalizedCustomerName,
                         customerPhone: normalizedPhone,
@@ -1922,7 +2881,7 @@ laundryRouter.post(
                     branchId,
                     orderId: order.id,
                     fromStatus: null,
-                    toStatus: "received",
+                    toStatus: "created",
                     note: "Order created",
                     actorId,
                 });
@@ -2027,6 +2986,429 @@ laundryRouter.post(
                 result: "error",
                 reason: "Unhandled error",
             });
+            return errors.internal(c);
+        }
+    }
+);
+
+laundryRouter.get(
+    "/order-intakes",
+    authMiddleware,
+    requireOrganization,
+    requirePermission("order.read"),
+    async (c) => {
+        try {
+            const db = c.get("db");
+            const orgId = await getOrgId(c);
+            const parsedQuery = orderIntakeListQuerySchema.safeParse({
+                branchId: c.req.query("branchId"),
+                status: c.req.query("status"),
+                limit: c.req.query("limit"),
+            });
+            if (!parsedQuery.success) {
+                return errors.badRequest(c, getValidationMessage(parsedQuery.error, "Invalid query"));
+            }
+
+            const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId);
+            const branchScope = ensureBranchFilter(branchIds, isOrgWide, parsedQuery.data.branchId ?? null);
+            if (!branchScope.ok) return errors.forbidden(c, branchScope.message);
+
+            const conditions = [eq(customerOrderIntakes.organizationId, orgId)];
+            if (parsedQuery.data.status) {
+                conditions.push(eq(customerOrderIntakes.status, parsedQuery.data.status));
+            }
+
+            if (branchScope.effectiveBranchIds && branchScope.effectiveBranchIds.length === 1) {
+                conditions.push(eq(customerOrderIntakes.branchId, branchScope.effectiveBranchIds[0]!));
+            } else if (branchScope.effectiveBranchIds && branchScope.effectiveBranchIds.length > 1) {
+                conditions.push(inArray(customerOrderIntakes.branchId, branchScope.effectiveBranchIds));
+            }
+
+            const rows = await db
+                .select({
+                    id: customerOrderIntakes.id,
+                    referenceCode: customerOrderIntakes.referenceCode,
+                    status: customerOrderIntakes.status,
+                    orderType: customerOrderIntakes.orderType,
+                    customerName: customerOrderIntakes.customerName,
+                    customerPhone: customerOrderIntakes.customerPhoneRaw,
+                    customerAddress: customerOrderIntakes.customerAddress,
+                    pickupPreferenceAt: customerOrderIntakes.pickupPreferenceAt,
+                    riskScore: customerOrderIntakes.riskScore,
+                    riskLevel: customerOrderIntakes.riskLevel,
+                    riskFlags: customerOrderIntakes.riskFlags,
+                    branchId: customerOrderIntakes.branchId,
+                    branchName: branches.name,
+                    notes: customerOrderIntakes.notes,
+                    convertedOrderId: customerOrderIntakes.convertedOrderId,
+                    verifiedAt: customerOrderIntakes.verifiedAt,
+                    createdAt: customerOrderIntakes.createdAt,
+                })
+                .from(customerOrderIntakes)
+                .leftJoin(branches, eq(customerOrderIntakes.branchId, branches.id))
+                .where(and(...conditions))
+                .orderBy(desc(customerOrderIntakes.createdAt))
+                .limit(parsedQuery.data.limit);
+
+            return ok(c, rows);
+        } catch (err: any) {
+            console.error("[laundry/order-intakes/list]", err);
+            return errors.internal(c);
+        }
+    }
+);
+
+laundryRouter.post(
+    "/order-intakes/:id/accept",
+    authMiddleware,
+    requireOrganization,
+    requirePermission("order.create"),
+    async (c) => {
+        try {
+            const db = c.get("db");
+            const orgId = await getOrgId(c);
+            const intakeId = c.req.param("id");
+            const body = await c.req.json().catch(() => null);
+            const parsedBody = acceptOrderIntakeSchema.safeParse(body ?? {});
+            if (!parsedBody.success) {
+                return errors.badRequest(c, getValidationMessage(parsedBody.error));
+            }
+
+            const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId);
+            let actorId: string | null = null;
+            try {
+                actorId = getUserId(c);
+            } catch {
+                actorId = null;
+            }
+
+            const result = await db.transaction(async (tx: any) => {
+                const [intake] = await tx
+                    .select({
+                        id: customerOrderIntakes.id,
+                        organizationId: customerOrderIntakes.organizationId,
+                        branchId: customerOrderIntakes.branchId,
+                        status: customerOrderIntakes.status,
+                        channel: customerOrderIntakes.channel,
+                        orderType: customerOrderIntakes.orderType,
+                        customerName: customerOrderIntakes.customerName,
+                        customerPhoneRaw: customerOrderIntakes.customerPhoneRaw,
+                        customerPhoneNormalized: customerOrderIntakes.customerPhoneNormalized,
+                        customerAddress: customerOrderIntakes.customerAddress,
+                        notes: customerOrderIntakes.notes,
+                        convertedOrderId: customerOrderIntakes.convertedOrderId,
+                    })
+                    .from(customerOrderIntakes)
+                    .where(and(
+                        eq(customerOrderIntakes.organizationId, orgId),
+                        eq(customerOrderIntakes.id, intakeId)
+                    ))
+                    .limit(1);
+
+                if (!intake) return { error: errors.notFound(c, "Order intake not found") };
+                if (!isOrgWide && !hasBranchAccess(branchIds, intake.branchId)) {
+                    return { error: errors.forbidden(c, "No access to branch") };
+                }
+                if (intake.status === "converted" && intake.convertedOrderId) {
+                    return {
+                        idempotent: true as const,
+                        intakeId: intake.id,
+                        status: intake.status,
+                        orderId: intake.convertedOrderId,
+                    };
+                }
+                if (intake.status !== "pending_verification" && intake.status !== "accepted") {
+                    return { error: errors.badRequest(c, "Only pending/accepted intake can be converted") };
+                }
+
+                const itemRows = await tx
+                    .select({
+                        id: customerOrderIntakeItems.id,
+                        serviceId: customerOrderIntakeItems.serviceId,
+                        serviceNameSnapshot: customerOrderIntakeItems.serviceNameSnapshot,
+                        qty: customerOrderIntakeItems.qty,
+                        unit: customerOrderIntakeItems.unit,
+                        priceSnapshot: customerOrderIntakeItems.priceSnapshot,
+                        lineNote: customerOrderIntakeItems.lineNote,
+                    })
+                    .from(customerOrderIntakeItems)
+                    .where(eq(customerOrderIntakeItems.intakeId, intake.id));
+
+                if (!itemRows || itemRows.length === 0) {
+                    return { error: errors.badRequest(c, "Order intake has no items") };
+                }
+
+                const serviceIds = itemRows.map((item: any) => item.serviceId).filter(Boolean) as string[];
+                const serviceRows = serviceIds.length > 0
+                    ? await tx
+                        .select({
+                            id: laundryServices.id,
+                            estimatedDurationHours: laundryServices.estimatedDurationHours,
+                        })
+                        .from(laundryServices)
+                        .where(and(
+                            eq(laundryServices.organizationId, orgId),
+                            eq(laundryServices.branchId, intake.branchId),
+                            inArray(laundryServices.id, serviceIds)
+                        ))
+                    : [];
+
+                const serviceDurationMap = new Map<string, number>(
+                    serviceRows.map((service: any) => [service.id, Number(service.estimatedDurationHours ?? 24)])
+                );
+
+                const normalizedItems: Array<{
+                    serviceId: string | null;
+                    serviceName: string;
+                    quantity: number;
+                    quantityRaw: string;
+                    unitPrice: number;
+                    lineTotal: number;
+                    estimatedDurationHours: number;
+                    notes: string | null;
+                }> = itemRows.map((item: any) => {
+                    const quantity = toQuantityNumber(item.qty);
+                    const unitPrice = Number(item.priceSnapshot ?? 0);
+                    return {
+                        serviceId: item.serviceId,
+                        serviceName: item.serviceNameSnapshot,
+                        quantity,
+                        quantityRaw: quantity.toFixed(2),
+                        unitPrice,
+                        lineTotal: toRoundedAmount(quantity * unitPrice),
+                        estimatedDurationHours: item.serviceId ? (serviceDurationMap.get(item.serviceId) ?? 24) : 24,
+                        notes: item.lineNote ?? null,
+                    };
+                });
+
+                const subtotalAmount = normalizedItems.reduce((sum: number, item) => sum + item.lineTotal, 0);
+                const totalAmount = subtotalAmount;
+                const maxDurationHours = normalizedItems.reduce(
+                    (max: number, item) => Math.max(max, item.estimatedDurationHours),
+                    24
+                );
+                const acceptedNote = parsedBody.data.note?.trim() || "Intake accepted and converted";
+                const orderNumber = await generateLaundryOrderNumber(tx, { organizationId: orgId, branchId: intake.branchId });
+                const estimatedCompletedAt = new Date(Date.now() + (maxDurationHours * 3600_000));
+                const [existingCustomer] = intake.customerPhoneNormalized
+                    ? await tx
+                        .select({ id: customers.id })
+                        .from(customers)
+                        .where(and(
+                            eq(customers.organizationId, orgId),
+                            eq(customers.phone, intake.customerPhoneNormalized)
+                        ))
+                        .limit(1)
+                    : [null];
+                const customerId = existingCustomer?.id
+                    ? existingCustomer.id
+                    : (() => null)();
+
+                let resolvedCustomerId = customerId;
+                if (!resolvedCustomerId && intake.customerPhoneNormalized) {
+                    const [createdCustomer] = await tx
+                        .insert(customers)
+                        .values({
+                            organizationId: orgId,
+                            name: intake.customerName,
+                            phone: intake.customerPhoneNormalized,
+                            address: intake.customerAddress,
+                            source: intake.channel === "whatsapp_link" ? "whatsapp" : "web",
+                            status: "active",
+                            preferences: {
+                                preferredBranchId: intake.branchId,
+                            },
+                        })
+                        .onConflictDoNothing()
+                        .returning({ id: customers.id });
+                    resolvedCustomerId = createdCustomer?.id ?? null;
+                }
+
+                await tx
+                    .update(customerOrderIntakes)
+                    .set({
+                        status: "accepted",
+                        verifiedAt: new Date(),
+                        verifiedBy: actorId,
+                    })
+                    .where(eq(customerOrderIntakes.id, intake.id));
+
+                await tx.insert(customerOrderIntakeEvents).values({
+                    intakeId: intake.id,
+                    fromStatus: intake.status as any,
+                    toStatus: "accepted",
+                    actorType: "tenant",
+                    actorId,
+                    note: acceptedNote,
+                });
+
+                const [order] = await tx
+                    .insert(laundryOrders)
+                    .values({
+                        organizationId: orgId,
+                        branchId: intake.branchId,
+                        customerId: resolvedCustomerId,
+                        orderNumber,
+                        sourceChannel: intake.channel,
+                        sourceIntakeId: intake.id,
+                        status: "created",
+                        orderType: intake.orderType === "drop_off" ? "drop_off" : "pickup",
+                        customerName: intake.customerName,
+                        customerPhone: intake.customerPhoneNormalized,
+                        customerAddress: intake.customerAddress,
+                        notes: intake.notes ?? acceptedNote,
+                        estimatedCompletedAt,
+                        subtotalAmount,
+                        discountAmount: 0,
+                        taxAmount: 0,
+                        totalAmount,
+                        paidAmount: 0,
+                        remainingAmount: totalAmount,
+                        paymentStatus: "pending",
+                        createdBy: actorId,
+                    })
+                    .returning({
+                        id: laundryOrders.id,
+                        orderNumber: laundryOrders.orderNumber,
+                    });
+
+                await tx.insert(laundryOrderItems).values(
+                    normalizedItems.map((item: (typeof normalizedItems)[number]) => ({
+                        orderId: order.id,
+                        serviceId: item.serviceId,
+                        serviceName: item.serviceName,
+                        quantity: item.quantityRaw,
+                        unitPrice: item.unitPrice,
+                        lineTotal: item.lineTotal,
+                        estimatedDurationHours: item.estimatedDurationHours,
+                        notes: item.notes,
+                    }))
+                );
+
+                await tx.insert(laundryOrderStatusHistory).values({
+                    organizationId: orgId,
+                    branchId: intake.branchId,
+                    orderId: order.id,
+                    fromStatus: null,
+                    toStatus: "created",
+                    note: "Converted from customer intake",
+                    actorId,
+                });
+
+                await tx
+                    .update(customerOrderIntakes)
+                    .set({
+                        status: "converted",
+                        convertedOrderId: order.id,
+                        updatedAt: new Date(),
+                    })
+                    .where(eq(customerOrderIntakes.id, intake.id));
+
+                await tx.insert(customerOrderIntakeEvents).values({
+                    intakeId: intake.id,
+                    fromStatus: "accepted",
+                    toStatus: "converted",
+                    actorType: "system",
+                    actorId,
+                    note: `Converted into order ${order.orderNumber}`,
+                });
+
+                return {
+                    intakeId: intake.id,
+                    status: "converted" as const,
+                    orderId: order.id,
+                    orderNumber: order.orderNumber,
+                };
+            });
+
+            if ((result as any)?.error) return (result as any).error;
+            if ((result as any)?.idempotent) {
+                return ok(c, result);
+            }
+
+            return ok(c, result);
+        } catch (err: any) {
+            console.error("[laundry/order-intakes/accept]", err);
+            return errors.internal(c);
+        }
+    }
+);
+
+laundryRouter.post(
+    "/order-intakes/:id/reject",
+    authMiddleware,
+    requireOrganization,
+    requirePermission("order.create"),
+    async (c) => {
+        try {
+            const db = c.get("db");
+            const orgId = await getOrgId(c);
+            const intakeId = c.req.param("id");
+            const body = await c.req.json().catch(() => null);
+            const parsedBody = rejectOrderIntakeSchema.safeParse(body);
+            if (!parsedBody.success) {
+                return errors.badRequest(c, getValidationMessage(parsedBody.error));
+            }
+
+            const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId);
+            let actorId: string | null = null;
+            try {
+                actorId = getUserId(c);
+            } catch {
+                actorId = null;
+            }
+
+            const result = await db.transaction(async (tx: any) => {
+                const [intake] = await tx
+                    .select({
+                        id: customerOrderIntakes.id,
+                        branchId: customerOrderIntakes.branchId,
+                        status: customerOrderIntakes.status,
+                    })
+                    .from(customerOrderIntakes)
+                    .where(and(
+                        eq(customerOrderIntakes.organizationId, orgId),
+                        eq(customerOrderIntakes.id, intakeId)
+                    ))
+                    .limit(1);
+
+                if (!intake) return { error: errors.notFound(c, "Order intake not found") };
+                if (!isOrgWide && !hasBranchAccess(branchIds, intake.branchId)) {
+                    return { error: errors.forbidden(c, "No access to branch") };
+                }
+                if (intake.status !== "pending_verification" && intake.status !== "accepted") {
+                    return { error: errors.badRequest(c, "Only pending/accepted intake can be rejected") };
+                }
+
+                await tx
+                    .update(customerOrderIntakes)
+                    .set({
+                        status: "rejected",
+                        verifiedAt: new Date(),
+                        verifiedBy: actorId,
+                    })
+                    .where(eq(customerOrderIntakes.id, intake.id));
+
+                await tx.insert(customerOrderIntakeEvents).values({
+                    intakeId: intake.id,
+                    fromStatus: intake.status as any,
+                    toStatus: "rejected",
+                    actorType: "tenant",
+                    actorId,
+                    note: parsedBody.data.reason,
+                });
+
+                return {
+                    intakeId: intake.id,
+                    status: "rejected" as const,
+                    reason: parsedBody.data.reason,
+                };
+            });
+
+            if ((result as any)?.error) return (result as any).error;
+            return ok(c, result);
+        } catch (err: any) {
+            console.error("[laundry/order-intakes/reject]", err);
             return errors.internal(c);
         }
     }

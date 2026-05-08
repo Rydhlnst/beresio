@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import { Button } from "@repo/ui/button";
+import { buildSafeApiUrl, buildSafeWebSocketUrl } from "@/lib/safe-api-url";
 
 type SummaryData = {
     totalRevenue: number;
@@ -43,27 +44,11 @@ function formatCurrency(value: number) {
 }
 
 function getApiUrl(path: string) {
-    const base = process.env.NEXT_PUBLIC_API_URL ?? "";
-    return `${base}${path}`;
+    return buildSafeApiUrl(path);
 }
 
 function getLaundryWsUrl() {
-    const configuredBase = process.env.NEXT_PUBLIC_API_URL
-        ?? (typeof window !== "undefined" ? window.location.origin : "");
-    if (!configuredBase) return "";
-
-    const normalizedBase = configuredBase.endsWith("/")
-        ? configuredBase.slice(0, -1)
-        : configuredBase;
-
-    if (normalizedBase.startsWith("https://")) {
-        return `wss://${normalizedBase.slice("https://".length)}/api/dashboard/laundry/ws`;
-    }
-    if (normalizedBase.startsWith("http://")) {
-        return `ws://${normalizedBase.slice("http://".length)}/api/dashboard/laundry/ws`;
-    }
-
-    return `${normalizedBase}/api/dashboard/laundry/ws`;
+    return buildSafeWebSocketUrl("/api/dashboard/laundry/ws");
 }
 
 export function LaundryOverviewClient({

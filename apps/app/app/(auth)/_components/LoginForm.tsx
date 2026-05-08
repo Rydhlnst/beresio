@@ -213,7 +213,7 @@ export function LoginForm() {
                     <div className="text-center pt-2">
                         <Text align="center" className="text-sm text-muted-foreground">
                             Don't have an account?{" "}
-                            <Link href="/sign-up" className="text-primary font-semibold hover:underline transition-colors duration-150 ease-out">
+                            <Link href="/register" className="text-primary font-semibold hover:underline transition-colors duration-150 ease-out">
                                 Request Now
                             </Link>
                         </Text>

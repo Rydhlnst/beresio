@@ -8,7 +8,7 @@ import { Badge } from "@repo/ui/badge";
 
 export const metadata: Metadata = {
     title: "Changelog - Update & Perubahan Produk",
-    description: "Lihat update terbaru, fitur baru, perbaikan bug, dan improvement yang kami rilis untuk Beres.io.",
+    description: "Lihat update terbaru, fitur baru, perbaikan bug, dan improvement yang kami rilis untuk Beres Cloud.",
 };
 
 const RELEASES = [
@@ -56,7 +56,7 @@ const RELEASES = [
         version: "v2.0.0",
         date: "Oktober 2024",
         type: "feature",
-        title: "Beres.io 2.0 Launch",
+        title: "Beres Cloud 2.0 Launch",
         description: "Platform baru dengan arsitektur yang lebih scalable, UI yang lebih modern, dan fitur yang lebih lengkap.",
         highlights: ["New UI/UX", "Improved performance", "Mobile app beta", "New pricing plans"],
     },
@@ -87,7 +87,7 @@ export default function ChangelogPage() {
                 badgeLabel="Product Updates"
                 title="Changelog"
                 subtitle="Update Terbaru"
-                description="Lihat fitur baru, perbaikan, dan improvement yang kami rilis. Beres.io terus berkembang untuk melayani Anda lebih baik."
+                description="Lihat fitur baru, perbaikan, dan improvement yang kami rilis. Beres Cloud terus berkembang untuk melayani Anda lebih baik."
                 primaryCta={{ label: "Lihat Roadmap", href: "#" }}
                 secondaryCta={{ label: "Hubungi Support", href: "/support" }}
                 align="center"
@@ -140,7 +140,7 @@ export default function ChangelogPage() {
                 <div className="flex flex-col items-center gap-6 text-center">
                     <Heading as="h2">Punya Feedback?</Heading>
                     <Text variant="lead" align="center" className="max-w-2xl">
-                        Kami selalu terbuka untuk saran dan masukan untuk pengembangan Beres.io.
+                        Kami selalu terbuka untuk saran dan masukan untuk pengembangan Beres Cloud.
                     </Text>
                     <div className="flex flex-wrap items-center justify-center gap-4">
                         <Button size="lg" className="rounded-2xl px-8" asChild>

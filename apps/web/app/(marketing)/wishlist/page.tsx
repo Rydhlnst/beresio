@@ -1,117 +1,142 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Sparkles, Calendar, ShieldCheck, ArrowRight } from "lucide-react";
+import { ArrowRight, Calendar, ShieldCheck, Sparkles } from "lucide-react";
+import { complianceConfig, buildMailtoUrl, buildWhatsAppUrl } from "@repo/ui/compliance";
 import { PageHero } from "@/app/_components/PageHero";
 import { Section } from "@/app/_components/Section";
-import { Button, Heading, Input, Text } from "@repo/ui";
+import { Button, Heading, Text } from "@repo/ui";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import { generateMetadata as seoMetadata } from "@/lib/seo";
+import { BetaApplicationForm } from "./_components/beta-application-form";
+import { createDbNextjs } from "@beresio/db";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { cookies } from "next/headers";
 
 export const metadata: Metadata = seoMetadata({
-    title: "Join Wishlist - Akses Prioritas",
+    title: "Waitlist Beta Tester",
     path: "/wishlist",
-    description: "Daftar wishlist Beres.io untuk mendapatkan akses beta lebih awal, onboarding gratis, dan diskon spesial peluncuran. Slot terbatas!",
-    keywords: ["wishlist software kasir", "early access POS", "beta testing UMKM", "diskon peluncuran"],
+    description:
+        "Daftar sebagai beta tester Beres Cloud. Tim akan review kebutuhan bisnis Anda untuk menentukan prioritas early access.",
+    keywords: ["waitlist beres cloud", "beta tester umkm", "early access pos erp", "daftar beta beres cloud"],
 });
 
-const WISHLIST_BENEFITS = [
+const benefits = [
     {
-        title: "Akses Lebih Dulu",
-        description: "Dapatkan undangan prioritas saat produk siap digunakan.",
+        title: "Early Access Terarah",
+        description: "Akses fitur lebih awal berdasarkan kebutuhan operasional bisnis Anda.",
         icon: Sparkles,
     },
     {
-        title: "Onboarding Dipandu",
-        description: "Tim kami bantu setup awal agar bisnis Anda langsung siap jalan.",
+        title: "Onboarding Lebih Cepat",
+        description: "Kami prioritasin bisnis yang siap testing dan feedback agar iterasi lebih cepat.",
         icon: ShieldCheck,
     },
     {
-        title: "Demo Eksklusif",
-        description: "Lihat fitur utama dan alur kerja sebelum publik rilis.",
+        title: "Sesi Demo (Opsional)",
+        description: "Jika cocok, tim akan jadwalkan demo singkat untuk mapping flow operasional.",
         icon: Calendar,
     },
 ];
 
 export default function WishlistPage() {
+    const onboardingWhatsappUrl = buildWhatsAppUrl(
+        complianceConfig.supportWhatsApp,
+        "Halo tim Beres Cloud, saya ingin daftar akses prioritas onboarding."
+    );
+
     return (
         <>
             <PageHero
-                badgeLabel="Wishlist Beres.io"
-                title="Dapatkan Akses Prioritas"
-                subtitle="Sebelum Peluncuran Resmi"
-                description="Masuk dalam antrean VIP untuk mencoba Beres.io lebih dulu, lengkap dengan sesi onboarding dan demo pribadi."
-                primaryCta={{ label: "Join Wishlist", href: "#join" }}
-                secondaryCta={{ label: "Lihat Demo", href: "/demo" }}
+                badgeLabel="Pre-release"
+                title="Waitlist Beta Tester"
+                subtitle="Beres Cloud"
+                description="Daftar sebagai beta tester untuk dapat akses lebih awal. Tim akan review kebutuhan bisnis Anda dan menghubungi jika cocok."
+                primaryCta={{ label: "Isi Form Beta", href: "#beta-form" }}
+                secondaryCta={{ label: "Chat WhatsApp", href: onboardingWhatsappUrl }}
                 align="center"
             />
 
-            <Section id="benefits">
-                <div className="space-y-10">
-                    <div className="max-w-2xl mx-auto text-center space-y-3">
-                        <Heading as="h2">Kenapa Join Wishlist?</Heading>
-                        <Text variant="lead" align="center">
-                            Biar tim Anda bisa siap dari sekarang dan tidak ketinggalan akses awal.
-                        </Text>
-                    </div>
-
-                    <div className="grid gap-6 md:grid-cols-3">
-                        {WISHLIST_BENEFITS.map((benefit) => (
-                            <Card key={benefit.title} className="border-border/60">
-                                <CardHeader className="space-y-4">
-                                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand/10">
-                                        <benefit.icon className="h-5 w-5 text-brand" />
-                                    </div>
-                                    <CardTitle className="text-base">{benefit.title}</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <Text variant="muted">{benefit.description}</Text>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
+            <Section>
+                <div className="grid gap-6 md:grid-cols-3">
+                    {benefits.map((benefit) => (
+                        <Card key={benefit.title} className="border-border/60">
+                            <CardHeader className="space-y-4">
+                                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand/10">
+                                    <benefit.icon className="h-5 w-5 text-brand" />
+                                </div>
+                                <CardTitle className="text-base">{benefit.title}</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <Text variant="muted">{benefit.description}</Text>
+                            </CardContent>
+                        </Card>
+                    ))}
                 </div>
             </Section>
 
-            <Section id="join">
-                <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] items-start">
-                    <div className="space-y-4">
-                        <Heading as="h2">Daftar Dalam 1 Menit</Heading>
-                        <Text variant="lead">
-                            Tinggalkan kontak utama agar kami bisa mengirim update dan jadwal demo.
-                        </Text>
-                        <div className="flex flex-col gap-3 text-sm text-muted-foreground">
-                            <span>- Undangan akses beta dikirim bertahap.</span>
-                            <span>- Data Anda aman dan hanya digunakan untuk komunikasi produk.</span>
+            <Section>
+                <div className="grid gap-6 lg:grid-cols-[1fr,420px]">
+                    <div id="beta-form" className="rounded-2xl border border-border/60 bg-background p-6 scroll-mt-24 max-h-[640px] overflow-y-auto">
+                        <Heading as="h2">Daftar Beta Tester</Heading>
+                        <p className="mt-3 text-sm text-muted-foreground">
+                            Beres Cloud masih tahap pre-release. Isi form ini agar tim bisa menilai kecocokan dan menentukan prioritas early access.
+                        </p>
+                        <div className="mt-6">
+                            <WishlistBetaFormWrapper />
                         </div>
                     </div>
 
-                    <Card className="border-border/60">
-                        <CardContent className="space-y-4 pt-6">
-                            <div className="space-y-2">
-                                <Text variant="detail">Nama Lengkap</Text>
-                                <Input placeholder="Nama Anda" />
-                            </div>
-                            <div className="space-y-2">
-                                <Text variant="detail">Email Bisnis</Text>
-                                <Input type="email" placeholder="nama@bisnis.com" />
-                            </div>
-                            <div className="space-y-2">
-                                <Text variant="detail">Nama Usaha</Text>
-                                <Input placeholder="Nama usaha Anda" />
-                            </div>
-                            <Button className="w-full rounded-2xl" type="button" asChild>
-                                <Link href="/sales">
-                                    Kirim Minat
-                                    <ArrowRight className="ml-2 h-4 w-4" />
+                    <div className="rounded-2xl border border-border/60 bg-background p-6">
+                        <Heading as="h2">Butuh Respon Cepat?</Heading>
+                        <p className="mt-3 text-sm text-muted-foreground">
+                            Jika Anda prefer komunikasi langsung, gunakan kanal resmi berikut.
+                        </p>
+                        <div className="mt-5 grid gap-3">
+                            <Button asChild className="h-11 w-full rounded-xl justify-start">
+                                <Link href={onboardingWhatsappUrl} target="_blank" rel="noreferrer">
+                                    WhatsApp Onboarding ({complianceConfig.supportWhatsApp})
+                                    <ArrowRight className="ml-auto h-4 w-4" />
                                 </Link>
                             </Button>
-                            <Text variant="muted">
-                                Form asli akan aktif saat fase beta dibuka. Untuk sementara, tim sales akan menghubungi Anda.
-                            </Text>
-                        </CardContent>
-                    </Card>
+                            <Button asChild variant="outline" className="h-11 w-full rounded-xl justify-start">
+                                <Link href={buildMailtoUrl(complianceConfig.supportEmail, "Permintaan Akses Prioritas Beres Cloud")}>
+                                    Email Onboarding ({complianceConfig.supportEmail})
+                                    <ArrowRight className="ml-auto h-4 w-4" />
+                                </Link>
+                            </Button>
+                        </div>
+                    </div>
                 </div>
             </Section>
         </>
+    );
+}
+
+async function WishlistBetaFormWrapper() {
+    const db = createDbNextjs(process.env.DATABASE_URL!);
+    const session = await auth(db).api.getSession({ headers: await headers() });
+
+    const defaultValues = session
+        ? { fullName: session.user.name ?? "", email: session.user.email ?? "" }
+        : undefined;
+
+    const sessionEmail = session?.user?.email ? session.user.email.toLowerCase() : null;
+    const cookieApplicationId = (await cookies()).get("beta_application_id")?.value ?? null;
+
+    const existing = sessionEmail
+        ? await db.query.betaApplications.findFirst({
+              where: (table, { eq }) => eq(table.email, sessionEmail),
+              columns: { id: true },
+          })
+        : cookieApplicationId
+          ? await db.query.betaApplications.findFirst({
+                where: (table, { eq }) => eq(table.id, cookieApplicationId),
+                columns: { id: true },
+            })
+          : null;
+
+    return (
+        <BetaApplicationForm defaultValues={defaultValues} existingApplicationId={existing?.id ?? null} />
     );
 }

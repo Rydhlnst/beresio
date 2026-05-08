@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+﻿import { describe, expect, it, vi } from "vitest";
 import { createDbMock, createTestApp } from "./test-utils";
 
 vi.mock("../../middleware/auth", () => ({
@@ -9,6 +9,11 @@ vi.mock("../../middleware/auth", () => ({
 
 vi.mock("../../lib/auth-context", () => ({
     getOrgId: vi.fn(async () => "org-1"),
+}));
+
+vi.mock("../../lib/branch-access", () => ({
+    getBranchAccessContext: vi.fn(async () => ({ branchIds: ["br-1"], isOrgWide: false })),
+    hasBranchAccess: vi.fn((branchIds: string[], branchId?: string | null) => !!branchId && branchIds.includes(branchId)),
 }));
 
 import { activitiesRouter } from "./activities";
@@ -49,7 +54,7 @@ describe("activities routes", () => {
         const app = createActivitiesApp(db);
 
         const res = await app.request("/api/dashboard/activities?limit=1");
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
@@ -71,7 +76,7 @@ describe("activities routes", () => {
         const app = createActivitiesApp(db);
 
         const res = await app.request("/api/dashboard/activities");
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(500);
         expect(body.success).toBe(false);
@@ -83,10 +88,11 @@ describe("activities routes", () => {
         const app = createActivitiesApp(createDbMock());
 
         const res = await app.request("/api/dashboard/activities?type=UNKNOWN");
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(400);
         expect(body.success).toBe(false);
         expect(body.error.code).toBe("BAD_REQUEST");
     });
 });
+

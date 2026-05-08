@@ -17,16 +17,17 @@ import {
     FormMessage,
     toast,
 } from "@repo/ui";
-import { Loader2, Mail, Lock, User } from "lucide-react";
+import { Loader2, Mail, Lock, Phone, User } from "lucide-react";
 import Link from "next/link";
 import { GoogleOAuthButton } from "./GoogleOAuthButton";
 import { authClient, signUp } from "@/lib/auth-client";
 import { useTransitionRouter } from "@/hooks/use-transition-router";
 
 const signUpSchema = z.object({
-    name: z.string().min(2, "Name must be at least 2 characters"),
-    email: z.string().email("Invalid email address"),
-    password: z.string().min(8, "Password must be at least 8 characters"),
+    name: z.string().min(2, "Nama minimal 2 karakter"),
+    email: z.string().email("Email tidak valid"),
+    password: z.string().min(12, "Password minimal 12 karakter"),
+    phone: z.string().optional(),
 });
 
 type SignUpFormValues = z.infer<typeof signUpSchema>;
@@ -42,6 +43,7 @@ export function SignUpForm() {
             name: "",
             email: "",
             password: "",
+            phone: "",
         },
     });
 
@@ -58,7 +60,11 @@ export function SignUpForm() {
             if (error) {
                 toast.error(error.message || "Failed to create account");
             } else {
-                push("/welcome");
+                await authClient.sendVerificationEmail({
+                    email: values.email,
+                    callbackURL: "/onboarding",
+                }).catch(() => null);
+                push(`/verify-email?email=${encodeURIComponent(values.email)}`);
                 refresh();
             }
         } catch (err) {
@@ -86,10 +92,10 @@ export function SignUpForm() {
         <div className="w-full space-y-8">
             <div className="space-y-4">
                 <Heading as="h1" className="text-balance !text-xl sm:!text-2xl font-semibold tracking-tight text-foreground !leading-snug">
-                    Create Account
+                    Buat Akun
                 </Heading>
                 <Text className="text-muted-foreground text-base">
-                    Join us and start managing your workflows
+                    Daftar untuk mulai setup Beres.
                 </Text>
             </div>
 
@@ -103,14 +109,14 @@ export function SignUpForm() {
                                 render={({ field }) => (
                                     <FormItem className="space-y-2">
                                         <FormLabel className="text-sm font-semibold text-foreground/80">
-                                            Full Name
+                                            Nama Lengkap
                                         </FormLabel>
                                         <FormControl>
                                             <div className="relative">
                                                 <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40" />
                                                 <Input
                                                     {...field}
-                                                    placeholder="Enter your full name"
+                                                    placeholder="Nama lengkap"
                                                     type="text"
                                                     disabled={isLoading}
                                                     className="h-12 pl-12 bg-background border-input rounded-xl text-foreground placeholder:text-muted-foreground/30 focus-visible:ring-1 focus-visible:ring-primary/20 transition-colors duration-150 ease-out font-normal shadow-none"
@@ -135,7 +141,7 @@ export function SignUpForm() {
                                                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40" />
                                                 <Input
                                                     {...field}
-                                                    placeholder="Enter your email"
+                                                    placeholder="nama@email.com"
                                                     type="email"
                                                     disabled={isLoading}
                                                     className="h-12 pl-12 bg-background border-input rounded-xl text-foreground placeholder:text-muted-foreground/30 focus-visible:ring-1 focus-visible:ring-primary/20 transition-colors duration-150 ease-out font-normal shadow-none"
@@ -153,14 +159,14 @@ export function SignUpForm() {
                                 render={({ field }) => (
                                     <FormItem className="space-y-2">
                                         <FormLabel className="text-sm font-semibold text-foreground/80">
-                                            Create Password
+                                            Password
                                         </FormLabel>
                                         <FormControl>
                                             <div className="relative">
                                                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
                                                 <Input
                                                     {...field}
-                                                    placeholder="••••••••"
+                                                    placeholder="Minimal 12 karakter"
                                                     type={showPassword ? "text" : "password"}
                                                     disabled={isLoading}
                                                     className="h-12 pl-12 bg-background border-input rounded-xl text-foreground placeholder:text-muted-foreground/30 focus-visible:ring-1 focus-visible:ring-primary/20 transition-colors duration-150 ease-out font-normal pr-12 shadow-none"
@@ -179,6 +185,31 @@ export function SignUpForm() {
                                     </FormItem>
                                 )}
                             />
+
+                            <FormField
+                                control={form.control}
+                                name="phone"
+                                render={({ field }) => (
+                                    <FormItem className="space-y-2">
+                                        <FormLabel className="text-sm font-semibold text-foreground/80">
+                                            Nomor HP <span className="font-normal text-muted-foreground">(opsional)</span>
+                                        </FormLabel>
+                                        <FormControl>
+                                            <div className="relative">
+                                                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
+                                                <Input
+                                                    {...field}
+                                                    placeholder="+62 812 3456 7890"
+                                                    type="tel"
+                                                    disabled={isLoading}
+                                                    className="h-12 pl-12 bg-background border-input rounded-xl text-foreground placeholder:text-muted-foreground/30 focus-visible:ring-1 focus-visible:ring-primary/20 transition-colors duration-150 ease-out font-normal shadow-none"
+                                                />
+                                            </div>
+                                        </FormControl>
+                                        <FormMessage className="text-xs font-semibold text-destructive pl-1" />
+                                    </FormItem>
+                                )}
+                            />
                         </div>
 
                         <Button
@@ -186,7 +217,7 @@ export function SignUpForm() {
                             disabled={isLoading}
                             className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-base transition-colors duration-150 ease-out border-none shadow-none"
                         >
-                            {isLoading ? <Loader2 className="animate-spin h-5 w-5" /> : "Sign up"}
+                            {isLoading ? <Loader2 className="animate-spin h-5 w-5" /> : "Daftar"}
                         </Button>
                     </form>
                 </Form>
@@ -210,9 +241,9 @@ export function SignUpForm() {
 
                     <div className="text-center pt-2">
                         <Text align="center" className="text-sm text-muted-foreground">
-                            Already have an account?{" "}
-                            <Link href="/sign-in" className="text-primary font-semibold hover:underline transition-colors duration-150 ease-out">
-                                Login Now
+                            Sudah punya akun?{" "}
+                            <Link href="/login" className="text-primary font-semibold hover:underline transition-colors duration-150 ease-out">
+                                Login
                             </Link>
                         </Text>
                     </div>

@@ -14,7 +14,7 @@ interface EditCustomerPageProps {
 
 export async function generateMetadata({ params }: EditCustomerPageProps): Promise<Metadata> {
   const { customerId } = await params;
-  const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://app.beres.io";
+  const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://app.beres.cloud";
   return {
     title: `Edit Pelanggan ${customerId}`,
     alternates: {

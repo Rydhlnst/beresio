@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+﻿import { describe, expect, it, vi } from "vitest";
 import { createDbMock, createTestApp } from "./test-utils";
 
 // Mock auth middleware
@@ -57,12 +57,12 @@ describe("products routes", () => {
             const app = createProductsApp(db);
 
             const res = await app.request("/api/dashboard/products?page=1&limit=10");
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
-            expect(body.data).toHaveLength(1);
-            expect(body.data[0]).toMatchObject({
+            expect(body.data.data).toHaveLength(1);
+            expect(body.data.data[0]).toMatchObject({
                 id: "prod-1",
                 name: "Test Product",
                 pricing: {
@@ -75,7 +75,7 @@ describe("products routes", () => {
                     status: "ok",
                 },
             });
-            expect(body.meta).toMatchObject({
+            expect(body.data.meta).toMatchObject({
                 total: 2,
                 page: 1,
                 limit: 10,
@@ -112,11 +112,11 @@ describe("products routes", () => {
             const app = createProductsApp(db);
 
             const res = await app.request("/api/dashboard/products?search=iphone");
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
-            expect(body.data[0].name).toBe("iPhone 14");
+            expect(body.data.data[0].name).toBe("iPhone 14");
         });
 
         it("filters by stock status", async () => {
@@ -150,10 +150,10 @@ describe("products routes", () => {
             const app = createProductsApp(db);
 
             const res = await app.request("/api/dashboard/products?stockStatus=low");
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(200);
-            expect(body.data[0].stock.status).toBe("low");
+            expect(body.data.data[0].stock.status).toBe("low");
         });
 
         it("returns empty array when no products", async () => {
@@ -166,12 +166,12 @@ describe("products routes", () => {
             const app = createProductsApp(db);
 
             const res = await app.request("/api/dashboard/products");
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
-            expect(body.data).toHaveLength(0);
-            expect(body.meta.total).toBe(0);
+            expect(body.data.data).toHaveLength(0);
+            expect(body.data.meta.total).toBe(0);
         });
     });
 
@@ -218,7 +218,7 @@ describe("products routes", () => {
             const app = createProductsApp(db);
 
             const res = await app.request("/api/dashboard/products/prod-1");
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
@@ -247,7 +247,7 @@ describe("products routes", () => {
             const app = createProductsApp(db);
 
             const res = await app.request("/api/dashboard/products/non-existent");
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(404);
             expect(body.success).toBe(false);
@@ -296,7 +296,7 @@ describe("products routes", () => {
                     description: "Description",
                 }),
             });
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
@@ -320,7 +320,7 @@ describe("products routes", () => {
                     basePrice: 10000,
                 }),
             });
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(400);
             expect(body.success).toBe(false);
@@ -339,7 +339,7 @@ describe("products routes", () => {
                     basePrice: 10000,
                 }),
             });
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(400);
             expect(body.success).toBe(false);
@@ -385,7 +385,7 @@ describe("products routes", () => {
                     isFeatured: true,
                 }),
             });
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
@@ -404,7 +404,7 @@ describe("products routes", () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ name: "New Name" }),
             });
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(404);
             expect(body.success).toBe(false);
@@ -418,7 +418,7 @@ describe("products routes", () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({}),
             });
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(400);
             expect(body.success).toBe(false);
@@ -441,7 +441,7 @@ describe("products routes", () => {
             const res = await app.request("/api/dashboard/products/prod-1", {
                 method: "DELETE",
             });
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
@@ -457,7 +457,7 @@ describe("products routes", () => {
             const res = await app.request("/api/dashboard/products/non-existent", {
                 method: "DELETE",
             });
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(404);
             expect(body.success).toBe(false);
@@ -477,12 +477,12 @@ describe("products routes", () => {
             const app = createProductsApp(db);
 
             const res = await app.request("/api/dashboard/products/categories");
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
-            expect(body.data).toHaveLength(2);
-            expect(body.data[0].name).toBe("Electronics");
+            expect(body.data.data).toHaveLength(2);
+            expect(body.data.data[0].name).toBe("Electronics");
         });
     });
 
@@ -499,11 +499,11 @@ describe("products routes", () => {
             const app = createProductsApp(db);
 
             const res = await app.request("/api/dashboard/products/suppliers");
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
-            expect(body.data).toHaveLength(2);
+            expect(body.data.data).toHaveLength(2);
         });
     });
 
@@ -515,7 +515,7 @@ describe("products routes", () => {
         });
 
         const res = await app.request("/api/dashboard/products");
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(500);
         expect(body.success).toBe(false);
@@ -523,3 +523,4 @@ describe("products routes", () => {
         expect(body.error.message).toBe("Internal server error");
     });
 });
+

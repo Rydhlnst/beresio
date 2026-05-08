@@ -172,7 +172,7 @@ export default function ProfileDropdown({
                                     await signOut({
                                         fetchOptions: {
                                             onSuccess: () => {
-                                                window.location.href = "/sign-in";
+                                                window.location.href = "/login";
                                             },
                                         },
                                     });

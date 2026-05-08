@@ -10,7 +10,7 @@ import { generateMetadata as seoMetadata } from "@/lib/seo";
 export const metadata: Metadata = seoMetadata({
     title: "Video Tutorial - Panduan Penggunaan",
     path: "/tutorial",
-    description: "Pelajari cara menggunakan Beres.io dengan video tutorial singkat. Setup awal, transaksi harian, inventori, dan laporan keuangan dalam video mudah dipahami.",
+    description: "Pelajari cara menggunakan Beres Cloud dengan video tutorial singkat. Setup awal, transaksi harian, inventori, dan laporan keuangan dalam video mudah dipahami.",
     keywords: ["tutorial software kasir", "panduan POS Indonesia", "cara menggunakan kasir digital", "video tutorial UMKM"],
 });
 
@@ -39,7 +39,7 @@ export default function TutorialPage() {
                 badgeLabel="Video Tutorial"
                 title="Belajar Lebih Cepat"
                 subtitle="Dalam 5 Menit"
-                description="Panduan singkat agar tim Anda langsung mahir menggunakan Beres.io."
+                description="Panduan singkat agar tim Anda langsung mahir menggunakan Beres Cloud."
                 primaryCta={{ label: "Mulai Belajar", href: "#modules" }}
                 secondaryCta={{ label: "Hubungi Support", href: "/support" }}
                 align="center"

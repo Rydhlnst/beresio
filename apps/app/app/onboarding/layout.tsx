@@ -29,25 +29,25 @@ export default function OnboardingLayout({
               Setup usaha lebih rapi, siap dipakai dari hari pertama.
             </h1>
             <p className="text-sm leading-relaxed text-primary-foreground/80">
-              Ikuti empat langkah setup untuk menyiapkan organisasi, mode bisnis, cabang pertama, dan tim awal.
+              Ikuti empat langkah setup untuk menyiapkan profil bisnis, cabang pertama, produk awal, dan tim.
             </p>
           </div>
 
           <div className="relative mt-8 space-y-3 text-sm">
             <div className="rounded-xl border border-primary-foreground/30 bg-primary-foreground/10 px-4 py-3 backdrop-blur">
-              <p className="font-semibold">1. Profil organisasi</p>
-              <p className="mt-1 text-primary-foreground/80">Nama usaha, tipe bisnis, dan fondasi akses tim.</p>
+              <p className="font-semibold">1. Profil bisnis</p>
+              <p className="mt-1 text-primary-foreground/80">Nama bisnis, tipe bisnis, dan logo opsional.</p>
             </div>
             <div className="rounded-xl border border-primary-foreground/30 bg-primary-foreground/10 px-4 py-3 backdrop-blur">
-              <p className="font-semibold">2. Mode bisnis</p>
-              <p className="mt-1 text-primary-foreground/80">Pilih single branch atau multi branch.</p>
-            </div>
-            <div className="rounded-xl border border-primary-foreground/30 bg-primary-foreground/10 px-4 py-3 backdrop-blur">
-              <p className="font-semibold">3. Cabang pertama</p>
+              <p className="font-semibold">2. Cabang pertama</p>
               <p className="mt-1 text-primary-foreground/80">Alamat lengkap, wilayah operasional, kontak, dan jam operasional.</p>
             </div>
             <div className="rounded-xl border border-primary-foreground/30 bg-primary-foreground/10 px-4 py-3 backdrop-blur">
-              <p className="font-semibold">4. Invite team</p>
+              <p className="font-semibold">3. Produk awal</p>
+              <p className="mt-1 text-primary-foreground/80">Tambah manual atau lewati dan lanjutkan dari checklist.</p>
+            </div>
+            <div className="rounded-xl border border-primary-foreground/30 bg-primary-foreground/10 px-4 py-3 backdrop-blur">
+              <p className="font-semibold">4. Undang tim</p>
               <p className="mt-1 text-primary-foreground/80">Opsional, bisa dilewati dan dilanjutkan nanti.</p>
             </div>
           </div>

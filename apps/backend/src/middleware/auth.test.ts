@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Hono } from "hono";
 
 const getSessionMock = vi.fn();
@@ -54,14 +54,18 @@ const authEnv = {
 } as any;
 
 describe("authMiddleware", () => {
+    beforeEach(() => {
+        getSessionMock.mockReset();
+    });
+
     it("returns standardized unauthorized response when no session", async () => {
-        getSessionMock.mockResolvedValueOnce(null);
         const app = createAuthTestApp();
 
         const res = await app.request("/protected", undefined, authEnv);
         const body = await res.json() as any;
 
         expect(res.status).toBe(401);
+        expect(getSessionMock).not.toHaveBeenCalled();
         expect(body).toEqual({
             success: false,
             error: {
@@ -78,7 +82,11 @@ describe("authMiddleware", () => {
         });
         const app = createAuthTestApp();
 
-        const res = await app.request("/protected", undefined, authEnv);
+        const res = await app.request("/protected", {
+            headers: {
+                cookie: "better-auth.session_token=test-token",
+            },
+        }, authEnv);
         const body = await res.json() as any;
 
         expect(res.status).toBe(200);
@@ -94,10 +102,33 @@ describe("authMiddleware", () => {
         });
         const app = createAuthTestApp();
 
-        const res = await app.request("/protected", undefined, authEnv);
+        const res = await app.request("/protected", {
+            headers: {
+                cookie: "better-auth.session_token=test-token",
+            },
+        }, authEnv);
         const body = await res.json() as any;
 
         expect(res.status).toBe(200);
         expect(body.session.activeOrganizationId).toBe("org-top-level");
+    });
+
+    it("accepts bearer token path for Better Auth getSession", async () => {
+        getSessionMock.mockResolvedValueOnce({
+            user: { id: "user-2" },
+            session: { activeOrganizationId: "org-2" },
+        });
+        const app = createAuthTestApp();
+
+        const res = await app.request("/protected", {
+            headers: {
+                authorization: "Bearer session-token-abc",
+            },
+        }, authEnv);
+        const body = await res.json() as any;
+
+        expect(res.status).toBe(200);
+        expect(body.user.id).toBe("user-2");
+        expect(body.session.activeOrganizationId).toBe("org-2");
     });
 });

@@ -105,6 +105,7 @@ const RESOURCES: NavItem[] = [
     { title: "Dokumentasi", description: "Panduan penggunaan Beres dari dasar.", href: "/docs", icon: BookOpen },
     { title: "Video Tutorial", description: "Belajar setup cepat dalam hitungan menit.", href: "/tutorial", icon: PlayCircle },
     { title: "Changelog", description: "Update fitur terbaru yang sudah dirilis.", href: "/changelog", icon: CircleHelp },
+    { title: "Legal & Kebijakan", description: "Privacy, Terms, Refund, dan kanal pengaduan.", href: "/privacy", icon: CircleHelp },
 ];
 
 function DesktopListItem({ title, description, href, icon: Icon }: NavItem) {
@@ -275,6 +276,12 @@ export function Navbar() {
                                 </NavigationMenuLink>
                             </NavigationMenuItem>
 
+                            {/* <NavigationMenuItem>
+                                <NavigationMenuLink asChild className={cn(navigationMenuTriggerStyle(), "bg-transparent text-sm font-semibold")}>
+                                    <Link href="/billing/checkout">Checkout Demo</Link>
+                                </NavigationMenuLink>
+                            </NavigationMenuItem> */}
+
                             <NavigationMenuItem>
                                 <NavigationMenuLink asChild className={cn(navigationMenuTriggerStyle(), "bg-transparent text-sm font-semibold")}>
                                     <Link href="/blog">Blog</Link>
@@ -336,6 +343,9 @@ export function Navbar() {
                                         </Link>
                                         <Link href="/support" className="block px-3 py-2.5 text-sm text-foreground hover:bg-secondary">
                                             Support
+                                        </Link>
+                                        <Link href="/billing/checkout" className="block px-3 py-2.5 text-sm text-foreground hover:bg-secondary">
+                                            Checkout Demo
                                         </Link>
                                     </div>
                                 </div>

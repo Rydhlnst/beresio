@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+﻿import { describe, expect, it, vi } from "vitest";
 import { createDbMock, createTestApp } from "./test-utils";
 
 // Mock auth middleware
@@ -12,6 +12,19 @@ vi.mock("../../middleware/auth", () => ({
 
 vi.mock("../../lib/auth-context", () => ({
     getOrgId: vi.fn(async () => "org-1"),
+}));
+
+const getBranchAccessContextMock = vi.fn(async () => ({
+    branchIds: ["br-allowed"],
+    isOrgWide: false,
+}));
+const hasBranchAccessMock = vi.fn((branchIds: string[], branchId: string) =>
+    branchIds.includes(branchId)
+);
+
+vi.mock("../../lib/branch-access", () => ({
+    getBranchAccessContext: (...args: any[]) => (getBranchAccessContextMock as any)(...args),
+    hasBranchAccess: (...args: any[]) => (hasBranchAccessMock as any)(...args),
 }));
 
 vi.mock("../../lib/organization-aggregates", () => ({
@@ -33,6 +46,49 @@ const createKpisApp = (db: any) =>
 
 describe("kpis routes", () => {
     describe("GET /", () => {
+        it("returns 403 when requesting a branch outside user's access (query param)", async () => {
+            getBranchAccessContextMock.mockResolvedValueOnce({
+                branchIds: ["br-allowed"],
+                isOrgWide: false,
+            });
+
+            const db = createDbMock({ selectResults: [[{ total: 0 }]] });
+            const app = createKpisApp(db);
+
+            const res = await app.request("/api/dashboard/kpis?branchId=br-forbidden");
+            const body = await res.json() as any;
+
+            expect(res.status).toBe(403);
+            expect(body).toEqual({
+                success: false,
+                error: {
+                    code: "FORBIDDEN",
+                    message: "No access to branch",
+                },
+            });
+        });
+
+        it("returns 403 when requesting a branch outside user's access (x-branch-id header)", async () => {
+            getBranchAccessContextMock.mockResolvedValueOnce({
+                branchIds: ["br-allowed"],
+                isOrgWide: false,
+            });
+
+            const db = createDbMock({ selectResults: [[{ total: 0 }]] });
+            const app = createKpisApp(db);
+
+            const res = await app.request("/api/dashboard/kpis", {
+                headers: {
+                    "x-branch-id": "br-forbidden",
+                },
+            });
+            const body = await res.json() as any;
+
+            expect(res.status).toBe(403);
+            expect(body.error?.code).toBe("FORBIDDEN");
+            expect(body.error?.message).toBe("No access to branch");
+        });
+
         it("returns KPIs for today", async () => {
             const db = createDbMock({
                 selectResults: [
@@ -43,7 +99,7 @@ describe("kpis routes", () => {
             const app = createKpisApp(db);
 
             const res = await app.request("/api/dashboard/kpis");
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
@@ -75,7 +131,7 @@ describe("kpis routes", () => {
             const app = createKpisApp(db);
 
             const res = await app.request("/api/dashboard/kpis");
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(200);
             expect(body.data.omzetHariIni).toBe(0);
@@ -91,10 +147,11 @@ describe("kpis routes", () => {
             const app = createKpisApp(db);
 
             const res = await app.request("/api/dashboard/kpis");
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(500);
             expect(body.success).toBe(false);
         });
     });
 });
+

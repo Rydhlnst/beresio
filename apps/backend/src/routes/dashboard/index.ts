@@ -22,11 +22,9 @@ import { transactionsRouter } from './transactions'
 import { crmRouter } from './crm'
 import { fnbRouter } from './fnb'
 import { laundryRouter } from './laundry'
+import type { AppRoute } from '../../types/app'
 
-type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
-type Variables = { db: any; user: any; session: any }
-
-export const dashboardRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>()
+export const dashboardRouter = new Hono<AppRoute>()
 
 dashboardRouter.route('/kpis', kpisRouter)
 dashboardRouter.route('/alerts', alertsRouter)

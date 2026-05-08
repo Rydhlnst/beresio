@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+﻿import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createDbMock, createTestApp } from "./test-utils";
 import { resetLaundryRuntimeMetrics } from "../../lib/laundry-metrics";
 
@@ -60,7 +60,7 @@ describe("laundry routes", () => {
         const app = createLaundryApp(db);
 
         const res = await app.request("/api/dashboard/laundry/services?branchId=br-1");
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
@@ -91,7 +91,7 @@ describe("laundry routes", () => {
                 basePrice: 5000,
             }),
         });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
@@ -112,7 +112,7 @@ describe("laundry routes", () => {
                 name: "Express Wash",
             }),
         });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(404);
         expect(body.success).toBe(false);
@@ -166,7 +166,7 @@ describe("laundry routes", () => {
                 ],
             }),
         });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
@@ -190,11 +190,11 @@ describe("laundry routes", () => {
                 items: [{ name: "Cuci", quantity: 1, unitPrice: 10000 }],
             }),
         });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(400);
         expect(body.success).toBe(false);
-        expect(body.error.message).toContain("require customerPhone and customerAddress");
+        expect(body.error.message).toContain("Direct create only supports walk_in");
     });
 
     it("POST /orders rejects customerId without fallback phone/address", async () => {
@@ -218,7 +218,7 @@ describe("laundry routes", () => {
                 items: [{ name: "Cuci", quantity: 1, unitPrice: 10000 }],
             }),
         });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(400);
         expect(body.success).toBe(false);
@@ -260,7 +260,7 @@ describe("laundry routes", () => {
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ amount: 8000, paymentMethod: "cash" }),
         });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
@@ -292,7 +292,7 @@ describe("laundry routes", () => {
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ amount: 6000, paymentMethod: "cash" }),
         });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(400);
         expect(body.success).toBe(false);
@@ -317,9 +317,9 @@ describe("laundry routes", () => {
         const res = await app.request("/api/dashboard/laundry/orders/ord-1/status", {
             method: "PATCH",
             headers: { "content-type": "application/json" },
-            body: JSON.stringify({ status: "processing" }),
+            body: JSON.stringify({ status: "washing" }),
         });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(400);
         expect(body.success).toBe(false);
@@ -332,7 +332,7 @@ describe("laundry routes", () => {
                 [{
                     id: "ord-1",
                     branchId: "br-1",
-                    status: "processing",
+                    status: "drying",
                     assignedDriverId: null,
                     orderNumber: "LDR-20260406-001",
                     customerName: "Budi",
@@ -344,7 +344,7 @@ describe("laundry routes", () => {
             ],
             updateResults: [[{
                 id: "ord-1",
-                status: "ready_for_pickup",
+                status: "ready",
                 remainingAmount: 12000,
             }]],
             insertResults: [
@@ -367,13 +367,13 @@ describe("laundry routes", () => {
         const res = await app.request("/api/dashboard/laundry/orders/ord-1/status", {
             method: "PATCH",
             headers: { "content-type": "application/json" },
-            body: JSON.stringify({ status: "ready_for_pickup", note: "Selesai cuci" }),
+            body: JSON.stringify({ status: "ready", note: "Selesai cuci" }),
         });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
-        expect(body.data).toMatchObject({ status: "ready_for_pickup" });
+        expect(body.data).toMatchObject({ status: "ready" });
     });
 
     it("PATCH /orders/:id/driver enforces assigned scope for driver role", async () => {
@@ -395,7 +395,7 @@ describe("laundry routes", () => {
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ driverId: "user-2" }),
         });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(403);
         expect(body.success).toBe(false);
@@ -427,7 +427,7 @@ describe("laundry routes", () => {
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ driverId: "user-2" }),
         });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect([400, 403]).toContain(res.status);
         expect(body.success).toBe(false);
@@ -474,7 +474,7 @@ describe("laundry routes", () => {
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ driverId: "driver-1" }),
         });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
@@ -504,7 +504,7 @@ describe("laundry routes", () => {
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ driverId: "driver-missing" }),
         });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(400);
         expect(body.success).toBe(false);
@@ -512,7 +512,7 @@ describe("laundry routes", () => {
     });
 
     it("[OK] [AC-OUTBOX-01] PATCH status to trigger states enqueues notification outbox", async () => {
-        const statusCases = ["ready_for_pickup", "out_for_delivery", "completed"] as const;
+        const statusCases = ["ready", "out_for_delivery", "completed"] as const;
 
         for (const targetStatus of statusCases) {
             const db = createDbMock({
@@ -520,7 +520,7 @@ describe("laundry routes", () => {
                     [{
                         id: "ord-1",
                         branchId: "br-1",
-                        status: targetStatus === "ready_for_pickup" ? "processing" : "ready_for_pickup",
+                        status: targetStatus === "ready" ? "drying" : "ready",
                         assignedDriverId: targetStatus === "out_for_delivery" || targetStatus === "completed" ? "user-1" : null,
                         orderNumber: "LDR-20260406-001",
                         customerName: "Budi",
@@ -557,12 +557,81 @@ describe("laundry routes", () => {
                 headers: { "content-type": "application/json" },
                 body: JSON.stringify({ status: targetStatus }),
             });
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
             expect(body.data.status).toBe(targetStatus);
         }
+    });
+
+    it("[OK] [AC-OUTBOX-02] outbox insert uses conflict guard per (domainEventId, channel)", async () => {
+        const { laundryNotificationOutbox } = await import("@beresio/db");
+        const db = createDbMock({
+            selectResults: [
+                [{
+                    id: "ord-1",
+                    branchId: "br-1",
+                    status: "drying",
+                    assignedDriverId: null,
+                    orderNumber: "LDR-20260406-001",
+                    customerName: "Budi",
+                    customerPhone: "08123456789",
+                    remainingAmount: 12000,
+                }],
+                [{ roleLegacy: "laundry_worker", roleSlug: null, roleName: null }],
+                [{ metadata: null }],
+            ],
+            updateResults: [[{
+                id: "ord-1",
+                status: "ready",
+                remainingAmount: 12000,
+            }]],
+            insertResults: [
+                [],
+                [{
+                    id: "evt-status-guard-1",
+                    sequence: 1,
+                    organizationId: "org-1",
+                    branchId: "br-1",
+                    orderId: "ord-1",
+                    eventType: "ORDER_STATUS_CHANGED",
+                    occurredAt: new Date(),
+                    payload: {},
+                }],
+                [{ id: "outbox-1", status: "queued" }],
+            ],
+        });
+        const app = createLaundryApp(db);
+
+        const res = await app.request("/api/dashboard/laundry/orders/ord-1/status", {
+            method: "PATCH",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ status: "ready" }),
+        });
+        const body = (await res.json()) as any;
+
+        expect(res.status).toBe(200);
+        expect(body.success).toBe(true);
+
+        const calls = (db as any).__calls?.onConflictDoNothing ?? [];
+        const expectedTarget = [
+            (laundryNotificationOutbox as any).domainEventId,
+            (laundryNotificationOutbox as any).channel,
+        ];
+        const expectedNames = expectedTarget.map((col: any) => col?.name ?? col?.config?.name);
+
+        const conflictCalls = calls.filter((call: any) => Array.isArray(call.args?.target));
+        expect(conflictCalls.length).toBeGreaterThan(0);
+        expect(
+            conflictCalls.some((call: any) => {
+                const target = call.args?.target;
+                const names = Array.isArray(target)
+                    ? target.map((col: any) => col?.name ?? col?.config?.name)
+                    : [];
+                return names[0] === expectedNames[0] && names[1] === expectedNames[1];
+            })
+        ).toBe(true);
     });
 
     it("[OK] [AC-METRIC-01] GET /reports/metrics returns reject rate and outbox counts", async () => {
@@ -589,7 +658,7 @@ describe("laundry routes", () => {
         expect(createRes.status).toBe(400);
 
         const metricsRes = await app.request("/api/dashboard/laundry/reports/metrics");
-        const body = await metricsRes.json();
+        const body = (await metricsRes.json()) as any;
 
         expect(metricsRes.status).toBe(200);
         expect(body.success).toBe(true);
@@ -619,7 +688,7 @@ describe("laundry routes", () => {
         const app = createLaundryApp(db);
 
         const res = await app.request("/api/dashboard/laundry/reports/orders-by-status?branchId=br-1");
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
@@ -649,7 +718,7 @@ describe("laundry routes", () => {
         const app = createLaundryApp(db);
 
         const res = await app.request("/api/dashboard/laundry/reports/outstanding-payments?branchId=br-1&limit=20");
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
@@ -664,7 +733,7 @@ describe("laundry routes", () => {
         const app = createLaundryApp(createDbMock());
 
         const res = await app.request("/api/dashboard/laundry/settings/wa-template");
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(400);
         expect(body.success).toBe(false);
@@ -689,7 +758,7 @@ describe("laundry routes", () => {
                 template: "Halo {{customerName}}, order {{orderNumber}} siap diambil.",
             }),
         });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
@@ -724,7 +793,7 @@ describe("laundry routes", () => {
         const app = createLaundryApp(db);
 
         const res = await app.request("/api/dashboard/laundry/orders?branchId=br-1&limit=20");
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
@@ -772,7 +841,7 @@ describe("laundry routes", () => {
         const app = createLaundryApp(db);
 
         const res = await app.request("/api/dashboard/laundry/orders/ord-1");
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
@@ -794,7 +863,7 @@ describe("laundry routes", () => {
         const app = createLaundryApp(db);
 
         const res = await app.request("/api/dashboard/laundry/orders/ord-1/payments");
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
@@ -861,7 +930,7 @@ describe("laundry routes", () => {
         const app = createLaundryApp(createDbMock());
 
         const res = await app.request("/api/dashboard/laundry/orders?branchId=br-2");
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(403);
         expect(body.success).toBe(false);
@@ -882,7 +951,7 @@ describe("laundry routes", () => {
         const app = createLaundryApp(db);
 
         const res = await app.request("/api/dashboard/laundry/reports/summary");
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
@@ -935,7 +1004,7 @@ describe("laundry routes", () => {
         const app = createLaundryApp(db);
 
         const res = await app.request("/api/dashboard/laundry/orders/ord-1/receipt");
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
@@ -943,4 +1012,93 @@ describe("laundry routes", () => {
         expect(body.data.thermal.paymentHistory).toHaveLength(1);
         expect(body.data.waMessageText).toContain("LDR-20260406-001");
     });
+
+    it("POST /order-intakes/:id/accept converts intake into laundry order", async () => {
+        const db = createDbMock({
+            selectResults: [
+                [{
+                    id: "intake-1",
+                    organizationId: "org-1",
+                    branchId: "br-1",
+                    status: "pending_verification",
+                    orderType: "pickup",
+                    customerName: "Dina",
+                    customerPhoneRaw: "08123456789",
+                    customerPhoneNormalized: "08123456789",
+                    customerAddress: "Jl. Mangga",
+                    notes: "Pickup pagi",
+                    convertedOrderId: null,
+                }],
+                [{
+                    id: "item-1",
+                    serviceId: "svc-1",
+                    serviceNameSnapshot: "Cuci Kiloan",
+                    qty: "2.00",
+                    unit: "kg",
+                    priceSnapshot: 7000,
+                    lineNote: null,
+                }],
+                [{
+                    id: "svc-1",
+                    estimatedDurationHours: 24,
+                }],
+            ],
+            updateResults: [
+                [],
+                [],
+            ],
+            insertResults: [
+                [],
+                [],
+                [{ id: "ord-1", orderNumber: "LDR-20260406-001" }],
+                [],
+                [],
+                [],
+            ],
+        });
+        const app = createLaundryApp(db);
+
+        const res = await app.request("/api/dashboard/laundry/order-intakes/intake-1/accept", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ note: "Valid customer" }),
+        });
+        const body = (await res.json()) as any;
+
+        expect(res.status).toBe(200);
+        expect(body.success).toBe(true);
+        expect(body.data).toMatchObject({
+            intakeId: "intake-1",
+            status: "converted",
+            orderId: "ord-1",
+        });
+    });
+
+    it("POST /order-intakes/:id/reject stores rejection reason", async () => {
+        const db = createDbMock({
+            selectResults: [[{
+                id: "intake-2",
+                branchId: "br-1",
+                status: "pending_verification",
+            }]],
+            updateResults: [[]],
+            insertResults: [[]],
+        });
+        const app = createLaundryApp(db);
+
+        const res = await app.request("/api/dashboard/laundry/order-intakes/intake-2/reject", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ reason: "Alamat tidak jelas" }),
+        });
+        const body = (await res.json()) as any;
+
+        expect(res.status).toBe(200);
+        expect(body.success).toBe(true);
+        expect(body.data).toMatchObject({
+            intakeId: "intake-2",
+            status: "rejected",
+        });
+    });
 });
+

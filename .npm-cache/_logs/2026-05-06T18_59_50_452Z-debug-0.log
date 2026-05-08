@@ -1,0 +1,23 @@
+0 verbose cli C:\Program Files\nodejs\node.exe C:\Users\LENOVO\AppData\Roaming\npm\node_modules\npm\bin\npm-cli.js
+1 info using npm@11.7.0
+2 info using node@v22.13.1
+3 silly config load:file:C:\Users\LENOVO\AppData\Roaming\npm\node_modules\npm\npmrc
+4 silly config load:file:D:\Projects\beresio\.npmrc
+5 silly config load:file:C:\Users\LENOVO\.npmrc
+6 silly config load:file:C:\Users\LENOVO\AppData\Roaming\npm\etc\npmrc
+7 verbose title npm exec pnpm@9.0.0 -C apps/backend test -- src/lib/permissions.test.ts src/routes/dashboard/kpis.test.ts src/routes/dashboard/reports.test.ts src/routes/dashboard/pickup.test.ts src/routes/dashboard/transactions.test.ts src/routes/dashboard/inventory.test.ts src/routes/dashboard/orders.contract.test.ts src/routes/dashboard/orders.fnb.test.ts
+8 verbose argv "exec" "--yes" "--" "pnpm@9.0.0" "-C" "apps/backend" "test" "--" "src/lib/permissions.test.ts" "src/routes/dashboard/kpis.test.ts" "src/routes/dashboard/reports.test.ts" "src/routes/dashboard/pickup.test.ts" "src/routes/dashboard/transactions.test.ts" "src/routes/dashboard/inventory.test.ts" "src/routes/dashboard/orders.contract.test.ts" "src/routes/dashboard/orders.fnb.test.ts"
+9 verbose logfile logs-max:10 dir:D:\Projects\beresio\.npm-cache\_logs\2026-05-06T18_59_50_452Z-
+10 verbose logfile D:\Projects\beresio\.npm-cache\_logs\2026-05-06T18_59_50_452Z-debug-0.log
+11 silly logfile start cleaning logs, removing 1 files
+12 silly logfile done cleaning log files
+13 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+14 http fetch GET 200 https://registry.npmjs.org/pnpm 218ms (cache revalidated)
+15 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+16 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+17 verbose cwd D:\Projects\beresio
+18 verbose os Windows_NT 10.0.26200
+19 verbose node v22.13.1
+20 verbose npm  v11.7.0
+21 verbose exit 0
+22 info ok

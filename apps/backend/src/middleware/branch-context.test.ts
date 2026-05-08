@@ -11,7 +11,7 @@ vi.mock("../lib/branch-access", () => ({
 }));
 
 function createApp(db: any) {
-    const app = new Hono();
+    const app = new Hono<{ Variables: { db: any } }>();
     app.use("*", async (c, next) => {
         c.set("db", db);
         await next();

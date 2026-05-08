@@ -35,14 +35,14 @@ describe("laundry order contracts", () => {
     });
 
     it("rejects invalid transition", () => {
-        const fromStatus: LaundryOrderStatus = "received";
+        const fromStatus: LaundryOrderStatus = "created";
         const toStatus: LaundryOrderStatus = "completed";
         expect(canTransitionLaundryOrderStatus(fromStatus, toStatus)).toBe(false);
     });
 
     it("allows valid transition", () => {
-        const fromStatus: LaundryOrderStatus = "processing";
-        const toStatus: LaundryOrderStatus = "ready_for_pickup";
+        const fromStatus: LaundryOrderStatus = "washing";
+        const toStatus: LaundryOrderStatus = "drying";
         expect(canTransitionLaundryOrderStatus(fromStatus, toStatus)).toBe(true);
     });
 });

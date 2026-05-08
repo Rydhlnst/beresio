@@ -50,6 +50,13 @@
       "when": 1775835540004,
       "tag": "0010_smiling_princess_powerful",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1776417033147,
+      "tag": "0011_conscious_speedball",
+      "breakpoints": true
     }
   ]
 }

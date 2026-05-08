@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+﻿import { describe, expect, it, vi } from "vitest";
 import { createDbMock, createTestApp } from "./test-utils";
 
 vi.mock("../../middleware/auth", () => ({
@@ -35,7 +35,7 @@ describe("billing routes", () => {
         const app = createBillingApp(db);
 
         const res = await app.request("/api/dashboard/billing/status");
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
@@ -57,7 +57,7 @@ describe("billing routes", () => {
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ plan: "gold" }),
         });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(400);
         expect(body.success).toBe(false);
@@ -72,7 +72,7 @@ describe("billing routes", () => {
             headers: { "content-type": "application/json" },
             body: JSON.stringify({}),
         });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(400);
         expect(body.success).toBe(false);
@@ -87,7 +87,7 @@ describe("billing routes", () => {
         });
 
         const res = await app.request("/api/dashboard/billing/status");
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(500);
         expect(body.success).toBe(false);
@@ -95,3 +95,4 @@ describe("billing routes", () => {
         expect(body.error.message).toBe("Internal server error");
     });
 });
+

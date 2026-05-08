@@ -96,7 +96,7 @@ export default function LaporanPage() {
                 eyebrow: "Reporting Stack",
                 title: "Laporan finansial dan operasional dalam satu workflow",
                 description:
-                    "Beres.io menyajikan laporan inti bisnis secara otomatis, agar tim Anda fokus pada keputusan dan bukan kompilasi data.",
+                    "Beres Cloud menyajikan laporan inti bisnis secara otomatis, agar tim Anda fokus pada keputusan dan bukan kompilasi data.",
                 items: FEATURE_ITEMS,
             }}
             spotlightSection={{
@@ -125,7 +125,7 @@ export default function LaporanPage() {
             finalSection={{
                 title: "Siap jalankan bisnis berbasis data?",
                 description:
-                    "Aktifkan laporan dan analitik Beres.io untuk mengambil keputusan yang lebih terarah di setiap level operasional.",
+                    "Aktifkan laporan dan analitik Beres Cloud untuk mengambil keputusan yang lebih terarah di setiap level operasional.",
                 primaryCta: { label: "Mulai Free Trial", href: "/wishlist" },
                 secondaryCta: { label: "Lihat Multi-Cabang", href: "/fitur/multi-cabang" },
             }}

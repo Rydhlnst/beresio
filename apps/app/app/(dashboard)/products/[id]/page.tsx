@@ -19,7 +19,7 @@ export async function generateMetadata({
     params,
 }: ProductDetailPageProps): Promise<Metadata> {
     const { id } = await params;
-    const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://app.beres.io";
+    const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://app.beres.cloud";
 
     return {
         title: `Detail Produk ${id}`,

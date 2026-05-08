@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { authMiddleware } from '../../middleware/auth'
-import { getOrgId, getUserId } from '../../lib/auth-context'
+import { getUserId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
 import { and, desc, eq, ilike, gte, lte, inArray } from 'drizzle-orm'
 import { z } from 'zod'
@@ -24,7 +24,7 @@ import {
     recordStockMovement,
     resolveInventoryBySku,
 } from '../../lib/stock'
-import { getAccessibleBranchIds, getBranchAccessContext, hasBranchAccess } from '../../lib/branch-access'
+import { resolveAccessScope } from '../../lib/permissions'
 import { appendDomainEvent, canTransitionOrderStatus, projectDomainEvent } from '../../lib/fnb-domain'
 import {
     invalidateKpiCache,
@@ -45,6 +45,14 @@ type Bindings = {
 type Variables = { db: any; user: any; session: any }
 
 export const ordersRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>()
+
+async function resolveOrderScope(c: any, branchId?: string | null) {
+    return resolveAccessScope(c, {
+        requestedBranchId: branchId ?? null,
+        requireBranchAccess: false,
+        noBranchAccessMessage: 'No branch access',
+    })
+}
 
 const ALLOWED_ORDER_STATUS = ['pending', 'confirmed', 'processing', 'preparing', 'ready', 'served', 'completed', 'cancelled']
 const ALLOWED_ORDER_TYPE = ['pickup', 'delivery', 'walk_in', 'takeaway', 'dine_in']
@@ -341,15 +349,12 @@ async function syncOpenTableSessionForOrder(
 ordersRouter.get('/', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        let orgId: string
-        try {
-            orgId = await getOrgId(c)
-        } catch {
-            return errors.unauthorized(c, 'No organization context')
-        }
-
         const status = normalizeOrderStatusInput(c.req.query('status'))
         const branchId = c.req.query('branchId')
+        const scope = await resolveOrderScope(c, branchId ?? null)
+        if (!scope.ok) return scope.response
+        const orgId = scope.value.orgId
+        const branchIds = scope.value.scopedBranchIds
         const type = normalizeOrderTypeInput(c.req.query('type'))
         const serviceMode = c.req.query('serviceMode')
         const q = c.req.query('q')
@@ -357,23 +362,14 @@ ordersRouter.get('/', authMiddleware, async (c) => {
         const dateTo = c.req.query('dateTo')
         const limit = Math.min(Number(c.req.query('limit') ?? 50), 200)
 
-        const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId)
-        if (branchIds.length === 0 && !isOrgWide) return errors.forbidden(c, 'No branch access')
-        if (branchIds.length === 0 && isOrgWide) {
-            if (branchId) return errors.forbidden(c, 'No access to branch')
+        if (branchIds.length === 0 && !scope.value.isOrgWide) return errors.forbidden(c, 'No branch access')
+        if (branchIds.length === 0 && scope.value.isOrgWide) {
             return ok(c, [])
         }
 
         const conditions = [eq(orders.organizationId, orgId)]
         if (status) conditions.push(eq(orders.status, status))
-        if (branchId) {
-            if (!hasBranchAccess(branchIds, branchId)) {
-                return errors.forbidden(c, 'No access to branch')
-            }
-            conditions.push(eq(orders.branchId, branchId))
-        } else {
-            conditions.push(inArray(orders.branchId, branchIds))
-        }
+        conditions.push(inArray(orders.branchId, branchIds))
         if (type) conditions.push(eq(orders.type, type))
         if (serviceMode) conditions.push(eq(orders.serviceMode, serviceMode))
         if (q) {
@@ -448,13 +444,10 @@ ordersRouter.get('/', authMiddleware, async (c) => {
 ordersRouter.get('/:id', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        let orgId: string
-        try {
-            orgId = await getOrgId(c)
-        } catch {
-            return errors.unauthorized(c, 'No organization context')
-        }
-        const branchIds = await getAccessibleBranchIds(c, orgId)
+        const scope = await resolveOrderScope(c)
+        if (!scope.ok) return scope.response
+        const orgId = scope.value.orgId
+        const branchIds = scope.value.scopedBranchIds
         if (branchIds.length === 0) return errors.forbidden(c, 'No branch access')
 
         const orderId = c.req.param('id')
@@ -497,7 +490,7 @@ ordersRouter.get('/:id', authMiddleware, async (c) => {
             .limit(1)
 
         if (!orderRow) return errors.notFound(c, 'Order not found')
-        if (!hasBranchAccess(branchIds, orderRow.branchId)) {
+        if (!branchIds.includes(orderRow.branchId)) {
             return errors.forbidden(c, 'No access to branch')
         }
 
@@ -635,16 +628,13 @@ ordersRouter.get('/:id', authMiddleware, async (c) => {
 ordersRouter.post('/', authMiddleware, requireBranchContext(), async (c) => {
     try {
         const db = c.get('db')
-        let orgId: string
-        try {
-            orgId = await getOrgId(c)
-        } catch {
-            return errors.unauthorized(c, 'No organization context')
-        }
-        const branchIds = await getAccessibleBranchIds(c, orgId)
-        if (branchIds.length === 0) return errors.forbidden(c, 'No branch access')
-
         const body = await c.req.json().catch(() => null)
+        const requestedBranchId = typeof body?.branchId === 'string' ? body.branchId : null
+        const scope = await resolveOrderScope(c, requestedBranchId)
+        if (!scope.ok) return scope.response
+        const orgId = scope.value.orgId
+        const branchIds = scope.value.scopedBranchIds
+        if (branchIds.length === 0) return errors.forbidden(c, 'No branch access')
         const parsedBody = createOrderBodySchema.safeParse(body)
         if (!parsedBody.success) {
             return errors.badRequest(c, getValidationMessage(parsedBody.error))
@@ -670,7 +660,7 @@ ordersRouter.post('/', authMiddleware, requireBranchContext(), async (c) => {
             eventNote,
         } = parsedBody.data
 
-        if (!hasBranchAccess(branchIds, branchId)) return errors.forbidden(c, 'No access to branch')
+        if (!branchIds.includes(branchId)) return errors.forbidden(c, 'No access to branch')
         if (serviceMode === 'dine_in' && !tableId) return errors.badRequest(c, 'tableId is required for dine_in')
 
         const [branchRow] = await db
@@ -928,13 +918,10 @@ ordersRouter.post('/', authMiddleware, requireBranchContext(), async (c) => {
 ordersRouter.patch('/:id', authMiddleware, requireBranchContext(), async (c) => {
     try {
         const db = c.get('db')
-        let orgId: string
-        try {
-            orgId = await getOrgId(c)
-        } catch {
-            return errors.unauthorized(c, 'No organization context')
-        }
-        const branchIds = await getAccessibleBranchIds(c, orgId)
+        const scope = await resolveOrderScope(c)
+        if (!scope.ok) return scope.response
+        const orgId = scope.value.orgId
+        const branchIds = scope.value.accessibleBranchIds
         if (branchIds.length === 0) return errors.forbidden(c, 'No branch access')
 
         const orderId = c.req.param('id')
@@ -978,7 +965,7 @@ ordersRouter.patch('/:id', authMiddleware, requireBranchContext(), async (c) => 
             .limit(1)
 
         if (!existing) return errors.notFound(c, 'Order not found')
-        if (!hasBranchAccess(branchIds, existing.branchId)) return errors.forbidden(c, 'No access to branch')
+        if (!branchIds.includes(existing.branchId)) return errors.forbidden(c, 'No access to branch')
 
         if (customerId) {
             const [customerRow] = await db
@@ -1211,13 +1198,10 @@ ordersRouter.patch('/:id', authMiddleware, requireBranchContext(), async (c) => 
 ordersRouter.patch('/:id/hold', authMiddleware, requireBranchContext(), async (c) => {
     try {
         const db = c.get('db')
-        let orgId: string
-        try {
-            orgId = await getOrgId(c)
-        } catch {
-            return errors.unauthorized(c, 'No organization context')
-        }
-        const branchIds = await getAccessibleBranchIds(c, orgId)
+        const scope = await resolveOrderScope(c)
+        if (!scope.ok) return scope.response
+        const orgId = scope.value.orgId
+        const branchIds = scope.value.accessibleBranchIds
         if (branchIds.length === 0) return errors.forbidden(c, 'No branch access')
 
         const orderId = c.req.param('id')
@@ -1240,7 +1224,7 @@ ordersRouter.patch('/:id/hold', authMiddleware, requireBranchContext(), async (c
             .where(and(eq(orders.id, orderId), eq(orders.organizationId, orgId)))
             .limit(1)
         if (!existing) return errors.notFound(c, 'Order not found')
-        if (!hasBranchAccess(branchIds, existing.branchId)) return errors.forbidden(c, 'No access to branch')
+        if (!branchIds.includes(existing.branchId)) return errors.forbidden(c, 'No access to branch')
         if (isTerminalOrderStatus(existing.status)) {
             return errors.badRequest(c, 'Order terminal tidak bisa di-hold/resume')
         }
@@ -1308,13 +1292,10 @@ ordersRouter.patch('/:id/hold', authMiddleware, requireBranchContext(), async (c
 ordersRouter.post('/:id/split', authMiddleware, requireBranchContext(), async (c) => {
     try {
         const db = c.get('db')
-        let orgId: string
-        try {
-            orgId = await getOrgId(c)
-        } catch {
-            return errors.unauthorized(c, 'No organization context')
-        }
-        const branchIds = await getAccessibleBranchIds(c, orgId)
+        const scope = await resolveOrderScope(c)
+        if (!scope.ok) return scope.response
+        const orgId = scope.value.orgId
+        const branchIds = scope.value.accessibleBranchIds
         if (branchIds.length === 0) return errors.forbidden(c, 'No branch access')
 
         const orderId = c.req.param('id')
@@ -1337,7 +1318,7 @@ ordersRouter.post('/:id/split', authMiddleware, requireBranchContext(), async (c
             .where(and(eq(orders.id, orderId), eq(orders.organizationId, orgId)))
             .limit(1)
         if (!orderRow) return errors.notFound(c, 'Order not found')
-        if (!hasBranchAccess(branchIds, orderRow.branchId)) return errors.forbidden(c, 'No access to branch')
+        if (!branchIds.includes(orderRow.branchId)) return errors.forbidden(c, 'No access to branch')
 
         const parts = rawParts.map((part: any, index: number) => ({
             partLabel: String(part?.label ?? `Part ${index + 1}`).trim(),
@@ -1439,13 +1420,10 @@ ordersRouter.post('/:id/split', authMiddleware, requireBranchContext(), async (c
 ordersRouter.post('/merge', authMiddleware, requireBranchContext(), async (c) => {
     try {
         const db = c.get('db')
-        let orgId: string
-        try {
-            orgId = await getOrgId(c)
-        } catch {
-            return errors.unauthorized(c, 'No organization context')
-        }
-        const branchIds = await getAccessibleBranchIds(c, orgId)
+        const scope = await resolveOrderScope(c)
+        if (!scope.ok) return scope.response
+        const orgId = scope.value.orgId
+        const branchIds = scope.value.accessibleBranchIds
         if (branchIds.length === 0) return errors.forbidden(c, 'No branch access')
 
         const body = await c.req.json().catch(() => null)
@@ -1479,7 +1457,7 @@ ordersRouter.post('/merge', authMiddleware, requireBranchContext(), async (c) =>
         if (rows.length !== allOrderIds.length) {
             return errors.badRequest(c, 'Ada order yang tidak ditemukan')
         }
-        if (rows.some((row: any) => !hasBranchAccess(branchIds, row.branchId))) {
+        if (rows.some((row: any) => !branchIds.includes(row.branchId))) {
             return errors.forbidden(c, 'No access to branch')
         }
 
@@ -1593,13 +1571,10 @@ ordersRouter.post('/merge', authMiddleware, requireBranchContext(), async (c) =>
 ordersRouter.patch('/:id/items', authMiddleware, requireBranchContext(), async (c) => {
     try {
         const db = c.get('db')
-        let orgId: string
-        try {
-            orgId = await getOrgId(c)
-        } catch {
-            return errors.unauthorized(c, 'No organization context')
-        }
-        const branchIds = await getAccessibleBranchIds(c, orgId)
+        const scope = await resolveOrderScope(c)
+        if (!scope.ok) return scope.response
+        const orgId = scope.value.orgId
+        const branchIds = scope.value.accessibleBranchIds
         if (branchIds.length === 0) return errors.forbidden(c, 'No branch access')
 
         const orderId = c.req.param('id')
@@ -1623,7 +1598,7 @@ ordersRouter.patch('/:id/items', authMiddleware, requireBranchContext(), async (
             .limit(1)
 
         if (!orderRow) return errors.notFound(c, 'Order not found')
-        if (!hasBranchAccess(branchIds, orderRow.branchId)) {
+        if (!branchIds.includes(orderRow.branchId)) {
             return errors.forbidden(c, 'No access to branch')
         }
 

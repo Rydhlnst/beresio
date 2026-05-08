@@ -10,7 +10,7 @@ import { generateMetadata as seoMetadata, pageKeywords } from "@/lib/seo";
 export const metadata: Metadata = seoMetadata({
     title: "Jadwalkan Demo Software Kasir",
     path: "/demo",
-    description: "Lihat demo Beres.io dalam aksi. Sesi demo singkat untuk menunjukkan cara kerja POS, inventori, dan laporan keuangan dalam satu platform.",
+    description: "Lihat demo Beres Cloud dalam aksi. Sesi demo singkat untuk menunjukkan cara kerja POS, inventori, dan laporan keuangan dalam satu platform.",
     keywords: pageKeywords.demo,
 });
 
@@ -37,9 +37,9 @@ export default function DemoPage() {
         <>
             <PageHero
                 badgeLabel="Jadwalkan Demo"
-                title="Lihat Beres.io"
+                title="Lihat Beres Cloud"
                 subtitle="Dalam Aksi Nyata"
-                description="Sesi demo singkat untuk menunjukkan bagaimana Beres.io membantu transaksi, inventori, dan laporan keuangan berjalan rapi."
+                description="Sesi demo singkat untuk menunjukkan bagaimana Beres Cloud membantu transaksi, inventori, dan laporan keuangan berjalan rapi."
                 primaryCta={{ label: "Jadwalkan Demo", href: "/sales" }}
                 secondaryCta={{ label: "Join Wishlist", href: "/wishlist" }}
                 align="center"

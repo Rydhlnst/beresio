@@ -8,6 +8,13 @@ export const CANONICAL_ORDER_STATUSES = [
 export type CanonicalOrderStatus = (typeof CANONICAL_ORDER_STATUSES)[number];
 
 export const LEGACY_ORDER_STATUS_MAP = {
+    created: "pending",
+    confirmed: "pending",
+    pickup_requested: "processing",
+    picked_up: "processing",
+    washing: "processing",
+    drying: "processing",
+    ready: "processing",
     received: "pending",
     in_process: "processing",
     done: "processing",

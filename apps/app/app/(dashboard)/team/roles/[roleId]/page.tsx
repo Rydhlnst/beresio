@@ -10,7 +10,7 @@ type RoleDetailPageProps = {
 
 export async function generateMetadata({ params }: RoleDetailPageProps): Promise<Metadata> {
     const { roleId } = await params;
-    const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://app.beres.io";
+    const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://app.beres.cloud";
 
     return {
         title: `Detail Role ${roleId}`,

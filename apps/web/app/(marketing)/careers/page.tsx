@@ -9,7 +9,7 @@ import { Badge } from "@repo/ui/badge";
 
 export const metadata: Metadata = {
     title: "Karir - Join Tim Kami",
-    description: "Bergabung dengan tim Beres.io. Kami mencari talenta yang passionate untuk membantu UMKM Indonesia bertumbuh.",
+    description: "Bergabung dengan tim Beres Cloud. Kami mencari talenta yang passionate untuk membantu UMKM Indonesia bertumbuh.",
 };
 
 const BENEFITS = [
@@ -96,7 +96,7 @@ export default function CareersPage() {
             <Section id="benefits">
                 <div className="space-y-10">
                     <div className="max-w-2xl mx-auto text-center space-y-3">
-                        <Heading as="h2">Kenapa Beres.io?</Heading>
+                        <Heading as="h2">Kenapa Beres Cloud?</Heading>
                         <Text variant="lead" align="center">
                             Kami percaya bahwa orang yang happy akan menghasilkan pekerjaan terbaik.
                         </Text>

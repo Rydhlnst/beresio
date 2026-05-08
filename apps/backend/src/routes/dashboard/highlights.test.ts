@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+﻿import { describe, expect, it, vi } from "vitest";
 import { createDbMock, createTestApp } from "./test-utils";
 
 vi.mock("../../middleware/auth", () => ({
@@ -35,7 +35,7 @@ describe("highlights routes", () => {
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ title: "Top Seller" }),
         });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
@@ -53,7 +53,7 @@ describe("highlights routes", () => {
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ description: "No title" }),
         });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(400);
         expect(body.success).toBe(false);
@@ -68,7 +68,7 @@ describe("highlights routes", () => {
             headers: { "content-type": "application/json" },
             body: JSON.stringify({}),
         });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(400);
         expect(body.success).toBe(false);
@@ -83,7 +83,7 @@ describe("highlights routes", () => {
         });
 
         const res = await app.request("/api/dashboard/highlights");
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(500);
         expect(body.success).toBe(false);
@@ -91,3 +91,4 @@ describe("highlights routes", () => {
         expect(body.error.message).toBe("Internal server error");
     });
 });
+

@@ -1,15 +1,14 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { Toaster } from "@repo/ui/sonner";
 import { PageProgressBar, PageProgressProvider } from "@/components/shared/page-progress";
 import { ThemeProvider } from "./_components/theme-provider";
 
-const jakarta = Plus_Jakarta_Sans({
-    subsets: ["latin"],
+const jakarta = localFont({
+    src: "./fonts/GeistVF.woff",
     variable: "--font-jakarta",
     display: "swap",
-    preload: true,
 });
 
 export const viewport: Viewport = {
@@ -22,7 +21,7 @@ export const metadata: Metadata = {
     metadataBase: new URL(
         process.env.NEXT_PUBLIC_APP_URL
             ?? process.env.NEXT_PUBLIC_SITE_URL
-            ?? "https://app.beres.io"
+            ?? "https://app.beres.cloud"
     ),
     title: {
         default: "Beres App - Owner Dashboard",

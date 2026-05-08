@@ -1,11 +1,10 @@
 import { Hono } from 'hono'
 import { authMiddleware } from '../../middleware/auth'
-import { getOrgId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
 import { and, eq, gte, inArray, sql } from 'drizzle-orm'
 import { customers, inventoryStocks, orders, pickupOrders } from '@beresio/db'
-import { getOrganizationBranchAggregate, resolveScopedBranchIds } from '../../lib/organization-aggregates'
-import { getBranchAccessContext, hasBranchAccess } from '../../lib/branch-access'
+import { getOrganizationBranchAggregate } from '../../lib/organization-aggregates'
+import { resolveAccessScope } from '../../lib/permissions'
 import { readKpiCache, writeKpiCache } from '../../lib/realtime'
 
 type Bindings = {
@@ -19,25 +18,21 @@ type Variables = { db: any; user: any; session: any }
 
 export const kpisRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
-async function resolveKpiScope(c: any, orgId: string) {
+async function resolveKpiScope(c: any) {
     const requestedBranchId = c.req.query('branchId') ?? c.req.header('x-branch-id') ?? null
-    if (requestedBranchId) {
-        const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId)
-        if (!isOrgWide && !hasBranchAccess(branchIds, requestedBranchId)) {
-            return { ok: false as const, response: errors.forbidden(c, 'No access to branch') }
-        }
-    }
-
-    const scopedBranchIds = await resolveScopedBranchIds(
-        c,
-        orgId,
-        requestedBranchId ? [requestedBranchId] : undefined
-    )
+    const resolvedAccess = await resolveAccessScope(c, {
+        requestedBranchId,
+        requireBranchAccess: false,
+    })
+    if (!resolvedAccess.ok) return resolvedAccess
 
     return {
         ok: true as const,
-        requestedBranchId,
-        scopedBranchIds,
+        value: {
+            orgId: resolvedAccess.value.orgId,
+            requestedBranchId: resolvedAccess.value.requestedBranchId,
+            scopedBranchIds: resolvedAccess.value.scopedBranchIds,
+        },
     }
 }
 
@@ -58,6 +53,7 @@ async function loadKpis(c: any, orgId: string, scopedBranchIds: string[]) {
             ),
         getOrganizationBranchAggregate(c, orgId, {
             branchIds: scopedBranchIds,
+            useProvidedBranchIds: true,
             range: { from: today, to: null },
         }),
         scopedBranchIds.length === 0
@@ -116,20 +112,13 @@ async function loadKpisWithCache(c: any, orgId: string, scopedBranchIds: string[
 
 kpisRouter.get('/', authMiddleware, async (c) => {
     try {
-        let orgId: string
-        try {
-            orgId = await getOrgId(c)
-        } catch {
-            return errors.unauthorized(c, 'No organization context')
-        }
-
-        const resolvedScope = await resolveKpiScope(c, orgId)
+        const resolvedScope = await resolveKpiScope(c)
         if (!resolvedScope.ok) return resolvedScope.response
 
-        const payload = await loadKpisWithCache(c, orgId, resolvedScope.scopedBranchIds)
+        const payload = await loadKpisWithCache(c, resolvedScope.value.orgId, resolvedScope.value.scopedBranchIds)
         return ok(c, payload, {
-            scope: resolvedScope.requestedBranchId ? "branch" : "organization",
-            branchId: resolvedScope.requestedBranchId,
+            scope: resolvedScope.value.requestedBranchId ? "branch" : "organization",
+            branchId: resolvedScope.value.requestedBranchId,
         })
     } catch (err: any) {
         console.error('[kpis]', err)
@@ -138,17 +127,11 @@ kpisRouter.get('/', authMiddleware, async (c) => {
 })
 
 kpisRouter.get('/stream', authMiddleware, async (c) => {
-    let orgId: string
-    try {
-        orgId = await getOrgId(c)
-    } catch {
-        return errors.unauthorized(c, 'No organization context')
-    }
-
-    const resolvedScope = await resolveKpiScope(c, orgId)
+    const resolvedScope = await resolveKpiScope(c)
     if (!resolvedScope.ok) return resolvedScope.response
 
-    const scopedBranchIds = resolvedScope.scopedBranchIds
+    const orgId = resolvedScope.value.orgId
+    const scopedBranchIds = resolvedScope.value.scopedBranchIds
     const encoder = new TextEncoder()
     let timer: ReturnType<typeof setInterval> | null = null
 

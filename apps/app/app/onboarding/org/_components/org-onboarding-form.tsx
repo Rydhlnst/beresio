@@ -11,12 +11,13 @@ import { authClient } from "@/lib/auth-client";
 import { normalizeBusinessType } from "@/lib/business-type";
 import { useTransitionRouter } from "@/hooks/use-transition-router";
 import { bootstrapRbacForActiveOrg } from "../../_actions/rbac";
+import { updateOnboardingMetadataAction } from "../../_actions/organization";
 
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@repo/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/select";
-import { Building2, Coffee, Pizza, Shirt, Store, User } from "lucide-react";
+import { BriefcaseBusiness, Building2, Coffee, Store, Truck } from "lucide-react";
 
 const orgSchema = z.object({
   name: z.string().min(3, "Nama bisnis minimal 3 karakter").max(50, "Nama bisnis maksimal 50 karakter"),
@@ -28,11 +29,10 @@ const orgSchema = z.object({
 type OrgFormValues = z.infer<typeof orgSchema>;
 
 const BUSINESS_TYPES = [
-  { value: "laundry", label: "Laundry", icon: Shirt },
-  { value: "caffe", label: "Cafe & Resto", icon: Coffee },
-  { value: "retail", label: "Retail / Toko", icon: Store },
-  { value: "food", label: "Makanan & Minuman", icon: Pizza },
-  { value: "service", label: "Jasa", icon: User },
+  { value: "fnb", label: "F&B", icon: Coffee },
+  { value: "retail", label: "Retail", icon: Store },
+  { value: "service", label: "Services", icon: BriefcaseBusiness },
+  { value: "wholesale", label: "Wholesale", icon: Truck },
   { value: "other", label: "Lainnya", icon: Building2 },
 ];
 
@@ -64,7 +64,7 @@ export function OrgOnboardingForm() {
 
       const orgId = (data as any)?.organization?.id ?? (data as any)?.id;
       if (orgId) {
-        await authClient.organization.setActiveOrganization({
+        await (authClient.organization as any).setActiveOrganization({
           organizationId: orgId,
         });
       }
@@ -74,8 +74,15 @@ export function OrgOnboardingForm() {
         toast.error("Role akses belum tersinkron. Silakan refresh setelah onboarding.");
       }
 
+      await updateOnboardingMetadataAction({
+        profileCompleted: true,
+        profileCompletedAt: new Date().toISOString(),
+        modeSelected: true,
+        modeSelectedAt: new Date().toISOString(),
+      });
+
       toast.success("Bisnis berhasil didaftarkan!");
-      replace("/onboarding/mode");
+      replace("/onboarding/branch");
     } catch {
       toast.error("Terjadi kesalahan sistem. Silakan coba lagi nanti.");
     } finally {
@@ -146,7 +153,7 @@ export function OrgOnboardingForm() {
                   Sedang Memproses...
                 </>
               ) : (
-                "Lanjut ke Setup Cabang"
+                "Lanjutkan"
               )}
             </Button>
           </div>

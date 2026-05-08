@@ -96,7 +96,7 @@ export default function MultiCabangPage() {
                 eyebrow: "Branch Operations",
                 title: "Bangun sistem operasional cabang yang lebih terkoordinasi",
                 description:
-                    "Beres.io membantu owner dan tim regional memonitor performa outlet dengan ritme kerja yang sama di seluruh jaringan bisnis.",
+                    "Beres Cloud membantu owner dan tim regional memonitor performa outlet dengan ritme kerja yang sama di seluruh jaringan bisnis.",
                 items: FEATURE_ITEMS,
             }}
             spotlightSection={{
@@ -125,7 +125,7 @@ export default function MultiCabangPage() {
             finalSection={{
                 title: "Siap scale ke lebih banyak cabang?",
                 description:
-                    "Gunakan Beres.io untuk menjaga pertumbuhan outlet tetap rapi, terukur, dan mudah dikendalikan dari satu dashboard.",
+                    "Gunakan Beres Cloud untuk menjaga pertumbuhan outlet tetap rapi, terukur, dan mudah dikendalikan dari satu dashboard.",
                 primaryCta: { label: "Mulai Free Trial", href: "/wishlist" },
                 secondaryCta: { label: "Lihat Paket Enterprise", href: "/harga" },
             }}

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createDbMock, createTestApp } from "./dashboard/test-utils";
 
 vi.mock("../middleware/auth", () => ({
@@ -13,11 +13,15 @@ vi.mock("../lib/auth-context", () => ({
     getUserId: vi.fn(() => "user-1"),
 }));
 
-import { businessesRouter } from "./businesses";
+import { businessesRouter, clearNavigationCacheForTests } from "./businesses";
 
 const createBusinessesApp = (db: any) => createTestApp(businessesRouter, "/api/businesses", db);
 
 describe("businesses navigation", () => {
+    beforeEach(() => {
+        clearNavigationCacheForTests();
+    });
+
     it("[OK] [AC-BIZ-MODE-01] returns organization mode in navigation payload", async () => {
         const db = createDbMock({
             selectResults: [
@@ -92,5 +96,25 @@ describe("businesses navigation", () => {
         expect(navIds).toContain("inventory");
         expect(navIds).toContain("laporan");
         expect(navIds).toContain("pickup");
+    });
+
+    it("[OK] [AC-BIZ-MODE-04] falls back to empty config when organization metadata is invalid JSON", async () => {
+        const db = createDbMock({
+            selectResults: [
+                [{ id: "member-1", roleId: null, roleLegacy: "owner" }],
+                [{ id: "org-1", name: "Retail Broken Metadata", businessType: "retail", mode: "single", metadata: "{invalid-json" }],
+                [{ id: "role-owner" }],
+                [{ permission: "dashboard.read" }],
+                [{ id: "role-owner", slug: "owner", name: "Owner" }],
+            ],
+        });
+        const app = createBusinessesApp(db);
+
+        const res = await app.request("/api/businesses/org-1/navigation");
+        const body = await res.json() as any;
+
+        expect(res.status).toBe(200);
+        expect(body.success).toBe(true);
+        expect(body.data.business.config).toEqual({});
     });
 });

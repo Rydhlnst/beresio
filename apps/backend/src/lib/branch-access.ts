@@ -1,6 +1,7 @@
 import type { Context } from 'hono'
 import { and, eq, inArray } from 'drizzle-orm'
 import { branchMembers, branches, member, roles } from '@beresio/db'
+import { parseJsonStringArray } from './safe-json'
 
 const ORG_WIDE_ROLE_SLUGS = new Set([
     'owner',
@@ -34,19 +35,11 @@ function normalizeRoleList(input: unknown): string[] {
     if (!trimmed) return []
 
     if (trimmed.startsWith('[')) {
-        try {
-            const parsed = JSON.parse(trimmed)
-            if (Array.isArray(parsed)) {
-                return parsed
-                    .map((value) => (typeof value === 'string' ? value.trim().toLowerCase() : ''))
-                    .filter(Boolean)
-            }
-        } catch {
-            // fall through to default parsing
-        }
+        const parsed = parseJsonStringArray(trimmed)
+        if (parsed) return parsed
     }
 
-    return input
+    return trimmed
         .split(',')
         .map((value) => value.trim().toLowerCase())
         .filter(Boolean)

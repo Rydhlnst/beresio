@@ -3,6 +3,8 @@ type UpstashResponse<T = unknown> = {
     error?: string;
 };
 
+const UPSTASH_REQUEST_TIMEOUT_MS = 350;
+
 export type UpstashRedisConfig = {
     url?: string;
     token?: string;
@@ -24,14 +26,27 @@ export class UpstashRedisClient {
     private async command<T = unknown>(args: Array<string | number>): Promise<T | null> {
         if (!this.enabled) return null;
 
-        const response = await fetch(this.url!, {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${this.token!}`,
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(args),
-        });
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), UPSTASH_REQUEST_TIMEOUT_MS);
+        let response: Response;
+        try {
+            response = await fetch(this.url!, {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${this.token!}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(args),
+                signal: controller.signal,
+            });
+        } catch (error) {
+            if (error instanceof Error && error.name === "AbortError") {
+                throw new Error(`Upstash request timeout (${UPSTASH_REQUEST_TIMEOUT_MS}ms)`);
+            }
+            throw error;
+        } finally {
+            clearTimeout(timer);
+        }
 
         const payload = await response.json().catch(() => null) as UpstashResponse<T> | null;
         if (!response.ok) {

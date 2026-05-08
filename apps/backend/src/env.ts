@@ -1,0 +1,23 @@
+export type Env = {
+    DATABASE_URL: string
+    BETTER_AUTH_SECRET: string
+    BETTER_AUTH_URL: string
+    CORS_ALLOWED_ORIGINS?: string
+    INTERNAL_API_SECRET?: string
+    ENABLE_LEGACY_PICKUP_ROUTES?: string
+    UPLOAD_PROVIDER?: string
+    R2_PUBLIC_BASE_URL?: string
+    R2_UPLOADS?: unknown
+    CLOUDINARY_CLOUD_NAME?: string
+    CLOUDINARY_API_KEY?: string
+    CLOUDINARY_UPLOAD_PRESET?: string
+    LAUNDRY_WA_PROVIDER_URL?: string
+    LAUNDRY_WA_PROVIDER_TOKEN?: string
+    LAUNDRY_WA_TIMEOUT_MS?: string
+    LAUNDRY_WA_MAX_ATTEMPTS?: string
+    LAUNDRY_WA_RETRY_BASE_SECONDS?: string
+    UPSTASH_REDIS_REST_URL?: string
+    UPSTASH_REDIS_REST_TOKEN?: string
+    LAUNDRY_REALTIME_HUB?: unknown
+}
+

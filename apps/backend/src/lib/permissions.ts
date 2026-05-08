@@ -3,7 +3,7 @@ import { createMiddleware } from "hono/factory";
 import { member, rolePermissions, roles } from "@beresio/db";
 import { errors } from "./errors";
 import { getOrgId, getUserId } from "./auth-context";
-import { getBranchAccessContext } from "./branch-access";
+import { getBranchAccessContext, hasBranchAccess } from "./branch-access";
 
 const ORG_WIDE_ROLE_SLUGS = new Set([
     "owner",
@@ -85,10 +85,73 @@ export type BranchScope = {
     effectiveBranchIds: string[] | null;
 };
 
+export type AccessScope = {
+    orgId: string;
+    isOrgWide: boolean;
+    accessibleBranchIds: string[];
+    requestedBranchId: string | null;
+    scopedBranchIds: string[];
+};
+
+type ResolveAccessScopeOptions = {
+    requestedBranchId?: string | null;
+    requireBranchAccess?: boolean;
+    noBranchAccessMessage?: string;
+    noAccessToBranchMessage?: string;
+};
+
 function normalizeBranchIds(input: string | string[] | null | undefined): string[] {
     if (!input) return [];
     if (Array.isArray(input)) return input.map((item) => item.trim()).filter(Boolean);
     return [input.trim()].filter(Boolean);
+}
+
+function normalizeBranchId(input: string | null | undefined): string | null {
+    if (!input) return null;
+    const normalized = input.trim();
+    return normalized.length > 0 ? normalized : null;
+}
+
+export async function resolveAccessScope(
+    c: any,
+    options: ResolveAccessScopeOptions = {}
+): Promise<{ ok: true; value: AccessScope } | { ok: false; response: Response }> {
+    const requireBranchAccess = options.requireBranchAccess ?? true;
+    const requestedBranchId = normalizeBranchId(options.requestedBranchId);
+
+    let orgId: string;
+    try {
+        orgId = await getOrgId(c);
+    } catch {
+        return { ok: false, response: errors.unauthorized(c, "No organization context") };
+    }
+
+    const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId);
+
+    if (!isOrgWide && branchIds.length === 0 && requireBranchAccess) {
+        return {
+            ok: false,
+            response: errors.forbidden(c, options.noBranchAccessMessage ?? "No branch access"),
+        };
+    }
+
+    if (requestedBranchId && !hasBranchAccess(branchIds, requestedBranchId)) {
+        return {
+            ok: false,
+            response: errors.forbidden(c, options.noAccessToBranchMessage ?? "No access to branch"),
+        };
+    }
+
+    return {
+        ok: true,
+        value: {
+            orgId,
+            isOrgWide,
+            accessibleBranchIds: branchIds,
+            requestedBranchId,
+            scopedBranchIds: requestedBranchId ? [requestedBranchId] : branchIds,
+        },
+    };
 }
 
 async function resolveBranchScope(

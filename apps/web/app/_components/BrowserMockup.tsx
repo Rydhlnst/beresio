@@ -10,7 +10,7 @@ interface BrowserMockupProps {
 
 export function BrowserMockup({
     children,
-    url = "app.beres.io",
+    url = "app.beres.cloud",
     className,
     innerClassName
 }: BrowserMockupProps) {
@@ -39,3 +39,4 @@ export function BrowserMockup({
         </div>
     )
 }
+

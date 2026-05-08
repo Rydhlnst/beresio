@@ -8,7 +8,7 @@ import { generateMetadata as seoMetadata, pageKeywords, generateFAQSchema } from
 export const metadata: Metadata = seoMetadata({
     title: "Harga Paket Software Kasir & ERP UMKM",
     path: "/harga",
-    description: "Pilih paket Beres.io yang sesuai skala bisnis Anda. Harga transparan per organisasi, bukan per outlet. Mulai dari Solo hingga Enterprise dengan fitur lengkap.",
+    description: "Pilih paket Beres Cloud yang sesuai skala bisnis Anda. Harga transparan per organisasi, bukan per outlet. Mulai dari Solo hingga Enterprise dengan fitur lengkap.",
     keywords: pageKeywords.harga,
 });
 
@@ -41,7 +41,7 @@ const HARGA_FAQS: FAQItem[] = [
         category: "Pembayaran",
         question: "Metode pembayaran apa saja yang tersedia?",
         answer:
-            "Mulai dari QR statis (upload QR sendiri). Untuk Professional ke atas tersedia QR dinamis via Xendit dengan nominal otomatis.",
+            "Untuk transaksi merchant harian, metode mengikuti konfigurasi gateway merchant (Midtrans). Untuk billing langganan SaaS, checkout ditampilkan pada flow subscription (Xendit sandbox/demo).",
     },
     {
         category: "Kebijakan",
@@ -89,8 +89,8 @@ export default function HargaPage() {
                 title="Pilih Paket yang Cocok untuk"
                 subtitle="Skala Bisnis Anda."
                 description="Pilih paket yang pas untuk tahap bisnis Anda, dari tim kecil sampai multi-cabang. Transparan, fleksibel, dan siap dipakai dari hari pertama."
-                primaryCta={{ label: "Mulai Free Trial", href: "/wishlist" }}
-                secondaryCta={{ label: "Jadwalkan Demo", href: "/demo" }}
+                primaryCta={{ label: "Mulai Checkout Demo", href: "/billing/checkout" }}
+                secondaryCta={{ label: "Lihat Status Pembayaran", href: "/billing/status/INV-DEMO-240415" }}
                 contentClassName={APP_CONTENT_WIDTH}
             />
             <Pricing contentClassName={APP_CONTENT_WIDTH} />

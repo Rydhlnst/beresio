@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+﻿import { describe, expect, it, vi } from "vitest";
 import { createDbMock, createTestApp } from "./test-utils";
 
 vi.mock("../../middleware/auth", () => ({
@@ -35,7 +35,7 @@ describe("organization routes", () => {
         const app = createOrganizationApp(db);
 
         const res = await app.request("/api/dashboard/organization");
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
@@ -59,7 +59,7 @@ describe("organization routes", () => {
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ name: "New Name" }),
         });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(404);
         expect(body.success).toBe(false);
@@ -74,7 +74,7 @@ describe("organization routes", () => {
             headers: { "content-type": "application/json" },
             body: JSON.stringify({}),
         });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(400);
         expect(body.success).toBe(false);
@@ -100,7 +100,7 @@ describe("organization routes", () => {
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ mode: "multi" }),
         });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
@@ -121,7 +121,7 @@ describe("organization routes", () => {
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ mode: "multi" }),
         });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(403);
         expect(body.success).toBe(false);
@@ -142,7 +142,7 @@ describe("organization routes", () => {
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ mode: "single" }),
         });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(400);
         expect(body.success).toBe(false);
@@ -157,11 +157,36 @@ describe("organization routes", () => {
         });
 
         const res = await app.request("/api/dashboard/organization");
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(500);
         expect(body.success).toBe(false);
         expect(body.error.code).toBe("INTERNAL_ERROR");
         expect(body.error.message).toBe("Internal server error");
     });
+
+    it("[OK] [AC-ORG-MODE-08] GET / returns empty metadata object when stored JSON is malformed", async () => {
+        const db = createDbMock({
+            selectResults: [[{
+                id: "org-1",
+                name: "Beresio",
+                slug: "beresio",
+                businessType: "retail",
+                mode: "single",
+                subscriptionPlan: "starter",
+                logoUrl: null,
+                metadata: "{broken-json",
+                createdAt: new Date("2026-04-01T00:00:00.000Z"),
+            }]],
+        });
+        const app = createOrganizationApp(db);
+
+        const res = await app.request("/api/dashboard/organization");
+        const body = (await res.json()) as any;
+
+        expect(res.status).toBe(200);
+        expect(body.success).toBe(true);
+        expect(body.data.metadata).toEqual({});
+    });
 });
+

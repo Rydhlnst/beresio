@@ -226,7 +226,7 @@ function EmptyCardMessage({ message }: { message: string }) {
 export function DashboardAppMockup({
     mode = "default",
     className,
-    url = "app.beres.io/dashboard",
+    url = "app.beres.cloud/dashboard",
     title,
     pageLabel,
     dateLabel,
@@ -469,3 +469,4 @@ export function DashboardAppMockup({
         </div>
     );
 }
+

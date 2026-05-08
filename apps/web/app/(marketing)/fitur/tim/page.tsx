@@ -96,7 +96,7 @@ export default function TimPage() {
                 eyebrow: "Team Operations",
                 title: "Kelola tim dari onboarding sampai monitoring performa",
                 description:
-                    "Beres.io memberikan kontrol yang lebih jelas atas siapa melakukan apa, kapan, dan di cabang mana.",
+                    "Beres Cloud memberikan kontrol yang lebih jelas atas siapa melakukan apa, kapan, dan di cabang mana.",
                 items: FEATURE_ITEMS,
             }}
             spotlightSection={{
@@ -125,7 +125,7 @@ export default function TimPage() {
             finalSection={{
                 title: "Siap bangun tim operasional yang lebih rapi?",
                 description:
-                    "Gunakan fitur manajemen tim Beres.io untuk menguatkan koordinasi, keamanan data, dan performa harian outlet Anda.",
+                    "Gunakan fitur manajemen tim Beres Cloud untuk menguatkan koordinasi, keamanan data, dan performa harian outlet Anda.",
                 primaryCta: { label: "Mulai Free Trial", href: "/wishlist" },
                 secondaryCta: { label: "Lihat Solusi Retail", href: "/solusi/retail" },
             }}

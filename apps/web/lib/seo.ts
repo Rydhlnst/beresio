@@ -6,20 +6,21 @@
  */
 
 import type { Metadata } from "next";
+import { complianceConfig } from "@repo/ui/compliance";
 
 // ── Site Configuration ───────────────────────────────────────────────────────
 
 export const siteConfig = {
-    name: "Beres.io",
+    name: complianceConfig.brandName,
     shortName: "Beres",
     description:
-        "Beres.io menghadirkan kasir digital (POS), manajemen inventori, laporan keuangan, dan manajemen pengiriman dalam satu platform cloud untuk UMKM Indonesia.",
-    url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://beres.io",
+        "Beres Cloud menghadirkan kasir digital (POS), manajemen inventori, laporan keuangan, dan manajemen pengiriman dalam satu platform cloud untuk UMKM Indonesia.",
+    url: process.env.NEXT_PUBLIC_SITE_URL ?? complianceConfig.canonicalDomain,
     ogImage: "/og-image.svg",
-    twitter: "@beresio",
+    twitter: "@berescloud",
     locale: "id_ID",
     language: "id",
-    author: "Beres.io",
+    author: complianceConfig.brandName,
     themeColor: "#EE4822",
 } as const;
 
@@ -33,7 +34,7 @@ export const defaultKeywords = [
     "software kasir Indonesia",
     "ERP UMKM",
     "multi cabang",
-    "beres.io",
+    "beres cloud",
     "platform bisnis digital",
     "aplikasi kasir online",
     "sistem POS Indonesia",
@@ -246,9 +247,8 @@ export function generateOrganizationSchema() {
             url: `${siteConfig.url}/logo.svg`,
         },
         sameAs: [
-            "https://twitter.com/beresio",
-            "https://www.instagram.com/beresio",
-            "https://www.linkedin.com/company/beresio",
+            "https://www.instagram.com/berescloud",
+            "https://www.linkedin.com/company/berescloud",
         ],
         contactPoint: {
             "@type": "ContactPoint",

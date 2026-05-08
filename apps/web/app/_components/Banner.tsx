@@ -9,12 +9,12 @@ export function Banner() {
         <div className="relative z-[60] flex h-10 w-full items-center justify-center bg-brand text-white hover:bg-brand/95 transition-colors">
             <div className={cn(APP_CONTENT_WIDTH, "flex items-center justify-center")}>
                 <Link
-                    href="/wishlist"
+                    href="/sales"
                     className="flex items-center gap-2 text-[10px] sm:text-[11px] font-medium tracking-wide text-center"
                 >
-                    <span className="truncate sm:whitespace-normal">Beres.io segera hadir! <span className="hidden sm:inline">Jadilah yang pertama tahu & dapatkan akses VIP.</span></span>
+                    <span className="truncate sm:whitespace-normal">Perlu aktivasi billing/payment? <span className="hidden sm:inline">Konsultasi langsung dengan tim onboarding Beres Cloud.</span></span>
                     <Button variant={"link"} className="text-background text-xs">
-                        <span>Gabung Wishlist</span>
+                        <span>Hubungi Tim</span>
                         <ArrowRight className="h-3 w-3" />
                     </Button>
                 </Link>
@@ -22,3 +22,4 @@ export function Banner() {
         </div>
     )
 }
+

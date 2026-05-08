@@ -28,6 +28,14 @@ export function BranchComparisonTableClient({ rows }: BranchComparisonTableClien
     const [sortKey, setSortKey] = useState<SortKey>("revenue");
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
+    const currencyFormatter = useMemo(() => {
+        return new Intl.NumberFormat("id-ID", {
+            style: "currency",
+            currency: "IDR",
+            minimumFractionDigits: 0,
+        });
+    }, []);
+
     const sortedRows = useMemo(() => {
         return [...rows].sort((a, b) => {
             const dir = sortDirection === "asc" ? 1 : -1;
@@ -78,11 +86,7 @@ export function BranchComparisonTableClient({ rows }: BranchComparisonTableClien
                                     <p className="text-xs text-muted-foreground uppercase">{row.branchCode}</p>
                                 </td>
                                 <td className="py-3 px-3 font-semibold text-foreground">
-                                    {new Intl.NumberFormat("id-ID", {
-                                        style: "currency",
-                                        currency: "IDR",
-                                        minimumFractionDigits: 0,
-                                    }).format(row.revenue)}
+                                    {currencyFormatter.format(row.revenue)}
                                 </td>
                                 <td className="py-3 px-3 text-foreground">{row.orderCount}</td>
                                 <td className="py-3 px-3">

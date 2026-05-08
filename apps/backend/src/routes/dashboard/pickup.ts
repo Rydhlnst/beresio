@@ -1,15 +1,13 @@
 import { Hono } from 'hono'
 import { z } from 'zod'
 import { authMiddleware } from '../../middleware/auth'
-import { getOrgId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
 import { and, desc, eq, gte, inArray } from 'drizzle-orm'
 import { customers, orderItems, orders, pickupOrders } from '@beresio/db'
-import { getBranchAccessContext } from '../../lib/branch-access'
 import { incrementDeprecatedPickupHits } from '../../lib/laundry-metrics'
-
-type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
-type Variables = { db: any; user: any; session: any }
+import { resolveAccessScope } from '../../lib/permissions'
+import { zValidator } from '../../middleware/validate'
+import type { AppContext, AppRoute } from '../../types/app'
 
 const DEFAULT_LIMIT = 100
 const DEFAULT_DAYS = 3
@@ -27,10 +25,6 @@ const updatePickupStatusSchema = z.object({
 const assignPickupDriverSchema = z.object({
     driverName: z.string().trim().min(1, 'driverName is required'),
 })
-
-function getValidationMessage(error: z.ZodError, fallback = 'Invalid payload') {
-    return error.issues[0]?.message ?? fallback
-}
 
 async function ensurePickupRow(db: any, input: {
     orgId: string
@@ -69,14 +63,22 @@ async function ensurePickupRow(db: any, input: {
     }
 }
 
-export const pickupRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>()
+export const pickupRouter = new Hono<AppRoute>()
 
-function isLegacyPickupEnabled(c: any) {
+async function resolvePickupScope(c: AppContext, requestedBranchId?: string | null) {
+    return resolveAccessScope(c, {
+        requestedBranchId: requestedBranchId ?? null,
+        requireBranchAccess: false,
+        noBranchAccessMessage: 'No branch access',
+    })
+}
+
+function isLegacyPickupEnabled(c: AppContext) {
     const value = c.env?.ENABLE_LEGACY_PICKUP_ROUTES
     return typeof value === "string" && value.toLowerCase() === "true"
 }
 
-function deprecatedPickupResponse(c: any) {
+function deprecatedPickupResponse(c: AppContext) {
     incrementDeprecatedPickupHits()
     console.info(JSON.stringify({
         scope: "pickup-legacy",
@@ -109,12 +111,15 @@ pickupRouter.use("*", async (c, next) => {
 pickupRouter.get('/', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
-        const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId)
-        if (branchIds.length === 0 && !isOrgWide) return errors.forbidden(c, 'No branch access')
-        if (branchIds.length === 0 && isOrgWide) return ok(c, [])
         const limit = Math.min(Number(c.req.query('limit') ?? DEFAULT_LIMIT), 200)
         const days = Math.max(Number(c.req.query('days') ?? DEFAULT_DAYS), 1)
+        const scope = await resolvePickupScope(c, c.req.query('branchId') ?? null)
+        if (!scope.ok) return scope.response
+        const orgId = scope.value.orgId
+        const branchIds = scope.value.scopedBranchIds
+
+        if (branchIds.length === 0 && !scope.value.isOrgWide) return errors.forbidden(c, 'No branch access')
+        if (branchIds.length === 0 && scope.value.isOrgWide) return ok(c, [])
 
         const since = new Date()
         since.setUTCDate(since.getUTCDate() - (days - 1))
@@ -141,6 +146,7 @@ pickupRouter.get('/', authMiddleware, async (c) => {
             .leftJoin(pickupOrders, eq(pickupOrders.orderId, orders.id))
             .where(and(
                 eq(orders.organizationId, orgId),
+                inArray(orders.branchId, branchIds),
                 inArray(orders.type, ['pickup', 'delivery']),
                 gte(orders.createdAt, sinceDate),
             ))
@@ -215,7 +221,9 @@ pickupRouter.get('/', authMiddleware, async (c) => {
 pickupRouter.get('/:id', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
+        const scope = await resolvePickupScope(c)
+        if (!scope.ok) return scope.response
+        const orgId = scope.value.orgId
         const orderId = c.req.param('id')
 
         const [orderRow] = await db
@@ -267,17 +275,14 @@ pickupRouter.get('/:id', authMiddleware, async (c) => {
 })
 
 // PATCH /api/dashboard/pickup/:id/status
-pickupRouter.patch('/:id/status', authMiddleware, async (c) => {
+pickupRouter.patch('/:id/status', authMiddleware, zValidator('json', updatePickupStatusSchema), async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
+        const scope = await resolvePickupScope(c)
+        if (!scope.ok) return scope.response
+        const orgId = scope.value.orgId
         const orderId = c.req.param('id')
-        const body = await c.req.json().catch(() => null)
-        const parsedBody = updatePickupStatusSchema.safeParse(body)
-        if (!parsedBody.success) {
-            return errors.badRequest(c, getValidationMessage(parsedBody.error))
-        }
-        const { status } = parsedBody.data
+        const { status } = c.req.valid('json')
 
         const [orderRow] = await db
             .select({
@@ -314,17 +319,14 @@ pickupRouter.patch('/:id/status', authMiddleware, async (c) => {
 })
 
 // PATCH /api/dashboard/pickup/:id/assign-driver
-pickupRouter.patch('/:id/assign-driver', authMiddleware, async (c) => {
+pickupRouter.patch('/:id/assign-driver', authMiddleware, zValidator('json', assignPickupDriverSchema), async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
+        const scope = await resolvePickupScope(c)
+        if (!scope.ok) return scope.response
+        const orgId = scope.value.orgId
         const orderId = c.req.param('id')
-        const body = await c.req.json().catch(() => null)
-        const parsedBody = assignPickupDriverSchema.safeParse(body)
-        if (!parsedBody.success) {
-            return errors.badRequest(c, getValidationMessage(parsedBody.error))
-        }
-        const { driverName } = parsedBody.data
+        const { driverName } = c.req.valid('json')
 
         const [orderRow] = await db
             .select({

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Activity, Box, DollarSign, Truck, TriangleAlert } from "lucide-react";
+import { buildSafeApiUrl } from "@/lib/safe-api-url";
 
 import { KPICard } from "./kpi-card";
 
@@ -22,10 +23,6 @@ type KPIStripLiveClientProps = {
     scope?: "organization" | "branch";
 };
 
-function getApiBaseUrl() {
-    return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
-}
-
 export function KPIStripLiveClient({
     initialData,
     branchId,
@@ -37,7 +34,7 @@ export function KPIStripLiveClient({
         const params = new URLSearchParams();
         if (branchId) params.set("branchId", branchId);
         const query = params.toString();
-        const streamUrl = `${getApiBaseUrl()}/api/dashboard/kpis/stream${query ? `?${query}` : ""}`;
+        const streamUrl = buildSafeApiUrl(`/api/dashboard/kpis/stream${query ? `?${query}` : ""}`);
 
         const source = new EventSource(streamUrl, { withCredentials: true });
         source.addEventListener("kpi", (event) => {

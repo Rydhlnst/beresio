@@ -1,5 +1,7 @@
 import { createMiddleware } from "hono/factory";
 import { errors } from "../lib/errors";
+import { fail } from "../lib/response";
+import type { AppRoute } from "../types/app";
 
 function safeEqual(a: string, b: string) {
     if (a.length !== b.length) return false;
@@ -10,13 +12,10 @@ function safeEqual(a: string, b: string) {
     return diff === 0;
 }
 
-export const internalAuthMiddleware = createMiddleware(async (c, next) => {
-    const expected = (c.env as any)?.INTERNAL_API_SECRET as string | undefined;
+export const internalAuthMiddleware = createMiddleware<AppRoute>(async (c, next) => {
+    const expected = c.env.INTERNAL_API_SECRET;
     if (!expected || expected.trim().length === 0) {
-        return c.json({
-            success: false,
-            error: { code: "INTERNAL_NOT_CONFIGURED", message: "Internal API secret is not configured" },
-        }, 503);
+        return fail(c, "INTERNAL_NOT_CONFIGURED", "Internal API secret is not configured", 503);
     }
 
     const headerKey = c.req.header("x-internal-api-key");

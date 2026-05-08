@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://beres.io";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://beres.cloud";
 
 export const revalidate = 3600;
 
@@ -26,6 +26,9 @@ const PUBLIC_PAGES: SitemapEntry[] = [
     { path: "/support", changeFrequency: "weekly", priority: 0.8 },
     { path: "/terms", changeFrequency: "yearly", priority: 0.4 },
     { path: "/privacy", changeFrequency: "yearly", priority: 0.4 },
+    { path: "/refund-cancellation", changeFrequency: "yearly", priority: 0.45 },
+    { path: "/billing/checkout", changeFrequency: "weekly", priority: 0.7 },
+    { path: "/billing/status/INV-DEMO-240415", changeFrequency: "weekly", priority: 0.65 },
     { path: "/fitur/kasir", changeFrequency: "weekly", priority: 0.85 },
     { path: "/fitur/inventori", changeFrequency: "weekly", priority: 0.85 },
     { path: "/fitur/laporan", changeFrequency: "weekly", priority: 0.85 },

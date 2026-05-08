@@ -72,7 +72,7 @@ import { publicFnbRouter } from "./public/fnb";
 import { fnbCommandRouter } from "./dashboard/fnb-commands";
 
 function createIntegrationApp(db: any) {
-    const app = new Hono();
+    const app = new Hono<{ Variables: { db: any } }>();
     app.use("*", async (c, next) => {
         c.set("db", db);
         await next();

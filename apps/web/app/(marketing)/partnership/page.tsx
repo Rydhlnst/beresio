@@ -8,13 +8,13 @@ import { Card, CardContent } from "@repo/ui/card";
 
 export const metadata: Metadata = {
     title: "Partnership - Kolaborasi Strategis",
-    description: "Jadi partner Beres.io. Program reseller, integrasi teknologi, dan kerjasama strategis untuk pertumbuhan bersama.",
+    description: "Jadi partner Beres Cloud. Program reseller, integrasi teknologi, dan kerjasama strategis untuk pertumbuhan bersama.",
 };
 
 const PARTNERSHIP_TYPES = [
     {
         title: "Reseller Partner",
-        description: "Jual Beres.io ke jaringan bisnis Anda dan dapatkan komisi menarik. Cocok untuk konsultan bisnis dan agency.",
+        description: "Jual Beres Cloud ke jaringan bisnis Anda dan dapatkan komisi menarik. Cocok untuk konsultan bisnis dan agency.",
         icon: Store,
         benefits: [
             "Komisi hingga 30%",
@@ -25,7 +25,7 @@ const PARTNERSHIP_TYPES = [
     },
     {
         title: "Technology Partner",
-        description: "Integrasikan aplikasi Anda dengan Beres.io. Buka peluang pasar baru melalui integration marketplace kami.",
+        description: "Integrasikan aplikasi Anda dengan Beres Cloud. Buka peluang pasar baru melalui integration marketplace kami.",
         icon: Code,
         benefits: [
             "API & webhook access",
@@ -53,8 +53,8 @@ export default function PartnershipPage() {
             <PageHero
                 badgeLabel="Partnership"
                 title="Grow Together"
-                subtitle="With Beres.io"
-                description="Jadilah bagian dari ekosistem Beres.io. Bersama-sama kita bisa membantu lebih banyak UMKM Indonesia bertumbuh."
+                subtitle="With Beres Cloud"
+                description="Jadilah bagian dari ekosistem Beres Cloud. Bersama-sama kita bisa membantu lebih banyak UMKM Indonesia bertumbuh."
                 primaryCta={{ label: "Apply Partnership", href: "#types" }}
                 secondaryCta={{ label: "Hubungi Tim", href: "/sales" }}
                 align="center"
@@ -104,7 +104,7 @@ export default function PartnershipPage() {
                     <div className="space-y-6">
                         <Heading as="h2">Mengapa Partner dengan Kami?</Heading>
                         <Text variant="lead">
-                            Beres.io adalah platform yang trusted oleh ratusan bisnis. Dengan bergabung sebagai partner, Anda mendapatkan:
+                            Beres Cloud adalah platform yang trusted oleh ratusan bisnis. Dengan bergabung sebagai partner, Anda mendapatkan:
                         </Text>
                         <ul className="space-y-3">
                             {[
@@ -141,7 +141,7 @@ export default function PartnershipPage() {
                             <Link href="/sales">Hubungi Tim Partnership</Link>
                         </Button>
                         <Button variant="outline" size="lg" className="rounded-2xl px-8" asChild>
-                            <Link href="/about">Tentang Beres.io</Link>
+                            <Link href="/about">Tentang Beres Cloud</Link>
                         </Button>
                     </div>
                 </div>

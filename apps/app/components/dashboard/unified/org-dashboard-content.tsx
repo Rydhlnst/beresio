@@ -7,7 +7,23 @@ import { apiClient } from "@/lib/api-client";
 import { KPIStrip } from "@/components/dashboard/kpi-strip/kpi-strip";
 import { SectionCard } from "@/components/dashboard/shared/section-card";
 import { BranchComparisonTableClient } from "./branch-comparison-table-client";
-import { OrgDashboardChartsClient } from "./org-dashboard-charts-client";
+import { OrgDashboardChartsDeferred } from "./org-dashboard-charts-deferred";
+
+const ORG_DASHBOARD_FETCH_TIMEOUT_MS = 7000;
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T | null> {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    try {
+        return await Promise.race([
+            promise,
+            new Promise<null>((resolve) => {
+                timer = setTimeout(() => resolve(null), timeoutMs);
+            }),
+        ]);
+    } finally {
+        if (timer) clearTimeout(timer);
+    }
+}
 
 type OrgDashboardContentProps = {
     orgSlug: string;
@@ -32,19 +48,34 @@ export async function OrgDashboardContent({ orgSlug }: OrgDashboardContentProps)
     const cookie = reqHeaders.get("cookie") || "";
 
     const [branchesRes, trendByBranchRes, ordersByTypeRes, activitiesRes] = await Promise.all([
-        (apiClient as any).api.dashboard.performance.branches.$get(undefined, { headers: { cookie } }),
-        (apiClient as any).api.dashboard.performance["trend-by-branch"].$get(
-            { query: { timeRange: "7d" } },
-            { headers: { cookie } }
+        withTimeout<Response>(
+            (apiClient as any).api.dashboard.performance.branches.$get(undefined, { headers: { cookie } }) as Promise<Response>,
+            ORG_DASHBOARD_FETCH_TIMEOUT_MS
         ),
-        (apiClient as any).api.dashboard.performance["orders-by-type"].$get(undefined, { headers: { cookie } }),
-        (apiClient as any).api.dashboard.activities.$get({ query: { limit: "12" as any } }, { headers: { cookie } }),
+        withTimeout<Response>(
+            (apiClient as any).api.dashboard.performance["trend-by-branch"].$get(
+                { query: { timeRange: "7d" } },
+                { headers: { cookie } }
+            ) as Promise<Response>,
+            ORG_DASHBOARD_FETCH_TIMEOUT_MS
+        ),
+        withTimeout<Response>(
+            (apiClient as any).api.dashboard.performance["orders-by-type"].$get(undefined, { headers: { cookie } }) as Promise<Response>,
+            ORG_DASHBOARD_FETCH_TIMEOUT_MS
+        ),
+        withTimeout<Response>(
+            (apiClient as any).api.dashboard.activities.$get(
+                { query: { limit: "12" as any } },
+                { headers: { cookie } }
+            ) as Promise<Response>,
+            ORG_DASHBOARD_FETCH_TIMEOUT_MS
+        ),
     ]);
 
-    const branchesBody = branchesRes.ok ? await branchesRes.json().catch(() => null) : null;
-    const trendByBranchBody = trendByBranchRes.ok ? await trendByBranchRes.json().catch(() => null) : null;
-    const ordersByTypeBody = ordersByTypeRes.ok ? await ordersByTypeRes.json().catch(() => null) : null;
-    const activitiesBody = activitiesRes.ok ? await activitiesRes.json().catch(() => null) : null;
+    const branchesBody = branchesRes?.ok ? await branchesRes.json().catch(() => null) : null;
+    const trendByBranchBody = trendByBranchRes?.ok ? await trendByBranchRes.json().catch(() => null) : null;
+    const ordersByTypeBody = ordersByTypeRes?.ok ? await ordersByTypeRes.json().catch(() => null) : null;
+    const activitiesBody = activitiesRes?.ok ? await activitiesRes.json().catch(() => null) : null;
 
     const branchRows = ((branchesBody as any)?.data ?? []) as Array<{
         branchId: string;
@@ -94,7 +125,7 @@ export async function OrgDashboardContent({ orgSlug }: OrgDashboardContentProps)
 
             <BranchComparisonTableClient rows={comparisonRows} />
 
-            <OrgDashboardChartsClient
+            <OrgDashboardChartsDeferred
                 initialTrendByBranch={trendByBranch}
                 initialOrdersByType={ordersByType}
             />

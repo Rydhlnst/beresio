@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { buildSafeApiUrl, buildSafeWebSocketUrl } from "@/lib/safe-api-url";
 import {
     emitFnbRealtimeEvent,
     FNB_REALTIME_STREAMS,
@@ -11,37 +12,18 @@ import {
 
 const FNB_CONNECTED_TYPES = new Set(["connected", "ping", "pong"]);
 
-function getApiBaseUrl() {
-    const configuredBase = process.env.NEXT_PUBLIC_API_URL
-        ?? (typeof window !== "undefined" ? window.location.origin : "");
-    if (!configuredBase) return "";
-    return configuredBase.endsWith("/") ? configuredBase.slice(0, -1) : configuredBase;
-}
-
 function getBranchQuery(branchId: string | null) {
     if (!branchId) return "";
     return `?branchId=${encodeURIComponent(branchId)}`;
 }
 
 function getFnbWsUrl(stream: FnbRealtimeStream, branchId: string | null) {
-    const base = getApiBaseUrl();
-    if (!base) return "";
-
     const path = `/api/dashboard/fnb/ws/${stream}${getBranchQuery(branchId)}`;
-
-    if (base.startsWith("https://")) {
-        return `wss://${base.slice("https://".length)}${path}`;
-    }
-    if (base.startsWith("http://")) {
-        return `ws://${base.slice("http://".length)}${path}`;
-    }
-    return `${base}${path}`;
+    return buildSafeWebSocketUrl(path);
 }
 
 function getFnbSseUrl(stream: FnbRealtimeStream, branchId: string | null) {
-    const base = getApiBaseUrl();
-    if (!base) return "";
-    return `${base}/api/dashboard/fnb/streams/${stream}${getBranchQuery(branchId)}`;
+    return buildSafeApiUrl(`/api/dashboard/fnb/streams/${stream}${getBranchQuery(branchId)}`);
 }
 
 type FnbLiveRefreshClientProps = {

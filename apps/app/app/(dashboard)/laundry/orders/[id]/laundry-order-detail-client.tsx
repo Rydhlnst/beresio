@@ -1,13 +1,34 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@repo/ui/button";
-import { assignLaundryDriverAction, recordLaundryPaymentAction, updateLaundryOrderStatusAction } from "../../_actions";
+import {
+    assignLaundryDriverAction,
+    assignLaundryMachineAction,
+    correctLaundryOrderStatusAction,
+    recordLaundryPaymentAction,
+    updateLaundryOrderStatusAction,
+} from "../../_actions";
 
 type LaundryOrderDetailClientProps = {
     order: any;
+    drivers: Array<{ id: string; name: string; email?: string | null }>;
+    machines: Array<{ id: string; code: string; name: string; status: string; isActive: boolean }>;
 };
+
+const STATUS_OPTIONS = [
+    { value: "created", label: "Created" },
+    { value: "confirmed", label: "Confirmed" },
+    { value: "pickup_requested", label: "Pickup Requested" },
+    { value: "picked_up", label: "Picked Up" },
+    { value: "washing", label: "Washing" },
+    { value: "drying", label: "Drying" },
+    { value: "ready", label: "Ready" },
+    { value: "out_for_delivery", label: "Out for Delivery" },
+    { value: "completed", label: "Completed" },
+    { value: "cancelled", label: "Cancelled" },
+];
 
 function formatCurrency(value: number) {
     return new Intl.NumberFormat("id-ID", {
@@ -17,26 +38,25 @@ function formatCurrency(value: number) {
     }).format(value ?? 0);
 }
 
-const STATUS_OPTIONS = [
-    "received",
-    "processing",
-    "ready_for_pickup",
-    "out_for_delivery",
-    "completed",
-    "cancelled",
-];
-
-export default function LaundryOrderDetailClient({ order }: LaundryOrderDetailClientProps) {
+export default function LaundryOrderDetailClient({ order, drivers, machines }: LaundryOrderDetailClientProps) {
     const router = useRouter();
-    const [status, setStatus] = useState(order.status ?? "received");
+    const [status, setStatus] = useState(order.status ?? "created");
     const [statusNote, setStatusNote] = useState("");
+    const [correctionStatus, setCorrectionStatus] = useState(order.status ?? "created");
+    const [correctionReason, setCorrectionReason] = useState("");
     const [driverId, setDriverId] = useState(order.assignedDriverId ?? "");
+    const [machineId, setMachineId] = useState(order.assignedMachineId ?? "");
     const [paymentAmount, setPaymentAmount] = useState(0);
     const [paymentMethod, setPaymentMethod] = useState("cash");
     const [paymentNote, setPaymentNote] = useState("");
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
     const [isPending, startTransition] = useTransition();
+
+    const activeMachines = useMemo(
+        () => machines.filter((machine) => machine.isActive),
+        [machines]
+    );
 
     const onUpdateStatus = () => {
         setError(null);
@@ -48,6 +68,29 @@ export default function LaundryOrderDetailClient({ order }: LaundryOrderDetailCl
                 return;
             }
             setSuccess("Status berhasil diperbarui.");
+            setStatusNote("");
+            router.refresh();
+        });
+    };
+
+    const onCorrectStatus = () => {
+        setError(null);
+        setSuccess(null);
+        if (correctionReason.trim().length < 5) {
+            setError("Alasan koreksi minimal 5 karakter.");
+            return;
+        }
+        startTransition(async () => {
+            const result = await correctLaundryOrderStatusAction(order.id, {
+                status: correctionStatus,
+                reason: correctionReason.trim(),
+            });
+            if (!result.ok) {
+                setError(result.error ?? "Gagal melakukan koreksi status.");
+                return;
+            }
+            setSuccess("Koreksi status berhasil disimpan.");
+            setCorrectionReason("");
             router.refresh();
         });
     };
@@ -64,6 +107,22 @@ export default function LaundryOrderDetailClient({ order }: LaundryOrderDetailCl
                 return;
             }
             setSuccess("Driver berhasil diperbarui.");
+            router.refresh();
+        });
+    };
+
+    const onAssignMachine = () => {
+        setError(null);
+        setSuccess(null);
+        startTransition(async () => {
+            const result = await assignLaundryMachineAction(order.id, {
+                machineId: machineId.trim() || null,
+            });
+            if (!result.ok) {
+                setError(result.error ?? "Gagal memperbarui mesin.");
+                return;
+            }
+            setSuccess("Mesin berhasil diperbarui.");
             router.refresh();
         });
     };
@@ -95,10 +154,14 @@ export default function LaundryOrderDetailClient({ order }: LaundryOrderDetailCl
 
     return (
         <div className="space-y-6">
-            <div className="grid gap-4 rounded-xl border bg-card p-4 md:grid-cols-3">
+            <div className="grid gap-4 rounded-xl border bg-card p-4 md:grid-cols-4">
                 <div>
                     <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Order Number</p>
                     <p className="mt-1 text-sm font-semibold">{order.orderNumber}</p>
+                </div>
+                <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Status</p>
+                    <p className="mt-1 text-sm font-semibold">{order.status}</p>
                 </div>
                 <div>
                     <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total</p>
@@ -119,8 +182,8 @@ export default function LaundryOrderDetailClient({ order }: LaundryOrderDetailCl
                         className="h-9 w-full rounded-md border px-3 text-sm"
                     >
                         {STATUS_OPTIONS.map((option) => (
-                            <option key={option} value={option}>
-                                {option}
+                            <option key={option.value} value={option.value}>
+                                {option.label}
                             </option>
                         ))}
                     </select>
@@ -137,19 +200,70 @@ export default function LaundryOrderDetailClient({ order }: LaundryOrderDetailCl
                 </div>
 
                 <div className="space-y-3 rounded-xl border bg-card p-4">
-                    <h2 className="text-sm font-semibold">Assign Driver</h2>
+                    <h2 className="text-sm font-semibold">Status Correction (Authorized)</h2>
                     <p className="text-xs text-muted-foreground">
-                        Driver name akan di-derive otomatis dari profile user.
+                        Gunakan hanya untuk memperbaiki kesalahan operasional. Alasan akan tercatat di timeline.
                     </p>
+                    <select
+                        value={correctionStatus}
+                        onChange={(event) => setCorrectionStatus(event.target.value)}
+                        className="h-9 w-full rounded-md border px-3 text-sm"
+                    >
+                        {STATUS_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                                {option.label}
+                            </option>
+                        ))}
+                    </select>
                     <input
                         type="text"
+                        value={correctionReason}
+                        onChange={(event) => setCorrectionReason(event.target.value)}
+                        className="h-9 w-full rounded-md border px-3 text-sm"
+                        placeholder="Alasan koreksi (wajib)"
+                    />
+                    <Button variant="outline" className="h-9 text-xs font-semibold" onClick={onCorrectStatus} disabled={isPending}>
+                        Simpan Koreksi
+                    </Button>
+                </div>
+            </div>
+
+            <div className="grid gap-4 xl:grid-cols-2">
+                <div className="space-y-3 rounded-xl border bg-card p-4">
+                    <h2 className="text-sm font-semibold">Assign Driver</h2>
+                    <select
                         value={driverId}
                         onChange={(event) => setDriverId(event.target.value)}
                         className="h-9 w-full rounded-md border px-3 text-sm"
-                        placeholder="Driver User ID"
-                    />
+                    >
+                        <option value="">Tanpa driver</option>
+                        {drivers.map((driver) => (
+                            <option key={driver.id} value={driver.id}>
+                                {driver.name} {driver.email ? `(${driver.email})` : ""}
+                            </option>
+                        ))}
+                    </select>
                     <Button className="h-9 text-xs font-semibold" onClick={onAssignDriver} disabled={isPending}>
                         Simpan Driver
+                    </Button>
+                </div>
+
+                <div className="space-y-3 rounded-xl border bg-card p-4">
+                    <h2 className="text-sm font-semibold">Assign Machine</h2>
+                    <select
+                        value={machineId}
+                        onChange={(event) => setMachineId(event.target.value)}
+                        className="h-9 w-full rounded-md border px-3 text-sm"
+                    >
+                        <option value="">Tanpa mesin</option>
+                        {activeMachines.map((machine) => (
+                            <option key={machine.id} value={machine.id}>
+                                {machine.code} - {machine.name} ({machine.status})
+                            </option>
+                        ))}
+                    </select>
+                    <Button className="h-9 text-xs font-semibold" onClick={onAssignMachine} disabled={isPending}>
+                        Simpan Mesin
                     </Button>
                 </div>
             </div>
@@ -173,7 +287,8 @@ export default function LaundryOrderDetailClient({ order }: LaundryOrderDetailCl
                         <option value="cash">Cash</option>
                         <option value="transfer">Transfer</option>
                         <option value="qris">QRIS</option>
-                        <option value="card">Card</option>
+                        <option value="xendit">Xendit</option>
+                        <option value="midtrans">Midtrans</option>
                     </select>
                     <input
                         type="text"
@@ -214,7 +329,9 @@ export default function LaundryOrderDetailClient({ order }: LaundryOrderDetailCl
                         order.payments.map((payment: any) => (
                             <div key={payment.id} className="flex items-center justify-between rounded-lg border px-3 py-2">
                                 <div>
-                                    <p className="text-sm font-medium">{payment.paymentMethod ?? "manual"}</p>
+                                    <p className="text-sm font-medium">
+                                        {(payment.paymentMethod ?? "manual").toUpperCase()} • {(payment.provider ?? "manual").toUpperCase()}
+                                    </p>
                                     <p className="text-xs text-muted-foreground">
                                         {new Date(payment.createdAt).toLocaleString("id-ID")}
                                     </p>

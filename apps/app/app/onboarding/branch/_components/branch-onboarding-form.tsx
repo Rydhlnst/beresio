@@ -88,7 +88,7 @@ export function BranchOnboardingForm({ organizationId, mode }: BranchOnboardingF
                     }
 
                     toast.success("Cabang pertama berhasil dibuat!");
-                    replace("/onboarding/team");
+                    replace("/onboarding/products");
                     return;
                 }
 
@@ -122,7 +122,7 @@ export function BranchOnboardingForm({ organizationId, mode }: BranchOnboardingF
             <BranchFormClient
                 onSubmit={onSubmit}
                 isSubmitting={isLoading}
-                submitLabel="Lanjut ke Invite Team"
+                submitLabel="Lanjutkan"
                 layoutMode="step"
                 fixedBranchName={mode === "single" ? "Cabang Utama" : undefined}
             />
@@ -149,8 +149,8 @@ export function BranchOnboardingForm({ organizationId, mode }: BranchOnboardingF
             </div>
 
             <div className="flex justify-end">
-                <Button type="button" variant="ghost" className="h-8 text-xs" onClick={() => replace("/onboarding/mode")}>
-                    Kembali pilih mode
+                <Button type="button" variant="ghost" className="h-8 text-xs" onClick={() => replace("/onboarding/org")}>
+                    Kembali ke profil bisnis
                 </Button>
             </div>
         </div>

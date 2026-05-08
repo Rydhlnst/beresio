@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { z } from 'zod'
 import { authMiddleware } from '../../middleware/auth'
-import { getOrgId, getUserId } from '../../lib/auth-context'
+import { getUserId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
 import { and, desc, eq, gte, inArray, lte } from 'drizzle-orm'
 import {
@@ -13,7 +13,7 @@ import {
     transactionItems,
     transactions,
 } from '@beresio/db'
-import { getAccessibleBranchIds, getBranchAccessContext, hasBranchAccess } from '../../lib/branch-access'
+import { resolveAccessScope } from '../../lib/permissions'
 import { requireBranchContext } from '../../middleware/branch-context'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
@@ -71,12 +71,23 @@ async function recordStockMovement(tx: any, input: {
 
 export const transactionsRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
+async function resolveTransactionScope(c: any, branchId?: string | null) {
+    return resolveAccessScope(c, {
+        requestedBranchId: branchId ?? null,
+        requireBranchAccess: false,
+        noBranchAccessMessage: 'No branch access',
+    })
+}
+
 // GET /api/dashboard/transactions
 transactionsRouter.get('/', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
         const branchId = c.req.query('branchId')
+        const scope = await resolveTransactionScope(c, branchId ?? null)
+        if (!scope.ok) return scope.response
+        const orgId = scope.value.orgId
+        const branchIds = scope.value.scopedBranchIds
         const customerId = c.req.query('customerId')
         const status = c.req.query('status')
         const type = c.req.query('type')
@@ -84,22 +95,13 @@ transactionsRouter.get('/', authMiddleware, async (c) => {
         const dateTo = c.req.query('dateTo')
         const limit = Math.min(Number(c.req.query('limit') ?? DEFAULT_LIMIT), 200)
 
-        const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId)
-        if (branchIds.length === 0 && !isOrgWide) return errors.forbidden(c, 'No branch access')
-        if (branchIds.length === 0 && isOrgWide) {
-            if (branchId) return errors.forbidden(c, 'No access to branch')
+        if (branchIds.length === 0 && !scope.value.isOrgWide) return errors.forbidden(c, 'No branch access')
+        if (branchIds.length === 0 && scope.value.isOrgWide) {
             return ok(c, [])
         }
 
         const conditions = [eq(transactions.organizationId, orgId)]
-        if (branchId) {
-            if (!hasBranchAccess(branchIds, branchId)) {
-                return errors.forbidden(c, 'No access to branch')
-            }
-            conditions.push(eq(transactions.branchId, branchId))
-        } else {
-            conditions.push(inArray(transactions.branchId, branchIds))
-        }
+        conditions.push(inArray(transactions.branchId, branchIds))
         if (customerId) conditions.push(eq(transactions.customerId, customerId))
         if (status) conditions.push(eq(transactions.status, status))
         if (type) conditions.push(eq(transactions.type, type))
@@ -158,8 +160,10 @@ transactionsRouter.get('/', authMiddleware, async (c) => {
 transactionsRouter.get('/:id', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
-        const branchIds = await getAccessibleBranchIds(c, orgId)
+        const scope = await resolveTransactionScope(c)
+        if (!scope.ok) return scope.response
+        const orgId = scope.value.orgId
+        const branchIds = scope.value.scopedBranchIds
         if (branchIds.length === 0) return errors.forbidden(c, 'No branch access')
         const transactionId = c.req.param('id')
 
@@ -187,7 +191,7 @@ transactionsRouter.get('/:id', authMiddleware, async (c) => {
             .limit(1)
 
         if (!row) return errors.notFound(c, 'Transaction not found')
-        if (!hasBranchAccess(branchIds, row.branchId)) {
+        if (!branchIds.includes(row.branchId)) {
             return errors.forbidden(c, 'No access to branch')
         }
 
@@ -235,8 +239,12 @@ transactionsRouter.get('/:id', authMiddleware, async (c) => {
 transactionsRouter.post('/', authMiddleware, requireBranchContext(), async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
-        const branchIds = await getAccessibleBranchIds(c, orgId)
+        const body = await c.req.json().catch(() => null)
+        const requestedBranchId = typeof body?.branchId === 'string' ? body.branchId : null
+        const scope = await resolveTransactionScope(c, requestedBranchId)
+        if (!scope.ok) return scope.response
+        const orgId = scope.value.orgId
+        const branchIds = scope.value.scopedBranchIds
         if (branchIds.length === 0) return errors.forbidden(c, 'No branch access')
         const actorId = (() => {
             try {
@@ -245,7 +253,6 @@ transactionsRouter.post('/', authMiddleware, requireBranchContext(), async (c) =
                 return null
             }
         })()
-        const body = await c.req.json().catch(() => null)
         const parsedBody = createTransactionSchema.safeParse(body)
         if (!parsedBody.success) {
             return errors.badRequest(c, getValidationMessage(parsedBody.error))
@@ -263,7 +270,7 @@ transactionsRouter.post('/', authMiddleware, requireBranchContext(), async (c) =
             items,
         } = parsedBody.data
 
-        if (!hasBranchAccess(branchIds, branchId)) return errors.forbidden(c, 'No access to branch')
+        if (!branchIds.includes(branchId)) return errors.forbidden(c, 'No access to branch')
 
         const [branchRow] = await db
             .select({ id: branches.id })
@@ -284,7 +291,7 @@ transactionsRouter.post('/', authMiddleware, requireBranchContext(), async (c) =
         const normalizedItems = items
 
         const productIds = normalizedItems.map((item: any) => item.productId)
-        const productRows = await db
+        const productRows = (await db
             .select({
                 id: products.id,
                 name: products.name,
@@ -294,7 +301,7 @@ transactionsRouter.post('/', authMiddleware, requireBranchContext(), async (c) =
             .where(and(
                 eq(products.organizationId, orgId),
                 inArray(products.id, productIds),
-            ))
+            ))) as Array<{ id: string; name: string; inventoryProductId: string | null }>
 
         if (productRows.length !== productIds.length) {
             return errors.badRequest(c, 'Product not found')

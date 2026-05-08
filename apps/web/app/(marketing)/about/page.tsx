@@ -8,7 +8,7 @@ import { Card, CardContent } from "@repo/ui/card";
 
 export const metadata: Metadata = {
     title: "Tentang Kami",
-    description: "Kenali tim di balik Beres.io. Misi kami adalah membantu UMKM Indonesia digitalisasi operasional bisnis mereka.",
+    description: "Kenali tim di balik Beres Cloud. Misi kami adalah membantu UMKM Indonesia digitalisasi operasional bisnis mereka.",
 };
 
 const VALUES = [
@@ -48,7 +48,7 @@ export default function AboutPage() {
                 badgeLabel="Tentang Kami"
                 title="Membangun Masa Depan"
                 subtitle="Bisnis UMKM Indonesia"
-                description="Beres.io lahir dari keinginan untuk membantu UMKM Indonesia bertumbuh dengan teknologi yang terjangkau dan mudah digunakan."
+                description="Beres Cloud lahir dari keinginan untuk membantu UMKM Indonesia bertumbuh dengan teknologi yang terjangkau dan mudah digunakan."
                 primaryCta={{ label: "Join Tim Kami", href: "/careers" }}
                 secondaryCta={{ label: "Hubungi Kami", href: "/support" }}
                 align="center"
@@ -59,19 +59,19 @@ export default function AboutPage() {
                     <div className="space-y-6">
                         <Heading as="h2">Cerita Kami</Heading>
                         <Text variant="lead">
-                            Beres.io dimulai dari pengamatan bahwa banyak UMKM di Indonesia masih menggunakan pencatatan manual atau software yang terlalu kompleks dan mahal.
+                            Beres Cloud dimulai dari pengamatan bahwa banyak UMKM di Indonesia masih menggunakan pencatatan manual atau software yang terlalu kompleks dan mahal.
                         </Text>
                         <Text>
                             Kami percaya setiap bisnis, sekecil apapun, berhak mendapatkan akses ke teknologi yang bisa membantu mereka berkembang. Dengan prinsip simplicity dan affordability, kami membangun platform yang mudah dipelajari namun powerful.
                         </Text>
                         <Text>
-                            Hari ini, Beres.io telah membantu ratusan bisnis di berbagai industri: dari laundry, F&B, retail, sampai salon dan franchise. Perjalanan masih panjang, dan kami terus berkembang bersama para entrepreneur Indonesia.
+                            Hari ini, Beres Cloud telah membantu ratusan bisnis di berbagai industri: dari laundry, F&B, retail, sampai salon dan franchise. Perjalanan masih panjang, dan kami terus berkembang bersama para entrepreneur Indonesia.
                         </Text>
                     </div>
                     <div className="aspect-square rounded-2xl bg-muted flex items-center justify-center border border-border/60">
                         <div className="text-center p-8">
                             <Globe className="h-24 w-24 text-muted-foreground/30 mx-auto mb-4" />
-                            <Text variant="muted">Beres.io Team</Text>
+                            <Text variant="muted">Beres Cloud Team</Text>
                         </div>
                     </div>
                 </div>

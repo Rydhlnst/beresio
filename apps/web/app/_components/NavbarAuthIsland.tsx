@@ -11,10 +11,21 @@ type NavbarAuthIslandProps = {
 
 export function NavbarAuthIsland({ mobile = false }: NavbarAuthIslandProps) {
     const { data: session, isPending } = useSession();
+    const isProduction = process.env.NODE_ENV === "production";
 
     if (mobile) {
         if (isPending) {
             return <div className="h-20 animate-pulse rounded-lg bg-secondary/70" />;
+        }
+
+        if (isProduction) {
+            return (
+                <div className="mt-8 grid gap-2.5">
+                    <Button className="bg-primary text-primary-foreground hover:bg-primary/90" asChild>
+                        <Link href="/wishlist">Daftar Beta</Link>
+                    </Button>
+                </div>
+            );
         }
 
         if (session) {
@@ -30,10 +41,10 @@ export function NavbarAuthIsland({ mobile = false }: NavbarAuthIslandProps) {
         return (
             <div className="mt-8 grid gap-2.5">
                 <Button variant="outline" asChild>
-                    <Link href="/sign-in">Masuk</Link>
+                    <Link href="/login">Masuk</Link>
                 </Button>
                 <Button className="bg-primary text-primary-foreground hover:bg-primary/90" asChild>
-                    <Link href="/wishlist">Coba Gratis</Link>
+                    <Link href="/wishlist">Daftar Beta</Link>
                 </Button>
             </div>
         );
@@ -41,6 +52,16 @@ export function NavbarAuthIsland({ mobile = false }: NavbarAuthIslandProps) {
 
     if (isPending) {
         return <div className="hidden h-10 w-24 animate-pulse bg-secondary md:block" />;
+    }
+
+    if (isProduction) {
+        return (
+            <div className="hidden items-center gap-2 md:flex">
+                <Button className="bg-primary text-primary-foreground hover:bg-primary/90" asChild>
+                    <Link href="/wishlist">Daftar Beta</Link>
+                </Button>
+            </div>
+        );
     }
 
     if (session) {
@@ -58,10 +79,10 @@ export function NavbarAuthIsland({ mobile = false }: NavbarAuthIslandProps) {
     return (
         <div className="hidden items-center gap-2 md:flex">
             <Button variant="ghost" asChild>
-                <Link href="/sign-in">Masuk</Link>
+                <Link href="/login">Masuk</Link>
             </Button>
             <Button className="bg-primary text-primary-foreground hover:bg-primary/90" asChild>
-                <Link href="/wishlist">Coba Gratis</Link>
+                <Link href="/wishlist">Daftar Beta</Link>
             </Button>
         </div>
     );

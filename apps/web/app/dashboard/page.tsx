@@ -6,11 +6,12 @@ import { Section } from "../_components/Section";
 import { Button, Heading, Text } from "@repo/ui";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import { generateMetadata as seoMetadata } from "@/lib/seo";
+import { requireSessionWithOrganization } from "@/lib/authz";
 
 export const metadata: Metadata = seoMetadata({
     title: "Dashboard - Ringkasan Bisnis Anda",
     path: "/dashboard",
-    description: "Dashboard Beres.io - Pantau metrik bisnis, transaksi, dan aktivitas tim dalam satu layar.",
+    description: "Dashboard Beres Cloud - Pantau metrik bisnis, transaksi, dan aktivitas tim dalam satu layar.",
     noIndex: true, // Dashboard should not be indexed
 });
 
@@ -41,7 +42,11 @@ const QUICK_ACTIONS = [
     },
 ];
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+    // AuthZ guard: dashboard is tenant-scoped (requires session + at least 1 org)
+    // so unauthenticated users cannot access it directly.
+    // (Real data isolation must still be enforced at the query/API layer.)
+    await requireSessionWithOrganization();
     return (
         <>
             <PageHero

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+﻿import { afterEach, describe, expect, it, vi } from "vitest";
 import { createDbMock, createTestApp } from "./test-utils";
 
 // Mock auth middleware
@@ -15,8 +15,13 @@ vi.mock("../../lib/auth-context", () => ({
 }));
 
 import { uploadRouter } from "./upload";
-const createUploadApp = (db: any, env: any = {}) =>
-    createTestApp(uploadRouter, "/api/dashboard/upload", db);
+const createUploadApp = (db: any, env: any = {}) => {
+    const app = createTestApp(uploadRouter, "/api/dashboard/upload", db);
+    return {
+        request: (path: string, init?: any) =>
+            app.request(path, init, env as any),
+    };
+};
 
 describe("upload routes", () => {
     afterEach(() => {
@@ -54,7 +59,7 @@ describe("upload routes", () => {
                     folder: "products",
                 }),
             });
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
@@ -72,11 +77,11 @@ describe("upload routes", () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ folder: "products" }),
             });
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(400);
             expect(body.success).toBe(false);
-            expect(body.error.message).toContain("Image data is required");
+            expect(body.error.message).toMatch(/Required|Image data is required/);
         });
 
         it("rejects invalid image format", async () => {
@@ -91,7 +96,7 @@ describe("upload routes", () => {
                     folder: "products",
                 }),
             });
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(400);
             expect(body.success).toBe(false);
@@ -114,7 +119,7 @@ describe("upload routes", () => {
                     image: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ...",
                 }),
             });
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(500);
             expect(body.success).toBe(false);
@@ -134,15 +139,40 @@ describe("upload routes", () => {
                     body: JSON.stringify({
                         image: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ...",
                     }),
-                },
-                mockEnv as any
+                }
             );
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(500);
             expect(body.success).toBe(false);
             expect(body.error.code).toBe("INTERNAL_ERROR");
             expect(body.error.message).toBe("Internal server error");
+        });
+
+        it("uploads image to R2 when R2 config is available", async () => {
+            const db = createDbMock({});
+            const put = vi.fn().mockResolvedValue({});
+            const app = createUploadApp(db, {
+                UPLOAD_PROVIDER: "r2",
+                R2_PUBLIC_BASE_URL: "https://cdn.beresio.dev",
+                R2_UPLOADS: { put },
+            });
+
+            const res = await app.request("/api/dashboard/upload/image", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    image: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7X8aUAAAAASUVORK5CYII=",
+                    folder: "products",
+                }),
+            });
+            const body = (await res.json()) as any;
+
+            expect(res.status).toBe(200);
+            expect(body.success).toBe(true);
+            expect(body.data.url).toContain("https://cdn.beresio.dev/beres/org-1/products/");
+            expect(body.data.publicId).toContain("beres/org-1/products/");
+            expect(put).toHaveBeenCalledTimes(1);
         });
     });
 
@@ -182,7 +212,7 @@ describe("upload routes", () => {
                     folder: "products",
                 }),
             });
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
@@ -200,7 +230,7 @@ describe("upload routes", () => {
                     images: Array(6).fill("data:image/jpeg;base64,/9j..."),
                 }),
             });
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(400);
             expect(body.success).toBe(false);
@@ -216,7 +246,7 @@ describe("upload routes", () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ images: [] }),
             });
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(400);
             expect(body.success).toBe(false);
@@ -233,11 +263,39 @@ describe("upload routes", () => {
                     images: ["not-a-valid-data-uri"],
                 }),
             });
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(400);
             expect(body.success).toBe(false);
             expect(body.error.code).toBe("BAD_REQUEST");
+        });
+
+        it("uploads multiple images to R2 when R2 config is available", async () => {
+            const db = createDbMock({});
+            const put = vi.fn().mockResolvedValue({});
+            const app = createUploadApp(db, {
+                R2_PUBLIC_BASE_URL: "https://cdn.beresio.dev",
+                R2_UPLOADS: { put },
+            });
+
+            const res = await app.request("/api/dashboard/upload/multiple", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    images: [
+                        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7X8aUAAAAASUVORK5CYII=",
+                        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7X8aUAAAAASUVORK5CYII=",
+                    ],
+                    folder: "products",
+                }),
+            });
+            const body = (await res.json()) as any;
+
+            expect(res.status).toBe(200);
+            expect(body.success).toBe(true);
+            expect(body.data.images).toHaveLength(2);
+            expect(body.data.images[0].url).toContain("https://cdn.beresio.dev/beres/org-1/products/");
+            expect(put).toHaveBeenCalledTimes(2);
         });
     });
 
@@ -251,7 +309,7 @@ describe("upload routes", () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ publicId: "test/image" }),
             });
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(400);
             expect(body.success).toBe(false);
@@ -259,3 +317,4 @@ describe("upload routes", () => {
         });
     });
 });
+

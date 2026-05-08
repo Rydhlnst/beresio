@@ -1,53 +1,55 @@
 import type { Metadata, Viewport } from "next";
-import { DM_Sans, Instrument_Serif } from "next/font/google";
+import localFont from "next/font/local";
 import { Suspense } from "react";
 import "./globals.css";
 import { Toaster } from "@repo/ui";
+import { complianceConfig } from "@repo/ui/compliance";
 import { LayoutProvider } from "./_components/LayoutProvider";
 import { Analytics } from "./_components/Analytics";
 import { RouteLoadingIndicator } from "./_components/RouteLoadingIndicator";
 
-const dmSans = DM_Sans({
-    subsets: ["latin"],
+const dmSans = localFont({
+    src: "./fonts/GeistVF.woff",
     variable: "--font-jakarta",
     display: "swap",
-    preload: true,
 });
 
-const instrumentSerif = Instrument_Serif({
-    subsets: ["latin"],
-    weight: "400",
+const instrumentSerif = localFont({
+    src: "./fonts/GeistVF.woff",
     variable: "--font-beres-instrument-serif",
     display: "swap",
-    preload: true,
 });
 
-// ── Viewport (pisah dari metadata sesuai Next.js 14+ best practice) ──────────
 export const viewport: Viewport = {
     themeColor: "#EE4822",
     width: "device-width",
     initialScale: 1,
 };
 
-// ── Metadata utama ─────────────────────────────────────────────────────────────
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://beres.io";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? complianceConfig.canonicalDomain;
 
 export const metadata: Metadata = {
     metadataBase: new URL(siteUrl),
     title: {
-        default: "Beres.io — Solusi Bisnis Digital Terpadu untuk UMKM",
-        template: "%s | Beres.io",
+        default: "Beres Cloud - Solusi Bisnis Digital Terpadu untuk UMKM",
+        template: `%s | ${complianceConfig.brandName}`,
     },
     description:
-        "Beres.io menghadirkan kasir digital (POS), manajemen inventori, laporan keuangan, dan manajemen pengiriman dalam satu platform cloud untuk UMKM Indonesia. Coba gratis 14 hari.",
+        "Beres Cloud menghadirkan kasir digital (POS), manajemen inventori, laporan keuangan, dan manajemen operasional dalam satu platform cloud untuk UMKM Indonesia.",
     keywords: [
-        "kasir digital", "POS UMKM", "manajemen inventori",
-        "laporan keuangan usaha", "software kasir Indonesia",
-        "ERP UMKM", "multi cabang", "beres.io", "platform bisnis digital",
+        "kasir digital",
+        "POS UMKM",
+        "manajemen inventori",
+        "laporan keuangan usaha",
+        "software kasir Indonesia",
+        "ERP UMKM",
+        "multi cabang",
+        "beres cloud",
+        "platform bisnis digital",
     ],
-    authors: [{ name: "Beres.io", url: siteUrl }],
-    creator: "Beres.io",
-    publisher: "Beres.io",
+    authors: [{ name: complianceConfig.brandName, url: siteUrl }],
+    creator: complianceConfig.brandName,
+    publisher: complianceConfig.brandName,
     robots: {
         index: true,
         follow: true,
@@ -63,27 +65,27 @@ export const metadata: Metadata = {
         type: "website",
         locale: "id_ID",
         url: siteUrl,
-        siteName: "Beres.io",
-        title: "Beres.io — Solusi Bisnis Digital Terpadu untuk UMKM",
+        siteName: complianceConfig.brandName,
+        title: "Beres Cloud - Solusi Bisnis Digital Terpadu untuk UMKM",
         description:
-            "Kasir digital, inventori, laporan keuangan, dan pengiriman dalam satu platform. Kelola semua cabang dari satu dashboard. Coba gratis 14 hari.",
+            "Kasir digital, inventori, laporan keuangan, dan pengiriman dalam satu platform. Kelola semua cabang dari satu dashboard.",
         images: [
             {
                 url: "/og-image.svg",
                 width: 1200,
                 height: 630,
-                alt: "Beres.io — Platform Manajemen Bisnis UMKM Indonesia",
+                alt: "Beres Cloud - Platform Manajemen Bisnis UMKM Indonesia",
             },
         ],
     },
     twitter: {
         card: "summary_large_image",
-        title: "Beres.io — Solusi Bisnis Digital Terpadu untuk UMKM",
+        title: "Beres Cloud - Solusi Bisnis Digital Terpadu untuk UMKM",
         description:
             "Kasir digital, inventori, laporan keuangan, dan pengiriman dalam satu platform cloud untuk UMKM Indonesia.",
         images: ["/og-image.svg"],
-        creator: "@beresio",
-        site: "@beresio",
+        creator: "@berescloud",
+        site: "@berescloud",
     },
     alternates: {
         languages: { "id-ID": siteUrl },
@@ -98,50 +100,48 @@ export const metadata: Metadata = {
     manifest: "/manifest.json",
 };
 
-// ── JSON-LD Structured Data ───────────────────────────────────────────────────
 const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
         {
             "@type": "Organization",
             "@id": `${siteUrl}/#organization`,
-            name: "Beres.io",
+            name: complianceConfig.brandName,
             url: siteUrl,
+            legalName: complianceConfig.legalEntityName,
             logo: { "@type": "ImageObject", url: `${siteUrl}/logo.svg` },
-            sameAs: [
-                "https://twitter.com/beresio",
-                "https://www.instagram.com/beresio",
-                "https://www.linkedin.com/company/beresio",
-            ],
+            address: {
+                "@type": "PostalAddress",
+                streetAddress: complianceConfig.businessAddress,
+                addressCountry: "ID",
+            },
+            contactPoint: {
+                "@type": "ContactPoint",
+                email: complianceConfig.supportEmail,
+                telephone: complianceConfig.supportWhatsApp,
+                contactType: "customer support",
+            },
         },
         {
             "@type": "SoftwareApplication",
             "@id": `${siteUrl}/#software`,
-            name: "Beres.io",
+            name: complianceConfig.brandName,
             applicationCategory: "BusinessApplication",
-            operatingSystem: "Web, iOS, Android",
+            operatingSystem: "Web",
             url: siteUrl,
             description:
-                "Platform manajemen bisnis UMKM Indonesia: kasir digital, inventori, laporan keuangan, dan pengiriman dalam satu platform cloud.",
+                "Platform manajemen bisnis UMKM Indonesia: kasir digital, inventori, laporan keuangan, dan operasional dalam satu cloud.",
             offers: [
-                { "@type": "Offer", name: "Starter", price: "299000", priceCurrency: "IDR" },
-                { "@type": "Offer", name: "Professional", price: "799000", priceCurrency: "IDR" },
-                { "@type": "Offer", name: "Enterprise", price: "1999000", priceCurrency: "IDR" },
+                { "@type": "Offer", name: "Solo", price: "15000", priceCurrency: "IDR" },
+                { "@type": "Offer", name: "Starter", price: "99000", priceCurrency: "IDR" },
+                { "@type": "Offer", name: "Professional", price: "249000", priceCurrency: "IDR" },
+                { "@type": "Offer", name: "Enterprise", price: "599000", priceCurrency: "IDR" },
             ],
-            publisher: { "@id": `${siteUrl}/#organization` },
-        },
-        {
-            "@type": "WebSite",
-            "@id": `${siteUrl}/#website`,
-            url: siteUrl,
-            name: "Beres.io",
-            inLanguage: "id-ID",
             publisher: { "@id": `${siteUrl}/#organization` },
         },
     ],
 };
 
-// ── Root Layout ───────────────────────────────────────────────────────────────
 export default function RootLayout({
     children,
 }: Readonly<{
@@ -155,7 +155,9 @@ export default function RootLayout({
                     dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
                 />
             </head>
-            <body className={`${dmSans.variable} ${instrumentSerif.variable} font-sans antialiased bg-background relative overflow-x-hidden`}>
+            <body
+                className={`${dmSans.variable} ${instrumentSerif.variable} font-sans antialiased bg-background relative overflow-x-hidden`}
+            >
                 <LayoutProvider>
                     <Suspense fallback={null}>
                         <RouteLoadingIndicator />
@@ -168,4 +170,3 @@ export default function RootLayout({
         </html>
     );
 }
-

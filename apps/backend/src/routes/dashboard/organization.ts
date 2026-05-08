@@ -7,6 +7,7 @@ import { and, eq } from 'drizzle-orm'
 import { member, organization, roles } from '@beresio/db'
 import { getOrganizationBranchAggregate } from '../../lib/organization-aggregates'
 import { markOrganizationWriteDiscouraged } from '../../lib/scope-guard'
+import { parseJsonRecord } from '../../lib/safe-json'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
 type Variables = { db: any; user: any; session: any }
@@ -75,14 +76,7 @@ organizationRouter.get('/', authMiddleware, async (c) => {
         const org = orgRows[0]
         if (!org) return errors.notFound(c, 'Organization not found')
 
-        let parsedMetadata: unknown = null
-        if (org.metadata) {
-            try {
-                parsedMetadata = JSON.parse(org.metadata)
-            } catch {
-                parsedMetadata = org.metadata
-            }
-        }
+        const parsedMetadata = parseJsonRecord(org.metadata, {})
 
         const aggregate = await getOrganizationBranchAggregate(c, orgId)
 
@@ -173,12 +167,7 @@ organizationRouter.patch('/', authMiddleware, async (c) => {
         if (metadata !== undefined) {
             nextMetadata = JSON.stringify(metadata)
         } else if (timezone !== undefined || currency !== undefined) {
-            let parsed: Record<string, any> = {}
-            try {
-                parsed = orgRow.metadata ? JSON.parse(orgRow.metadata) : {}
-            } catch {
-                parsed = {}
-            }
+            const parsed = parseJsonRecord(orgRow.metadata, {})
             if (timezone !== undefined) parsed.timezone = timezone
             if (currency !== undefined) parsed.currency = currency
             nextMetadata = JSON.stringify(parsed)

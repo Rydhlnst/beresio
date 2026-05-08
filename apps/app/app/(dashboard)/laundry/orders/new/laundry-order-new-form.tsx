@@ -35,7 +35,7 @@ export default function LaundryOrderNewForm({ branches, services, customers }: L
     const [isPending, startTransition] = useTransition();
 
     const [branchId, setBranchId] = useState(branches[0]?.id ?? "");
-    const [orderType, setOrderType] = useState<"walk_in" | "pickup" | "drop_off">("walk_in");
+    const [orderType, setOrderType] = useState<"walk_in">("walk_in");
     const [customerId, setCustomerId] = useState<string>("");
     const [customerName, setCustomerName] = useState("");
     const [customerPhone, setCustomerPhone] = useState("");
@@ -135,12 +135,10 @@ export default function LaundryOrderNewForm({ branches, services, customers }: L
                     </select>
                     <select
                         value={orderType}
-                        onChange={(event) => setOrderType(event.target.value as "walk_in" | "pickup" | "drop_off")}
+                        onChange={(event) => setOrderType(event.target.value as "walk_in")}
                         className="h-9 rounded-md border px-3 text-sm"
                     >
                         <option value="walk_in">Walk-in</option>
-                        <option value="pickup">Pickup</option>
-                        <option value="drop_off">Drop-off</option>
                     </select>
                     <select
                         value={customerId}
@@ -184,6 +182,9 @@ export default function LaundryOrderNewForm({ branches, services, customers }: L
                     onChange={(event) => setNotes(event.target.value)}
                     className="mt-3 min-h-20 w-full rounded-md border px-3 py-2 text-sm"
                 />
+                <p className="mt-2 text-xs text-muted-foreground">
+                    Pickup/Drop-off eksternal wajib masuk melalui form customer (order intake), bukan create manual.
+                </p>
             </div>
 
             <div className="rounded-xl border bg-card p-4">

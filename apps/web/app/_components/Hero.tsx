@@ -32,7 +32,7 @@ export function Hero() {
                             Satu Platform.
                         </Heading>
                         <Text variant="lead" align="left">
-                            Beres.io menghadirkan solusi kasir, inventori, dan laporan keuangan dalam satu genggaman.
+                            Beres Cloud menghadirkan solusi kasir, inventori, dan laporan keuangan dalam satu genggaman.
                             Efisien, transparan, dan siap membantu bisnis Anda naik kelas.
                         </Text>
                     </div>
@@ -65,3 +65,4 @@ export function Hero() {
         </Section>
     );
 }
+

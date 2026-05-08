@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { z } from 'zod'
 import { authMiddleware } from '../../middleware/auth'
-import { getOrgId, getUserId } from '../../lib/auth-context'
+import { getUserId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
 import { and, desc, eq, ilike, inArray, sql } from 'drizzle-orm'
 import {
@@ -22,7 +22,7 @@ import {
     adjustVariantStockQuantity,
     recordVariantStockMovement,
 } from '../../lib/stock'
-import { getAccessibleBranchIds, getBranchAccessContext, hasBranchAccess } from '../../lib/branch-access'
+import { resolveAccessScope } from '../../lib/permissions'
 import { requireBranchContext } from '../../middleware/branch-context'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
@@ -81,17 +81,26 @@ function getValidationMessage(error: z.ZodError, fallback = 'Invalid payload') {
 
 export const inventoryRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
+async function resolveInventoryScope(c: any, branchId?: string | null) {
+    return resolveAccessScope(c, {
+        requestedBranchId: branchId ?? null,
+        requireBranchAccess: false,
+        noBranchAccessMessage: 'No branch access',
+    })
+}
+
 // GET /api/dashboard/inventory/products
 inventoryRouter.get('/products', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
-        const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId)
-        if (branchIds.length === 0 && !isOrgWide) return errors.forbidden(c, 'No branch access')
-        if (branchIds.length === 0 && isOrgWide) return ok(c, [])
-
         const search = c.req.query('search')?.trim()
         const branchId = c.req.query('branchId')
+        const scope = await resolveInventoryScope(c, branchId ?? null)
+        if (!scope.ok) return scope.response
+        const orgId = scope.value.orgId
+        const branchIds = scope.value.scopedBranchIds
+        if (branchIds.length === 0 && !scope.value.isOrgWide) return errors.forbidden(c, 'No branch access')
+        if (branchIds.length === 0 && scope.value.isOrgWide) return ok(c, [])
         const limit = Math.min(Number(c.req.query('limit') ?? DEFAULT_LIMIT), 200)
 
         const conditions = [eq(inventoryProducts.organizationId, orgId)]
@@ -120,15 +129,8 @@ inventoryRouter.get('/products', authMiddleware, async (c) => {
         const stockConditions = [
             eq(inventoryStocks.organizationId, orgId),
             inArray(inventoryStocks.productId, productIds),
+            inArray(inventoryStocks.branchId, branchIds),
         ]
-        if (branchId) {
-            if (!hasBranchAccess(branchIds, branchId)) {
-                return errors.forbidden(c, 'No access to branch')
-            }
-            stockConditions.push(eq(inventoryStocks.branchId, branchId))
-        } else {
-            stockConditions.push(inArray(inventoryStocks.branchId, branchIds))
-        }
 
         const stocks = await db
             .select({
@@ -170,9 +172,11 @@ inventoryRouter.get('/products', authMiddleware, async (c) => {
 inventoryRouter.delete('/products/:id', authMiddleware, requireBranchContext(), async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
-        const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId)
-        if (branchIds.length === 0 && !isOrgWide) return errors.forbidden(c, 'No branch access')
+        const scope = await resolveInventoryScope(c)
+        if (!scope.ok) return scope.response
+        const orgId = scope.value.orgId
+        const branchIds = scope.value.scopedBranchIds
+        if (branchIds.length === 0 && !scope.value.isOrgWide) return errors.forbidden(c, 'No branch access')
         const productId = c.req.param('id')
 
         const [existing] = await db
@@ -221,10 +225,12 @@ inventoryRouter.delete('/products/:id', authMiddleware, requireBranchContext(), 
 inventoryRouter.get('/adjustments', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
-        const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId)
-        if (branchIds.length === 0 && !isOrgWide) return errors.forbidden(c, 'No branch access')
-        if (branchIds.length === 0 && isOrgWide) return ok(c, [])
+        const scope = await resolveInventoryScope(c)
+        if (!scope.ok) return scope.response
+        const orgId = scope.value.orgId
+        const branchIds = scope.value.scopedBranchIds
+        if (branchIds.length === 0 && !scope.value.isOrgWide) return errors.forbidden(c, 'No branch access')
+        if (branchIds.length === 0 && scope.value.isOrgWide) return ok(c, [])
         const limit = Math.min(Number(c.req.query('limit') ?? DEFAULT_LIMIT), 200)
 
         const rows = await db
@@ -270,8 +276,12 @@ inventoryRouter.get('/adjustments', authMiddleware, async (c) => {
 inventoryRouter.post('/adjustments', authMiddleware, requireBranchContext(), async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
-        const branchIds = await getAccessibleBranchIds(c, orgId)
+        const body = await c.req.json().catch(() => null)
+        const requestedBranchId = typeof body?.branchId === 'string' ? body.branchId : null
+        const scope = await resolveInventoryScope(c, requestedBranchId)
+        if (!scope.ok) return scope.response
+        const orgId = scope.value.orgId
+        const branchIds = scope.value.scopedBranchIds
         if (branchIds.length === 0) return errors.forbidden(c, 'No branch access')
         const actorId = (() => {
             try {
@@ -280,7 +290,6 @@ inventoryRouter.post('/adjustments', authMiddleware, requireBranchContext(), asy
                 return null
             }
         })()
-        const body = await c.req.json().catch(() => null)
         const parsedBody = adjustmentBodySchema.safeParse(body)
         if (!parsedBody.success) {
             return errors.badRequest(c, getValidationMessage(parsedBody.error))
@@ -288,7 +297,7 @@ inventoryRouter.post('/adjustments', authMiddleware, requireBranchContext(), asy
 
         const { productId, branchId, quantityDelta, reason } = parsedBody.data
 
-        if (!hasBranchAccess(branchIds, branchId)) return errors.forbidden(c, 'No access to branch')
+        if (!branchIds.includes(branchId)) return errors.forbidden(c, 'No access to branch')
 
         const [productRow] = await db
             .select({ id: inventoryProducts.id })
@@ -344,10 +353,12 @@ inventoryRouter.post('/adjustments', authMiddleware, requireBranchContext(), asy
 inventoryRouter.get('/transfers', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
-        const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId)
-        if (branchIds.length === 0 && !isOrgWide) return errors.forbidden(c, 'No branch access')
-        if (branchIds.length === 0 && isOrgWide) return ok(c, [])
+        const scope = await resolveInventoryScope(c)
+        if (!scope.ok) return scope.response
+        const orgId = scope.value.orgId
+        const branchIds = scope.value.scopedBranchIds
+        if (branchIds.length === 0 && !scope.value.isOrgWide) return errors.forbidden(c, 'No branch access')
+        if (branchIds.length === 0 && scope.value.isOrgWide) return ok(c, [])
         const limit = Math.min(Number(c.req.query('limit') ?? DEFAULT_LIMIT), 200)
 
         const rows = await db
@@ -407,8 +418,11 @@ inventoryRouter.post(
     async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
-        const branchIds = await getAccessibleBranchIds(c, orgId)
+        const body = await c.req.json().catch(() => null)
+        const scope = await resolveInventoryScope(c)
+        if (!scope.ok) return scope.response
+        const orgId = scope.value.orgId
+        const branchIds = scope.value.accessibleBranchIds
         if (branchIds.length === 0) return errors.forbidden(c, 'No branch access')
         const requesterId = (() => {
             try {
@@ -417,7 +431,6 @@ inventoryRouter.post(
                 return null
             }
         })()
-        const body = await c.req.json().catch(() => null)
         const parsedBody = transferBodySchema.safeParse(body)
         if (!parsedBody.success) {
             return errors.badRequest(c, getValidationMessage(parsedBody.error))
@@ -425,7 +438,7 @@ inventoryRouter.post(
 
         const { productId, fromBranchId, toBranchId, quantity, note } = parsedBody.data
 
-        if (!hasBranchAccess(branchIds, fromBranchId) || !hasBranchAccess(branchIds, toBranchId)) {
+        if (!branchIds.includes(fromBranchId) || !branchIds.includes(toBranchId)) {
             return errors.forbidden(c, 'No access to branch')
         }
         if (fromBranchId === toBranchId) return errors.badRequest(c, 'fromBranchId and toBranchId must differ')
@@ -489,8 +502,10 @@ inventoryRouter.post(
 inventoryRouter.patch('/transfers/:id', authMiddleware, requireBranchContext(), async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
-        const branchIds = await getAccessibleBranchIds(c, orgId)
+        const scope = await resolveInventoryScope(c)
+        if (!scope.ok) return scope.response
+        const orgId = scope.value.orgId
+        const branchIds = scope.value.accessibleBranchIds
         if (branchIds.length === 0) return errors.forbidden(c, 'No branch access')
         const transferId = c.req.param('id')
         const body = await c.req.json().catch(() => null)
@@ -507,7 +522,7 @@ inventoryRouter.patch('/transfers/:id', authMiddleware, requireBranchContext(), 
             .limit(1)
 
         if (!transferRow) return errors.notFound(c, 'Transfer not found')
-        if (!hasBranchAccess(branchIds, transferRow.fromBranchId) || !hasBranchAccess(branchIds, transferRow.toBranchId)) {
+        if (!branchIds.includes(transferRow.fromBranchId) || !branchIds.includes(transferRow.toBranchId)) {
             return errors.forbidden(c, 'No access to branch')
         }
         if (transferRow.status !== 'pending') return errors.badRequest(c, 'Transfer already processed')
@@ -583,23 +598,20 @@ inventoryRouter.patch('/transfers/:id', authMiddleware, requireBranchContext(), 
 inventoryRouter.get('/movements', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
-        const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId)
-        if (branchIds.length === 0 && !isOrgWide) return errors.forbidden(c, 'No branch access')
-        if (branchIds.length === 0 && isOrgWide) return ok(c, [])
         const branchId = c.req.query('branchId')
+        const scope = await resolveInventoryScope(c, branchId ?? null)
+        if (!scope.ok) return scope.response
+        const orgId = scope.value.orgId
+        const branchIds = scope.value.scopedBranchIds
+        if (branchIds.length === 0 && !scope.value.isOrgWide) return errors.forbidden(c, 'No branch access')
+        if (branchIds.length === 0 && scope.value.isOrgWide) return ok(c, [])
         const productId = c.req.query('productId')
         const limit = Math.min(Number(c.req.query('limit') ?? DEFAULT_LIMIT), 200)
 
-        const conditions = [eq(stockMovements.organizationId, orgId)]
-        if (branchId) {
-            if (!hasBranchAccess(branchIds, branchId)) {
-                return errors.forbidden(c, 'No access to branch')
-            }
-            conditions.push(eq(stockMovements.branchId, branchId))
-        } else {
-            conditions.push(inArray(stockMovements.branchId, branchIds))
-        }
+        const conditions = [
+            eq(stockMovements.organizationId, orgId),
+            inArray(stockMovements.branchId, branchIds),
+        ]
         if (productId) conditions.push(eq(stockMovements.productId, productId))
 
         const rows = await db
@@ -646,10 +658,13 @@ inventoryRouter.get('/movements', authMiddleware, async (c) => {
 inventoryRouter.patch('/stocks/threshold', authMiddleware, requireBranchContext(), async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
-        const branchIds = await getAccessibleBranchIds(c, orgId)
-        if (branchIds.length === 0) return errors.forbidden(c, 'No branch access')
         const body = await c.req.json().catch(() => null)
+        const requestedBranchId = typeof body?.branchId === 'string' ? body.branchId : null
+        const scope = await resolveInventoryScope(c, requestedBranchId)
+        if (!scope.ok) return scope.response
+        const orgId = scope.value.orgId
+        const branchIds = scope.value.scopedBranchIds
+        if (branchIds.length === 0) return errors.forbidden(c, 'No branch access')
         const parsedBody = thresholdBodySchema.safeParse(body)
         if (!parsedBody.success) {
             return errors.badRequest(c, getValidationMessage(parsedBody.error))
@@ -657,7 +672,7 @@ inventoryRouter.patch('/stocks/threshold', authMiddleware, requireBranchContext(
 
         const { productId, branchId, minThreshold } = parsedBody.data
 
-        if (!hasBranchAccess(branchIds, branchId)) {
+        if (!branchIds.includes(branchId)) {
             return errors.forbidden(c, 'No access to branch')
         }
 
@@ -697,24 +712,21 @@ inventoryRouter.patch('/stocks/threshold', authMiddleware, requireBranchContext(
 inventoryRouter.get('/variant-stocks', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
-        const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId)
-        if (branchIds.length === 0 && !isOrgWide) return errors.forbidden(c, 'No branch access')
-        if (branchIds.length === 0 && isOrgWide) return ok(c, [])
         const branchId = c.req.query('branchId')
+        const scope = await resolveInventoryScope(c, branchId ?? null)
+        if (!scope.ok) return scope.response
+        const orgId = scope.value.orgId
+        const branchIds = scope.value.scopedBranchIds
+        if (branchIds.length === 0 && !scope.value.isOrgWide) return errors.forbidden(c, 'No branch access')
+        if (branchIds.length === 0 && scope.value.isOrgWide) return ok(c, [])
         const productId = c.req.query('productId')
         const variantId = c.req.query('variantId')
         const limit = Math.min(Number(c.req.query('limit') ?? DEFAULT_LIMIT), 200)
 
-        const conditions = [eq(inventoryVariantStocks.organizationId, orgId)]
-        if (branchId) {
-            if (!hasBranchAccess(branchIds, branchId)) {
-                return errors.forbidden(c, 'No access to branch')
-            }
-            conditions.push(eq(inventoryVariantStocks.branchId, branchId))
-        } else {
-            conditions.push(inArray(inventoryVariantStocks.branchId, branchIds))
-        }
+        const conditions = [
+            eq(inventoryVariantStocks.organizationId, orgId),
+            inArray(inventoryVariantStocks.branchId, branchIds),
+        ]
         if (variantId) conditions.push(eq(inventoryVariantStocks.variantId, variantId))
         if (productId) conditions.push(eq(productVariants.productId, productId))
 
@@ -767,8 +779,12 @@ inventoryRouter.get('/variant-stocks', authMiddleware, async (c) => {
 inventoryRouter.post('/variant-stocks/adjust', authMiddleware, requireBranchContext(), async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
-        const branchIds = await getAccessibleBranchIds(c, orgId)
+        const body = await c.req.json().catch(() => null)
+        const requestedBranchId = typeof body?.branchId === 'string' ? body.branchId : null
+        const scope = await resolveInventoryScope(c, requestedBranchId)
+        if (!scope.ok) return scope.response
+        const orgId = scope.value.orgId
+        const branchIds = scope.value.scopedBranchIds
         if (branchIds.length === 0) return errors.forbidden(c, 'No branch access')
         const actorId = (() => {
             try {
@@ -777,7 +793,6 @@ inventoryRouter.post('/variant-stocks/adjust', authMiddleware, requireBranchCont
                 return null
             }
         })()
-        const body = await c.req.json().catch(() => null)
         const parsedBody = variantAdjustBodySchema.safeParse(body)
         if (!parsedBody.success) {
             return errors.badRequest(c, getValidationMessage(parsedBody.error))
@@ -785,7 +800,7 @@ inventoryRouter.post('/variant-stocks/adjust', authMiddleware, requireBranchCont
 
         const { variantId, branchId, quantityDelta, reason } = parsedBody.data
 
-        if (!hasBranchAccess(branchIds, branchId)) return errors.forbidden(c, 'No access to branch')
+        if (!branchIds.includes(branchId)) return errors.forbidden(c, 'No access to branch')
 
         const [variantRow] = await db
             .select({ id: productVariants.id })
@@ -830,10 +845,13 @@ inventoryRouter.post('/variant-stocks/adjust', authMiddleware, requireBranchCont
 inventoryRouter.patch('/variant-stocks/threshold', authMiddleware, requireBranchContext(), async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
-        const branchIds = await getAccessibleBranchIds(c, orgId)
-        if (branchIds.length === 0) return errors.forbidden(c, 'No branch access')
         const body = await c.req.json().catch(() => null)
+        const requestedBranchId = typeof body?.branchId === 'string' ? body.branchId : null
+        const scope = await resolveInventoryScope(c, requestedBranchId)
+        if (!scope.ok) return scope.response
+        const orgId = scope.value.orgId
+        const branchIds = scope.value.scopedBranchIds
+        if (branchIds.length === 0) return errors.forbidden(c, 'No branch access')
         const parsedBody = variantThresholdBodySchema.safeParse(body)
         if (!parsedBody.success) {
             return errors.badRequest(c, getValidationMessage(parsedBody.error))
@@ -841,7 +859,7 @@ inventoryRouter.patch('/variant-stocks/threshold', authMiddleware, requireBranch
 
         const { variantId, branchId, minThreshold } = parsedBody.data
 
-        if (!hasBranchAccess(branchIds, branchId)) {
+        if (!branchIds.includes(branchId)) {
             return errors.forbidden(c, 'No access to branch')
         }
 

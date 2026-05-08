@@ -6,7 +6,7 @@ export const metadata: Metadata = seoMetadata({
     title: "Solusi Bisnis Digital Terpadu untuk UMKM",
     path: "/",
     description:
-        "Beres.io menghadirkan kasir digital, inventori, laporan, dan manajemen operasional untuk UMKM Indonesia dalam satu platform cloud.",
+        "Beres Cloud menghadirkan kasir digital, inventori, laporan, dan manajemen operasional untuk UMKM Indonesia dalam satu platform cloud.",
 });
 
 export default function Page() {

@@ -8,6 +8,7 @@ import { UpgradeBanner } from "./upgrade-banner";
 import { FnbLiveRefreshClient } from "../realtime/fnb-live-refresh-client";
 import type { OrgSwitcherItem } from "./org-switcher";
 import type { BusinessNavItem } from "./nav-config";
+import { OnboardingWelcomeBanner, type DashboardOnboardingState } from "@/components/dashboard/onboarding/onboarding-dashboard-client";
 
 interface DashboardShellProps {
     children: React.ReactNode;
@@ -28,6 +29,7 @@ interface DashboardShellProps {
     isNavLoading?: boolean;
     businessName?: string | null;
     businessType?: string | null;
+    onboarding?: DashboardOnboardingState | null;
 }
 
 export function DashboardShell({
@@ -45,6 +47,7 @@ export function DashboardShell({
     isNavLoading,
     businessName,
     businessType,
+    onboarding,
 }: DashboardShellProps) {
     const [isBannerDismissed, setIsBannerDismissed] = useState(false);
     
@@ -75,6 +78,7 @@ export function DashboardShell({
                         isNavLoading={isNavLoading}
                         businessName={businessName}
                         businessType={businessType}
+                        onboarding={onboarding}
                     />
                     <SidebarInset className="flex-1 overflow-hidden bg-secondary/25">
                         <FnbLiveRefreshClient businessType={businessType} />
@@ -92,6 +96,7 @@ export function DashboardShell({
                             style={{ minHeight: `calc(100vh - ${bannerHeight} - 64px)` }}
                         >
                             <div className="mx-auto w-full max-w-7xl 2xl:max-w-[1400px] p-4 lg:p-6">
+                                <OnboardingWelcomeBanner state={onboarding ?? null} />
                                 {children}
                             </div>
                         </main>

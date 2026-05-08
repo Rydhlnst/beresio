@@ -9,14 +9,8 @@ const STEPS = [
   {
     key: "org",
     title: "Profil Usaha",
-    helper: "Data organisasi",
+    helper: "Data bisnis",
     matcher: "/onboarding/org",
-  },
-  {
-    key: "mode",
-    title: "Mode Bisnis",
-    helper: "Single vs Multi",
-    matcher: "/onboarding/mode",
   },
   {
     key: "branch",
@@ -25,8 +19,14 @@ const STEPS = [
     matcher: "/onboarding/branch",
   },
   {
+    key: "products",
+    title: "Produk Awal",
+    helper: "Opsional",
+    matcher: "/onboarding/products",
+  },
+  {
     key: "team",
-    title: "Invite Team",
+    title: "Undang Tim",
     helper: "Opsional",
     matcher: "/onboarding/team",
   },
@@ -44,7 +44,7 @@ export function OnboardingProgress() {
       <div className="flex items-center justify-between gap-4">
         <p className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">Onboarding Setup</p>
         <p className="text-xs font-medium text-muted-foreground">
-          Step {resolvedIndex + 1} of {STEPS.length}
+          Step {resolvedIndex + 1} dari {STEPS.length}
         </p>
       </div>
 

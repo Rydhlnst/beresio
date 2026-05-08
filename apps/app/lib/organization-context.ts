@@ -26,11 +26,13 @@ export async function getActiveOrganizationContext(): Promise<ActiveOrganization
     const orgData = await authInstance.api.listOrganizations({ headers: reqHeaders });
     const organizations = (orgData ?? []) as OrgRecord[];
     if (organizations.length === 0) return null;
+    const firstOrganization = organizations[0];
+    if (!firstOrganization) return null;
 
     const activeOrganizationId =
-        (session as any)?.activeOrganizationId ?? organizations[0]?.id;
+        (session as any)?.activeOrganizationId ?? firstOrganization.id;
     const activeOrganization =
-        organizations.find((org) => org.id === activeOrganizationId) ?? organizations[0];
+        organizations.find((org) => org.id === activeOrganizationId) ?? firstOrganization;
 
     return {
         id: activeOrganization.id,

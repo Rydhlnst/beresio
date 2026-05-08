@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+﻿import { describe, expect, it, vi } from "vitest";
 import { createDbMock, createTestApp } from "./test-utils";
 
 vi.mock("../../middleware/auth", () => ({
@@ -24,7 +24,7 @@ describe("pickup routes deprecation", () => {
         const app = createPickupApp(createDbMock());
 
         const res = await app.request("/api/dashboard/pickup");
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(410);
         expect(res.headers.get("x-deprecated")).toBe("true");
@@ -45,7 +45,7 @@ describe("pickup routes deprecation", () => {
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ status: "Dikonfirmasi" }),
         });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(410);
         expect(body.code).toBe("LEGACY_PICKUP_DEPRECATED");
@@ -63,10 +63,11 @@ describe("pickup routes deprecation", () => {
             undefined,
             { ENABLE_LEGACY_PICKUP_ROUTES: "true" } as any
         );
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
         expect(body.data).toEqual([]);
     });
 });
+

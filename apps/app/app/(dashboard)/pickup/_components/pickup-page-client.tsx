@@ -176,11 +176,13 @@ export function PickupPageClient({ orders: ordersInput }: PickupPageClientProps)
 
     useEffect(() => {
         if (!selectedId && orders.length > 0) {
-            setSelectedId(orders[0].id);
+            const first = orders[0];
+            if (first) setSelectedId(first.id);
             return;
         }
         if (selectedId && !orders.find((order) => order.id === selectedId) && orders.length > 0) {
-            setSelectedId(orders[0].id);
+            const first = orders[0];
+            if (first) setSelectedId(first.id);
         }
     }, [orders, selectedId]);
 

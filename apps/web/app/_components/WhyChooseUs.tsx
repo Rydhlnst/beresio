@@ -300,7 +300,7 @@ export function WhyChooseUs() {
                         <span className="text-muted-foreground tracking-tight">Semua Urusan Jadi Beres.</span>
                     </Heading>
                     <Text variant="lead">
-                        Beres.io bukan hanya kasir. Kami adalah ekosistem lengkap untuk pertumbuhan bisnis Anda, dari operasional meja hingga laporan keuangan.
+                        Beres Cloud bukan hanya kasir. Kami adalah ekosistem lengkap untuk pertumbuhan bisnis Anda, dari operasional meja hingga laporan keuangan.
                     </Text>
                 </div>
             </div>
@@ -335,12 +335,13 @@ export function WhyChooseUs() {
 
             <SectionCTA
                 title="Siap Tumbuh Lebih Terorganisir?"
-                description="Daftar wishlist sekarang dan amankan slot VIP Anda. Bergabunglah dengan ratusan pengusaha yang siap mengotomatisasi operasional mereka."
-                primaryLabel="Ingatkan Saya Saat Launching"
-                primaryHref="/wishlist"
+                description="Konsultasikan kebutuhan operasional dan rencana aktivasi billing Anda melalui kanal resmi Beres Cloud."
+                primaryLabel="Hubungi Tim Onboarding"
+                primaryHref="/sales"
                 secondaryLabel="Lihat Jadwal Demo"
                 secondaryHref="/demo"
             />
         </Section>
     )
 }
+

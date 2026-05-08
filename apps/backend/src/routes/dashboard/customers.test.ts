@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+﻿import { describe, expect, it, vi } from "vitest";
 import { createDbMock, createTestApp } from "./test-utils";
 
 vi.mock("../../middleware/auth", () => ({
@@ -36,7 +36,7 @@ describe("customers routes", () => {
         const app = createCustomersApp(db);
 
         const res = await app.request("/api/dashboard/customers?q=ann");
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
@@ -56,7 +56,7 @@ describe("customers routes", () => {
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ name: "Only Name" }),
         });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(400);
         expect(body.success).toBe(false);
@@ -69,7 +69,7 @@ describe("customers routes", () => {
         const app = createCustomersApp(db);
 
         const res = await app.request("/api/dashboard/customers/cus-missing");
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(404);
         expect(body.success).toBe(false);
@@ -84,7 +84,7 @@ describe("customers routes", () => {
             headers: { "content-type": "application/json" },
             body: JSON.stringify({}),
         });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(400);
         expect(body.success).toBe(false);
@@ -99,7 +99,7 @@ describe("customers routes", () => {
         });
 
         const res = await app.request("/api/dashboard/customers");
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(500);
         expect(body.success).toBe(false);
@@ -107,3 +107,4 @@ describe("customers routes", () => {
         expect(body.error.message).toBe("Internal server error");
     });
 });
+

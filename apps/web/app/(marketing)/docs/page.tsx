@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 
 export const metadata: Metadata = {
     title: "Dokumentasi - Panduan Lengkap",
-    description: "Dokumentasi lengkap Beres.io. Panduan setup, tutorial penggunaan, API reference, dan FAQ untuk membantu Anda memaksimalkan platform.",
+    description: "Dokumentasi lengkap Beres Cloud. Panduan setup, tutorial penggunaan, API reference, dan FAQ untuk membantu Anda memaksimalkan platform.",
 };
 
 const CATEGORIES = [
@@ -36,7 +36,7 @@ const CATEGORIES = [
         title: "Video Tutorial",
         icon: PlayCircle,
         items: [
-            { label: "Beres.io Basics", href: "/tutorial" },
+            { label: "Beres Cloud Basics", href: "/tutorial" },
             { label: "Setup Inventory", href: "/tutorial" },
             { label: "Advanced Reporting", href: "/tutorial" },
             { label: "Multi-Outlet Setup", href: "/tutorial" },
@@ -67,7 +67,7 @@ export default function DocsPage() {
                 badgeLabel="Pusat Bantuan"
                 title="Dokumentasi"
                 subtitle="Panduan Lengkap"
-                description="Semua yang perlu Anda ketahui untuk menggunakan Beres.io secara maksimal. Dari setup awal sampai fitur advanced."
+                description="Semua yang perlu Anda ketahui untuk menggunakan Beres Cloud secara maksimal. Dari setup awal sampai fitur advanced."
                 primaryCta={{ label: "Mulai Belajar", href: "#categories" }}
                 secondaryCta={{ label: "Video Tutorial", href: "/tutorial" }}
                 align="center"
@@ -143,7 +143,7 @@ export default function DocsPage() {
                 <div className="flex flex-col items-center gap-6 text-center">
                     <Heading as="h2">Siap Mulai?</Heading>
                     <Text variant="lead" align="center" className="max-w-2xl">
-                        Bergabung dengan Beres.io dan mulai kelola bisnis Anda dengan lebih baik.
+                        Bergabung dengan Beres Cloud dan mulai kelola bisnis Anda dengan lebih baik.
                     </Text>
                     <div className="flex flex-wrap items-center justify-center gap-4">
                         <Button size="lg" className="rounded-2xl px-8" asChild>

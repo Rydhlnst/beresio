@@ -7,6 +7,7 @@ import { getActiveOrganizationContext } from "@/lib/organization-context";
 import { apiClient } from "@/lib/api-client";
 import { PageErrorState } from "@/components/dashboard/shared/page-error-state";
 import { ErrorRetryAction } from "@/components/dashboard/shared/error-retry-action";
+import IncomingOrderIntakesClient from "./incoming-order-intakes-client";
 
 export const metadata: Metadata = {
     title: "Laundry Orders",
@@ -44,7 +45,7 @@ export default async function LaundryOrdersPage({ searchParams }: { searchParams
 
     const rpc = apiClient as any;
     const cookie = (await headers()).get("cookie") || "";
-    const [ordersRes, branchesRes] = await Promise.all([
+    const [ordersRes, branchesRes, incomingIntakesRes] = await Promise.all([
         rpc.api.dashboard.laundry.orders.$get(
             {
                 query: {
@@ -59,6 +60,16 @@ export default async function LaundryOrdersPage({ searchParams }: { searchParams
             { headers: { cookie } }
         ),
         rpc.api.dashboard.branches.$get(undefined, { headers: { cookie } }),
+        rpc.api.dashboard.laundry["order-intakes"].$get(
+            {
+                query: {
+                    branchId: resolvedSearchParams.branchId,
+                    status: "pending_verification",
+                    limit: "30",
+                },
+            },
+            { headers: { cookie } }
+        ),
     ]);
 
     if (!ordersRes.ok || !branchesRes.ok) {
@@ -81,8 +92,12 @@ export default async function LaundryOrdersPage({ searchParams }: { searchParams
 
     const ordersBody = (await ordersRes.json().catch(() => ({}))) as any;
     const branchesBody = (await branchesRes.json().catch(() => ({}))) as any;
+    const incomingIntakesBody = incomingIntakesRes.ok
+        ? (await incomingIntakesRes.json().catch(() => ({}))) as any
+        : {};
     const orders = normalizeApiList(ordersBody);
     const branches = normalizeApiList(branchesBody);
+    const incomingIntakes = normalizeApiList(incomingIntakesBody);
 
     return (
         <div className="space-y-6">
@@ -114,9 +129,13 @@ export default async function LaundryOrdersPage({ searchParams }: { searchParams
                 </select>
                 <select name="status" defaultValue={resolvedSearchParams.status ?? ""} className="h-9 rounded-md border px-3 text-sm">
                     <option value="">Semua status</option>
-                    <option value="received">Received</option>
-                    <option value="processing">Processing</option>
-                    <option value="ready_for_pickup">Ready for pickup</option>
+                    <option value="created">Created</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="pickup_requested">Pickup requested</option>
+                    <option value="picked_up">Picked up</option>
+                    <option value="washing">Washing</option>
+                    <option value="drying">Drying</option>
+                    <option value="ready">Ready</option>
                     <option value="out_for_delivery">Out for delivery</option>
                     <option value="completed">Completed</option>
                     <option value="cancelled">Cancelled</option>
@@ -138,6 +157,8 @@ export default async function LaundryOrdersPage({ searchParams }: { searchParams
                     </Button>
                 </div>
             </form>
+
+            <IncomingOrderIntakesClient intakes={incomingIntakes} />
 
             <div className="overflow-x-auto rounded-xl border">
                 <table className="min-w-full text-sm">

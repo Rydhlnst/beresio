@@ -1,10 +1,9 @@
 import { Hono } from 'hono'
 import { authMiddleware } from '../../middleware/auth'
-import { getOrgId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
 import { and, eq, gte, inArray, sql } from 'drizzle-orm'
-import { branches, orderItems, orders, payments } from '@beresio/db'
-import { getBranchAccessContext, hasBranchAccess } from '../../lib/branch-access'
+import { activityLogs, branches, orderItems, orders, payments, user } from '@beresio/db'
+import { resolveAccessScope } from '../../lib/permissions'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
 type Variables = { db: any; user: any; session: any }
@@ -15,40 +14,22 @@ function resolveTimeRangeDays(timeRange: string | undefined) {
     return timeRange === '30d' ? 30 : 7
 }
 
-async function resolveBranchScope(c: any, orgId: string, requestedBranchId?: string | null) {
-    const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId)
-    if (branchIds.length === 0 && !isOrgWide) {
-        return { ok: false as const, response: errors.forbidden(c, 'No branch access') }
-    }
-
-    if (requestedBranchId && !isOrgWide && !hasBranchAccess(branchIds, requestedBranchId)) {
-        return { ok: false as const, response: errors.forbidden(c, 'No access to branch') }
-    }
-
-    const scopedBranchIds = requestedBranchId ? [requestedBranchId] : branchIds
-    if (scopedBranchIds.length === 0) {
-        return { ok: true as const, scopedBranchIds: [] }
-    }
-
-    return { ok: true as const, scopedBranchIds }
+async function resolveBranchScope(c: any, requestedBranchId?: string | null) {
+    return resolveAccessScope(c, {
+        requestedBranchId: requestedBranchId ?? null,
+        requireBranchAccess: true,
+    })
 }
 
 // GET /api/dashboard/performance/trend?timeRange=7d|30d&branchId=...
 performanceRouter.get('/trend', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        let orgId: string
-        try {
-            orgId = await getOrgId(c)
-        } catch {
-            return errors.unauthorized(c, 'No organization context')
-        }
-
         const branchId = c.req.query('branchId') ?? null
-        const scoped = await resolveBranchScope(c, orgId, branchId)
+        const scoped = await resolveBranchScope(c, branchId)
         if (!scoped.ok) return scoped.response
 
-        if (scoped.scopedBranchIds.length === 0) return ok(c, [], { timeRange: c.req.query('timeRange') ?? '7d' })
+        if (scoped.value.scopedBranchIds.length === 0) return ok(c, [], { timeRange: c.req.query('timeRange') ?? '7d' })
 
         const timeRange = c.req.query('timeRange') ?? '7d'
         const days = resolveTimeRangeDays(timeRange)
@@ -63,9 +44,9 @@ performanceRouter.get('/trend', authMiddleware, async (c) => {
             .from(payments)
             .where(
                 and(
-                    eq(payments.organizationId, orgId),
+                    eq(payments.organizationId, scoped.value.orgId),
                     eq(payments.status, 'SUCCESS'),
-                    inArray(payments.branchId, scoped.scopedBranchIds),
+                    inArray(payments.branchId, scoped.value.scopedBranchIds),
                     gte(payments.createdAt, since)
                 )
             )
@@ -86,16 +67,9 @@ performanceRouter.get('/trend', authMiddleware, async (c) => {
 performanceRouter.get('/trend-by-branch', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        let orgId: string
-        try {
-            orgId = await getOrgId(c)
-        } catch {
-            return errors.unauthorized(c, 'No organization context')
-        }
-
-        const scoped = await resolveBranchScope(c, orgId)
+        const scoped = await resolveBranchScope(c)
         if (!scoped.ok) return scoped.response
-        if (scoped.scopedBranchIds.length === 0) return ok(c, [])
+        if (scoped.value.scopedBranchIds.length === 0) return ok(c, [])
 
         const timeRange = c.req.query('timeRange') ?? '7d'
         const days = resolveTimeRangeDays(timeRange)
@@ -112,9 +86,9 @@ performanceRouter.get('/trend-by-branch', authMiddleware, async (c) => {
             .from(payments)
             .innerJoin(branches, eq(payments.branchId, branches.id))
             .where(and(
-                eq(payments.organizationId, orgId),
+                eq(payments.organizationId, scoped.value.orgId),
                 eq(payments.status, 'SUCCESS'),
-                inArray(payments.branchId, scoped.scopedBranchIds),
+                inArray(payments.branchId, scoped.value.scopedBranchIds),
                 gte(payments.createdAt, since)
             ))
             .groupBy(sql`date_trunc('day', ${payments.createdAt})::date`, payments.branchId, branches.name)
@@ -136,16 +110,9 @@ performanceRouter.get('/trend-by-branch', authMiddleware, async (c) => {
 performanceRouter.get('/branches', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        let orgId: string
-        try {
-            orgId = await getOrgId(c)
-        } catch {
-            return errors.unauthorized(c, 'No organization context')
-        }
-
-        const scoped = await resolveBranchScope(c, orgId)
+        const scoped = await resolveBranchScope(c)
         if (!scoped.ok) return scoped.response
-        if (scoped.scopedBranchIds.length === 0) return ok(c, [])
+        if (scoped.value.scopedBranchIds.length === 0) return ok(c, [])
 
         const rows = await db
             .select({
@@ -159,12 +126,12 @@ performanceRouter.get('/branches', authMiddleware, async (c) => {
             .from(branches)
             .leftJoin(payments, and(
                 eq(payments.branchId, branches.id),
-                eq(payments.organizationId, orgId),
+                eq(payments.organizationId, scoped.value.orgId),
                 eq(payments.status, 'SUCCESS')
             ))
             .where(and(
-                eq(branches.organizationId, orgId),
-                inArray(branches.id, scoped.scopedBranchIds)
+                eq(branches.organizationId, scoped.value.orgId),
+                inArray(branches.id, scoped.value.scopedBranchIds)
             ))
             .groupBy(branches.id, branches.code, branches.name, branches.isActive)
             .orderBy(sql`SUM(${payments.amount}) DESC NULLS LAST`, branches.name)
@@ -188,17 +155,10 @@ performanceRouter.get('/branches', authMiddleware, async (c) => {
 performanceRouter.get('/orders-by-type', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        let orgId: string
-        try {
-            orgId = await getOrgId(c)
-        } catch {
-            return errors.unauthorized(c, 'No organization context')
-        }
-
         const branchId = c.req.query('branchId') ?? null
-        const scoped = await resolveBranchScope(c, orgId, branchId)
+        const scoped = await resolveBranchScope(c, branchId)
         if (!scoped.ok) return scoped.response
-        if (scoped.scopedBranchIds.length === 0) return ok(c, [])
+        if (scoped.value.scopedBranchIds.length === 0) return ok(c, [])
 
         const rows = await db
             .select({
@@ -207,8 +167,8 @@ performanceRouter.get('/orders-by-type', authMiddleware, async (c) => {
             })
             .from(orders)
             .where(and(
-                eq(orders.organizationId, orgId),
-                inArray(orders.branchId, scoped.scopedBranchIds)
+                eq(orders.organizationId, scoped.value.orgId),
+                inArray(orders.branchId, scoped.value.scopedBranchIds)
             ))
             .groupBy(orders.type)
             .orderBy(sql`COUNT(*) DESC`)
@@ -227,17 +187,10 @@ performanceRouter.get('/orders-by-type', authMiddleware, async (c) => {
 performanceRouter.get('/hourly-sales', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        let orgId: string
-        try {
-            orgId = await getOrgId(c)
-        } catch {
-            return errors.unauthorized(c, 'No organization context')
-        }
-
         const branchId = c.req.query('branchId') ?? null
-        const scoped = await resolveBranchScope(c, orgId, branchId)
+        const scoped = await resolveBranchScope(c, branchId)
         if (!scoped.ok) return scoped.response
-        if (scoped.scopedBranchIds.length === 0) return ok(c, [])
+        if (scoped.value.scopedBranchIds.length === 0) return ok(c, [])
 
         const today = new Date()
         today.setHours(0, 0, 0, 0)
@@ -250,9 +203,9 @@ performanceRouter.get('/hourly-sales', authMiddleware, async (c) => {
             })
             .from(payments)
             .where(and(
-                eq(payments.organizationId, orgId),
+                eq(payments.organizationId, scoped.value.orgId),
                 eq(payments.status, 'SUCCESS'),
-                inArray(payments.branchId, scoped.scopedBranchIds),
+                inArray(payments.branchId, scoped.value.scopedBranchIds),
                 gte(payments.createdAt, today)
             ))
             .groupBy(sql`EXTRACT(HOUR FROM ${payments.createdAt})`)
@@ -273,17 +226,10 @@ performanceRouter.get('/hourly-sales', authMiddleware, async (c) => {
 performanceRouter.get('/top-products', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        let orgId: string
-        try {
-            orgId = await getOrgId(c)
-        } catch {
-            return errors.unauthorized(c, 'No organization context')
-        }
-
         const branchId = c.req.query('branchId') ?? null
-        const scoped = await resolveBranchScope(c, orgId, branchId)
+        const scoped = await resolveBranchScope(c, branchId)
         if (!scoped.ok) return scoped.response
-        if (scoped.scopedBranchIds.length === 0) return ok(c, [])
+        if (scoped.value.scopedBranchIds.length === 0) return ok(c, [])
 
         const limit = Math.min(Math.max(Number(c.req.query('limit') ?? 5), 1), 20)
         const since = new Date()
@@ -298,8 +244,8 @@ performanceRouter.get('/top-products', authMiddleware, async (c) => {
             .from(orderItems)
             .innerJoin(orders, eq(orderItems.orderId, orders.id))
             .where(and(
-                eq(orders.organizationId, orgId),
-                inArray(orders.branchId, scoped.scopedBranchIds),
+                eq(orders.organizationId, scoped.value.orgId),
+                inArray(orders.branchId, scoped.value.scopedBranchIds),
                 gte(orders.createdAt, since)
             ))
             .groupBy(orderItems.name)
@@ -313,6 +259,157 @@ performanceRouter.get('/top-products', authMiddleware, async (c) => {
         })))
     } catch (err: any) {
         console.error('[performance/top-products]', err)
+        return errors.internal(c, err.message)
+    }
+})
+
+// GET /api/dashboard/performance/branch-overview?branchId=...&topLimit=5&activityLimit=10
+performanceRouter.get('/branch-overview', authMiddleware, async (c) => {
+    try {
+        const db = c.get('db')
+        const branchId = c.req.query('branchId') ?? null
+        if (!branchId) {
+            return errors.badRequest(c, 'branchId is required')
+        }
+
+        const scoped = await resolveBranchScope(c, branchId)
+        if (!scoped.ok) return scoped.response
+        if (scoped.value.scopedBranchIds.length === 0) {
+            return ok(c, {
+                hourlySales: [],
+                topProducts: [],
+                activities: [],
+            })
+        }
+
+        const topLimit = Math.min(Math.max(Number(c.req.query('topLimit') ?? 5), 1), 20)
+        const activityLimit = Math.min(Math.max(Number(c.req.query('activityLimit') ?? 10), 1), 50)
+
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        const since = new Date()
+        since.setDate(since.getDate() - 7)
+        const activitySince = new Date()
+        activitySince.setDate(activitySince.getDate() - 30)
+
+        const [hourlyRows, topRows, directActivityRows] = await Promise.all([
+            db
+                .select({
+                    hour: sql<number>`EXTRACT(HOUR FROM ${payments.createdAt})`,
+                    revenue: sql<number>`COALESCE(SUM(${payments.amount}), 0)`,
+                    orderCount: sql<number>`COUNT(${payments.id})`,
+                })
+                .from(payments)
+                .where(and(
+                    eq(payments.organizationId, scoped.value.orgId),
+                    eq(payments.status, 'SUCCESS'),
+                    inArray(payments.branchId, scoped.value.scopedBranchIds),
+                    gte(payments.createdAt, today)
+                ))
+                .groupBy(sql`EXTRACT(HOUR FROM ${payments.createdAt})`)
+                .orderBy(sql`EXTRACT(HOUR FROM ${payments.createdAt})`),
+            db
+                .select({
+                    productName: orderItems.name,
+                    totalQuantity: sql<number>`COALESCE(SUM(${orderItems.quantity}), 0)`,
+                    totalRevenue: sql<number>`COALESCE(SUM(${orderItems.totalPrice}), 0)`,
+                })
+                .from(orderItems)
+                .innerJoin(orders, eq(orderItems.orderId, orders.id))
+                .where(and(
+                    eq(orders.organizationId, scoped.value.orgId),
+                    inArray(orders.branchId, scoped.value.scopedBranchIds),
+                    gte(orders.createdAt, since)
+                ))
+                .groupBy(orderItems.name)
+                .orderBy(sql`SUM(${orderItems.quantity}) DESC`)
+                .limit(topLimit),
+            db
+                .select({
+                    id: activityLogs.id,
+                    type: activityLogs.type,
+                    level: activityLogs.level,
+                    description: activityLogs.description,
+                    actorId: activityLogs.actorId,
+                    actorName: user.name,
+                    entityType: activityLogs.entityType,
+                    entityId: activityLogs.entityId,
+                    metadata: activityLogs.metadata,
+                    createdAt: activityLogs.createdAt,
+                })
+                .from(activityLogs)
+                .leftJoin(user, eq(activityLogs.actorId, user.id))
+                .where(and(
+                    eq(activityLogs.organizationId, scoped.value.orgId),
+                    eq(activityLogs.entityType, 'branch'),
+                    eq(activityLogs.entityId, branchId),
+                    gte(activityLogs.createdAt, activitySince)
+                ))
+                .orderBy(sql`${activityLogs.createdAt} DESC`)
+                .limit(activityLimit),
+        ])
+
+        let activityRows = directActivityRows
+        if (activityRows.length < activityLimit) {
+            const fallbackRows = await db
+                .select({
+                    id: activityLogs.id,
+                    type: activityLogs.type,
+                    level: activityLogs.level,
+                    description: activityLogs.description,
+                    actorId: activityLogs.actorId,
+                    actorName: user.name,
+                    entityType: activityLogs.entityType,
+                    entityId: activityLogs.entityId,
+                    metadata: activityLogs.metadata,
+                    createdAt: activityLogs.createdAt,
+                })
+                .from(activityLogs)
+                .leftJoin(user, eq(activityLogs.actorId, user.id))
+                .where(and(
+                    eq(activityLogs.organizationId, scoped.value.orgId),
+                    gte(activityLogs.createdAt, activitySince),
+                    sql`${activityLogs.metadata} ILIKE ${`%"branchId":"${branchId}"%`}`
+                ))
+                .orderBy(sql`${activityLogs.createdAt} DESC`)
+                .limit(activityLimit)
+
+            const seenIds = new Set<string>()
+            activityRows = [...activityRows, ...fallbackRows]
+                .filter((row: any) => {
+                    if (seenIds.has(row.id)) return false
+                    seenIds.add(row.id)
+                    return true
+                })
+                .slice(0, activityLimit)
+        }
+
+        return ok(c, {
+            hourlySales: hourlyRows.map((row: any) => ({
+                hour: Number(row.hour ?? 0),
+                revenue: Number(row.revenue ?? 0),
+                orderCount: Number(row.orderCount ?? 0),
+            })),
+            topProducts: topRows.map((row: any) => ({
+                name: row.productName,
+                quantity: Number(row.totalQuantity ?? 0),
+                revenue: Number(row.totalRevenue ?? 0),
+            })),
+            activities: activityRows.map((row: any) => ({
+                id: row.id,
+                type: row.type,
+                level: row.level,
+                description: row.description,
+                actorId: row.actorId,
+                actorName: row.actorName,
+                entityType: row.entityType,
+                entityId: row.entityId,
+                metadata: row.metadata,
+                createdAt: row.createdAt,
+            })),
+        })
+    } catch (err: any) {
+        console.error('[performance/branch-overview]', err)
         return errors.internal(c, err.message)
     }
 })

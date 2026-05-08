@@ -4,7 +4,7 @@
 **Version:** 2.0  
 **Last Updated:** March 2026  
 **Status:** Active Planning — MVP Phase  
-**Scope:** Dashboard (app.beres.io/dashboard) + CRM Module  
+**Scope:** Dashboard (app.beres.cloud/dashboard) + CRM Module  
 **Berdasarkan:** BERES_MASTER_MODULE_DOCUMENT.md + Competitive Analysis (Moka, ESB, Pawoon)
 
 ---
@@ -208,7 +208,7 @@ ESB memiliki:
 
 ### 4.1 Tujuan
 
-Dashboard `app.beres.io/dashboard` adalah **halaman pertama yang dilihat Owner/Admin** setelah login. Harus menjawab pertanyaan:
+Dashboard `app.beres.cloud/dashboard` adalah **halaman pertama yang dilihat Owner/Admin** setelah login. Harus menjawab pertanyaan:
 
 > *"Bagaimana bisnisku hari ini?"*
 

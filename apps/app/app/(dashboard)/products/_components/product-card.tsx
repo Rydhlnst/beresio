@@ -51,7 +51,7 @@ type ProductCardProps = {
 };
 
 function StockBadge({ status, quantity }: { status: string; quantity: number | null }) {
-  const variants: Record<string, { variant: any; label: string; className: string }> = {
+  const variants = {
     ok: {
       variant: "outline" as const,
       label: quantity !== null ? `Stok: ${quantity}` : "Stok tersedia",
@@ -72,9 +72,10 @@ function StockBadge({ status, quantity }: { status: string; quantity: number | n
       label: "Stok: -",
       className: "bg-muted/50 text-muted-foreground",
     },
-  };
+  } as const;
 
-  const config = variants[status] || variants.unknown;
+  type StockVariantKey = keyof typeof variants;
+  const config = variants[status as StockVariantKey] ?? variants.unknown;
 
   return (
     <Badge variant={config.variant} className={cn("text-[10px] font-semibold px-1.5 py-0 h-5", config.className)}>

@@ -1,14 +1,31 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import type { ComponentType } from "react";
-import { ArrowRight, ChefHat, ClipboardList, Store, Truck } from "lucide-react";
+import { ArrowRight, ChefHat, ClipboardList, ClipboardPlus, Clock, PackageCheck, Store, Truck } from "lucide-react";
 import { Badge } from "@repo/ui/badge";
 
 import { apiClient } from "@/lib/api-client";
+import { getActiveOrganizationContext } from "@/lib/organization-context";
 import { SectionCard } from "@/components/dashboard/shared/section-card";
 import { KPIStrip } from "@/components/dashboard/kpi-strip/kpi-strip";
 import { ActiveBranchSync } from "@/components/dashboard/layout/active-branch-sync";
-import { BranchDashboardChartsClient } from "./branch-dashboard-charts-client";
+import { BranchDashboardChartsDeferred } from "./branch-dashboard-charts-deferred";
+
+const BRANCH_DASHBOARD_FETCH_TIMEOUT_MS = 7000;
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T | null> {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    try {
+        return await Promise.race([
+            promise,
+            new Promise<null>((resolve) => {
+                timer = setTimeout(() => resolve(null), timeoutMs);
+            }),
+        ]);
+    } finally {
+        if (timer) clearTimeout(timer);
+    }
+}
 
 type BranchDashboardContentProps = {
     branchId: string;
@@ -26,26 +43,92 @@ type QuickAction = {
     icon: ComponentType<{ className?: string }>;
 };
 
-function resolveQuickActions(roleSlug: string | null): QuickAction[] {
+function resolveQuickActions(roleSlug: string | null, businessType: string | null | undefined): QuickAction[] {
     const role = roleSlug?.toLowerCase() ?? "";
+
+    if (businessType === "laundry") {
+        const base: QuickAction[] = [
+            {
+                key: "order-create",
+                label: "Buat Pesanan Baru",
+                description: "Tambah order baru untuk pelanggan",
+                href: "/order/create",
+                icon: ClipboardPlus,
+            },
+            {
+                key: "order-incoming",
+                label: "Order Masuk",
+                description: "Lihat order baru masuk",
+                href: "/order?status=received",
+                icon: ClipboardList,
+            },
+            {
+                key: "order-processing",
+                label: "Sedang Dicuci",
+                description: "Pantau order yang sedang diproses",
+                href: "/order?status=in_process",
+                icon: Clock,
+            },
+            {
+                key: "order-ready",
+                label: "Siap Diambil/Diantar",
+                description: "Order siap pickup/delivery",
+                href: "/order?status=ready_pickup",
+                icon: PackageCheck,
+            },
+            {
+                key: "delivery-queue",
+                label: "Delivery Queue",
+                description: "Kelola pengiriman aktif",
+                href: "/pickup",
+                icon: Truck,
+            },
+        ];
+
+        if (role === "kitchen") {
+            return base.filter((action) => action.key !== "order-create");
+        }
+
+        if (role === "fulfillment_manager") {
+            return base.filter((action) => action.key !== "order-incoming");
+        }
+
+        return base;
+    }
+
+    const retailCreate: QuickAction = {
+        key: "pos-new",
+        label: "Transaksi Baru",
+        description: "Mulai transaksi baru di POS",
+        href: "/order",
+        icon: Store,
+    };
+
+    const retailKitchenQueue: QuickAction = {
+        key: "kitchen",
+        label: "Order Queue",
+        description: "Lihat pesanan masuk dan status",
+        href: "/order",
+        icon: ChefHat,
+    };
 
     if (role === "branch_manager") {
         return [
-            { key: "pos", label: "Buka POS", description: "Akses transaksi kasir", href: "/order", icon: Store },
-            { key: "kitchen", label: "Order Queue", description: "Pantau antrean kitchen", href: "/order", icon: ChefHat },
-            { key: "delivery", label: "Delivery Queue", description: "Kelola pengiriman aktif", href: "/pickup", icon: Truck },
+            retailCreate,
+            { key: "orders", label: "Pantau Order", description: "Lihat order & status terbaru", href: "/order", icon: ClipboardList },
+            retailKitchenQueue,
         ];
     }
     if (role === "cashier") {
-        return [{ key: "pos", label: "Buka POS", description: "Shortcut untuk transaksi kasir", href: "/order", icon: Store }];
+        return [retailCreate];
     }
     if (role === "kitchen") {
-        return [{ key: "kitchen", label: "Order Queue", description: "Lihat pesanan masuk dan status", href: "/order", icon: ChefHat }];
+        return [retailKitchenQueue];
     }
     if (role === "fulfillment_manager") {
-        return [{ key: "delivery", label: "Delivery Queue", description: "Kelola tugas delivery", href: "/pickup", icon: Truck }];
+        return [retailKitchenQueue];
     }
-    return [{ key: "ops", label: "Operasional", description: "Lihat antrean order aktif", href: "/order", icon: ClipboardList }];
+    return [retailCreate];
 }
 
 function toRelativeTime(value: string | Date | null | undefined) {
@@ -69,39 +152,33 @@ export async function BranchDashboardContent({
     roleSlug,
     mode,
 }: BranchDashboardContentProps) {
+    const activeOrg = await getActiveOrganizationContext();
     const reqHeaders = await headers();
     const cookie = reqHeaders.get("cookie") || "";
 
-    const [hourlyRes, topProductsRes, activitiesRes] = await Promise.all([
-        (apiClient as any).api.dashboard.performance["hourly-sales"].$get(
-            { query: { branchId } },
-            { headers: { cookie } }
-        ),
-        (apiClient as any).api.dashboard.performance["top-products"].$get(
-            { query: { branchId, limit: "5" as any } },
-            { headers: { cookie } }
-        ),
-        (apiClient as any).api.dashboard.activities.$get(
-            { query: { branchId, limit: "10" as any } },
-            { headers: { cookie } }
+    const [overviewRes] = await Promise.all([
+        withTimeout<Response>(
+            (apiClient as any).api.dashboard.performance["branch-overview"].$get(
+                { query: { branchId, topLimit: "5" as any, activityLimit: "10" as any } },
+                { headers: { cookie } }
+            ) as Promise<Response>,
+            BRANCH_DASHBOARD_FETCH_TIMEOUT_MS
         ),
     ]);
 
-    const hourlyBody = hourlyRes.ok ? await hourlyRes.json().catch(() => null) : null;
-    const topProductsBody = topProductsRes.ok ? await topProductsRes.json().catch(() => null) : null;
-    const activitiesBody = activitiesRes.ok ? await activitiesRes.json().catch(() => null) : null;
+    const overviewBody = overviewRes?.ok ? await overviewRes.json().catch(() => null) : null;
 
-    const hourlySales = ((hourlyBody as any)?.data ?? []) as Array<{ hour: number; revenue: number; orderCount: number }>;
-    const topProducts = ((topProductsBody as any)?.data ?? []) as Array<{ name: string; quantity: number; revenue: number }>;
-    const activities = ((activitiesBody as any)?.data ?? []) as Array<{
+    const hourlySales = (((overviewBody as any)?.data?.hourlySales ?? []) as Array<{ hour: number; revenue: number; orderCount: number }>);
+    const topProducts = (((overviewBody as any)?.data?.topProducts ?? []) as Array<{ name: string; quantity: number; revenue: number }>);
+    const activities = (((overviewBody as any)?.data?.activities ?? []) as Array<{
         id: string;
         type: string;
         description: string;
         createdAt: string;
         actorName?: string | null;
-    }>;
+    }>);
 
-    const quickActions = resolveQuickActions(roleSlug);
+    const quickActions = resolveQuickActions(roleSlug, activeOrg?.businessType);
 
     return (
         <div className="space-y-6">
@@ -144,7 +221,7 @@ export async function BranchDashboardContent({
                 </div>
             </SectionCard>
 
-            <BranchDashboardChartsClient
+            <BranchDashboardChartsDeferred
                 branchId={branchId}
                 initialHourlySales={hourlySales}
                 initialTopProducts={topProducts}

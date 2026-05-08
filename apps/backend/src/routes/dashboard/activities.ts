@@ -1,11 +1,10 @@
 import { Hono } from 'hono'
 import { z } from 'zod'
 import { authMiddleware } from '../../middleware/auth'
-import { getOrgId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
 import { and, desc, eq, lt, sql } from 'drizzle-orm'
 import { activityLogs, user } from '@beresio/db'
-import { getBranchAccessContext, hasBranchAccess } from '../../lib/branch-access'
+import { resolveAccessScope } from '../../lib/permissions'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
 type Variables = { db: any; user: any; session: any }
@@ -38,13 +37,6 @@ export const activitiesRouter = new Hono<{ Bindings: Bindings; Variables: Variab
 activitiesRouter.get('/', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        let orgId: string
-        try {
-            orgId = await getOrgId(c)
-        } catch {
-            return errors.unauthorized(c, 'No organization context')
-        }
-
         const parsedQuery = listActivitiesQuerySchema.safeParse({
             limit: c.req.query('limit') ?? 20,
             cursor: c.req.query('cursor') ?? undefined,
@@ -57,13 +49,13 @@ activitiesRouter.get('/', authMiddleware, async (c) => {
 
         const { limit, cursor, branchId, type: typeFilter } = parsedQuery.data
 
-        const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId)
-        if (!isOrgWide && branchIds.length === 0) {
-            return errors.forbidden(c, 'No branch access')
-        }
-        if (branchId && !isOrgWide && !hasBranchAccess(branchIds, branchId)) {
-            return errors.forbidden(c, 'No access to branch')
-        }
+        const resolvedScope = await resolveAccessScope(c, {
+            requestedBranchId: branchId ?? null,
+            requireBranchAccess: true,
+            noBranchAccessMessage: 'No branch access',
+        })
+        if (!resolvedScope.ok) return resolvedScope.response
+        const orgId = resolvedScope.value.orgId
 
         // Build where conditions
         const conditions = [eq(activityLogs.organizationId, orgId)]

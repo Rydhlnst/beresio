@@ -1,7 +1,14 @@
 import { Hono } from "hono";
 
+export type DbMockCalls = {
+    onConflictDoNothing: Array<{ table: unknown; args: unknown }>;
+};
+
 export class QueryMock<T> implements PromiseLike<T> {
-    constructor(private readonly result: T) {}
+    constructor(
+        private readonly result: T,
+        private readonly meta?: { table?: unknown; calls?: DbMockCalls }
+    ) {}
     from() { return this; }
     innerJoin() { return this; }
     leftJoin() { return this; }
@@ -14,7 +21,10 @@ export class QueryMock<T> implements PromiseLike<T> {
     set() { return this; }
     returning() { return this; }
     onConflictDoUpdate() { return this; }
-    onConflictDoNothing() { return this; }
+    onConflictDoNothing(args?: unknown) {
+        this.meta?.calls?.onConflictDoNothing.push({ table: this.meta?.table, args });
+        return this;
+    }
     as() { return this; }
     then<TResult1 = T, TResult2 = never>(
         onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null,
@@ -35,24 +45,33 @@ export function createDbMock(options?: {
     const updateQueue = [...(options?.updateResults ?? [])];
     const deleteQueue = [...(options?.deleteResults ?? [])];
 
+    const calls: DbMockCalls = {
+        onConflictDoNothing: [],
+    };
+
+    const makeQuery = <T>(queue: unknown[], table?: unknown) =>
+        new QueryMock(queue.shift() as T ?? ([] as unknown as T), { table, calls });
+
     return {
-        select: () => new QueryMock(selectQueue.shift() ?? []),
-        insert: () => new QueryMock(insertQueue.shift() ?? []),
-        update: () => new QueryMock(updateQueue.shift() ?? []),
-        delete: () => new QueryMock(deleteQueue.shift() ?? []),
+        __calls: calls,
+        select: () => makeQuery(selectQueue),
+        insert: (table?: unknown) => makeQuery(insertQueue, table),
+        update: () => makeQuery(updateQueue),
+        delete: () => makeQuery(deleteQueue),
         transaction: async (fn: (tx: any) => Promise<unknown>) => {
             return fn({
-                select: () => new QueryMock(selectQueue.shift() ?? []),
-                insert: () => new QueryMock(insertQueue.shift() ?? []),
-                update: () => new QueryMock(updateQueue.shift() ?? []),
-                delete: () => new QueryMock(deleteQueue.shift() ?? []),
+                __calls: calls,
+                select: () => makeQuery(selectQueue),
+                insert: (table?: unknown) => makeQuery(insertQueue, table),
+                update: () => makeQuery(updateQueue),
+                delete: () => makeQuery(deleteQueue),
             });
         },
     };
 }
 
 export function createTestApp(router: any, basePath: string, db: any) {
-    const app = new Hono();
+    const app = new Hono<{ Variables: { db: any } }>();
     app.use("*", async (c, next) => {
         c.set("db", db);
         await next();

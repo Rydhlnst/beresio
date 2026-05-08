@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+﻿import { describe, expect, it, vi } from "vitest";
 import { createDbMock, createTestApp } from "./test-utils";
 
 vi.mock("../../middleware/auth", () => ({
@@ -37,7 +37,7 @@ describe("performance routes", () => {
         const app = createPerformanceApp(db);
 
         const res = await app.request("/api/dashboard/performance/trend?timeRange=30d");
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
@@ -55,7 +55,7 @@ describe("performance routes", () => {
         const app = createPerformanceApp(db);
 
         const res = await app.request("/api/dashboard/performance/trend");
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(403);
         expect(body.success).toBe(false);
@@ -72,7 +72,7 @@ describe("performance routes", () => {
         const app = createPerformanceApp(db);
 
         const res = await app.request("/api/dashboard/performance/trend?branchId=branch-2");
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(403);
         expect(body.success).toBe(false);
@@ -88,9 +88,10 @@ describe("performance routes", () => {
         const app = createPerformanceApp(db);
 
         const res = await app.request("/api/dashboard/performance/branches");
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(500);
         expect(body.success).toBe(false);
     });
 });
+

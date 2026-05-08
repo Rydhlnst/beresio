@@ -35,9 +35,19 @@ vi.mock("../../lib/stock", () => ({
 }));
 
 vi.mock("../../lib/fnb-domain", () => ({
-    appendDomainEvent: vi.fn(async () => undefined),
+    appendDomainEvent: vi.fn(async () => ({
+        id: "evt-1",
+        eventType: "ORDER_CREATED",
+        aggregateId: "ord-1",
+    })),
     canTransitionOrderStatus: vi.fn(() => true),
     projectDomainEvent: vi.fn(() => null),
+}));
+
+vi.mock("../../lib/realtime", () => ({
+    invalidateKpiCache: vi.fn(async () => undefined),
+    publishFnbDomainEvent: vi.fn(async () => undefined),
+    shouldInvalidateKpiForFnbEvent: vi.fn(() => false),
 }));
 
 import { ordersRouter } from "./orders";

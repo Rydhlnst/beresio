@@ -85,12 +85,57 @@ export async function updateLaundryOrderStatusAction(orderId: string, input: { s
     return result;
 }
 
+export async function correctLaundryOrderStatusAction(
+    orderId: string,
+    input: { status: string; reason: string }
+) {
+    const cookieHeaders = await withCookieHeaders();
+    const res = await rpc.api.dashboard.laundry.orders[":id"]["status-correction"].$patch(
+        {
+            param: { id: orderId },
+            json: input,
+        },
+        {
+            headers: cookieHeaders,
+        }
+    );
+    const result = await toActionResult(res);
+    if (result.ok) {
+        revalidatePath(`/laundry/orders/${orderId}`);
+        revalidatePath("/laundry/orders");
+        revalidatePath("/laundry");
+    }
+    return result;
+}
+
 export async function assignLaundryDriverAction(
     orderId: string,
     input: { driverId: string | null }
 ) {
     const cookieHeaders = await withCookieHeaders();
     const res = await rpc.api.dashboard.laundry.orders[":id"].driver.$patch(
+        {
+            param: { id: orderId },
+            json: input,
+        },
+        {
+            headers: cookieHeaders,
+        }
+    );
+    const result = await toActionResult(res);
+    if (result.ok) {
+        revalidatePath(`/laundry/orders/${orderId}`);
+        revalidatePath("/laundry/orders");
+    }
+    return result;
+}
+
+export async function assignLaundryMachineAction(
+    orderId: string,
+    input: { machineId: string | null }
+) {
+    const cookieHeaders = await withCookieHeaders();
+    const res = await rpc.api.dashboard.laundry.orders[":id"].machine.$patch(
         {
             param: { id: orderId },
             json: input,
@@ -177,6 +222,59 @@ export async function updateLaundryServiceAction(input: {
     if (result.ok) {
         revalidatePath("/laundry/services");
         revalidatePath("/laundry/orders/new");
+    }
+    return result;
+}
+
+export async function acceptLaundryOrderIntakeAction(
+    intakeId: string,
+    input?: { note?: string | null }
+) {
+    const cookieHeaders = await withCookieHeaders();
+    const res = await rpc.api.dashboard.laundry["order-intakes"][":id"].accept.$post(
+        {
+            param: { id: intakeId },
+            json: input ?? {},
+        },
+        {
+            headers: cookieHeaders,
+        }
+    );
+    const result = await toActionResult<{
+        intakeId: string;
+        status: string;
+        orderId: string;
+        orderNumber: string;
+    }>(res);
+    if (result.ok) {
+        revalidatePath("/laundry/orders");
+        revalidatePath("/laundry");
+    }
+    return result;
+}
+
+export async function rejectLaundryOrderIntakeAction(
+    intakeId: string,
+    input: { reason: string }
+) {
+    const cookieHeaders = await withCookieHeaders();
+    const res = await rpc.api.dashboard.laundry["order-intakes"][":id"].reject.$post(
+        {
+            param: { id: intakeId },
+            json: input,
+        },
+        {
+            headers: cookieHeaders,
+        }
+    );
+    const result = await toActionResult<{
+        intakeId: string;
+        status: string;
+        reason: string;
+    }>(res);
+    if (result.ok) {
+        revalidatePath("/laundry/orders");
+        revalidatePath("/laundry");
     }
     return result;
 }

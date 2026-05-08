@@ -4,7 +4,7 @@ import type { Context } from 'hono'
 
 /**
  * Extracts the organizationId from the authenticated user's session context.
- * Falls back to the first membership when active org is not set in session.
+ * Falls back to membership only when user belongs to exactly 1 organization.
  * Throws when no organization context is available.
  */
 export async function getOrgId(c: Context): Promise<string> {
@@ -19,13 +19,15 @@ export async function getOrgId(c: Context): Promise<string> {
     if ((!orgId || String(orgId).trim().length === 0) && user?.id) {
         const db = c.get('db') as any
         if (db) {
-            const [membership] = await db
+            const memberships = await db
                 .select({ organizationId: member.organizationId })
                 .from(member)
                 .where(eq(member.userId, user.id))
-                .limit(1)
+                .limit(2)
 
-            orgId = membership?.organizationId
+            if (Array.isArray(memberships) && memberships.length === 1) {
+                orgId = memberships[0]?.organizationId
+            }
         }
     }
 

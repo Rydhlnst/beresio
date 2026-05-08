@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { LifeBuoy, BookOpen, MessageCircle, ArrowRight } from "lucide-react";
+import { ArrowRight, LifeBuoy, Mail, MessageCircle } from "lucide-react";
+import { complianceConfig, buildMailtoUrl, buildWhatsAppUrl } from "@repo/ui/compliance";
 import { PageHero } from "@/app/_components/PageHero";
 import { Section } from "@/app/_components/Section";
 import { Button, Heading, Text } from "@repo/ui";
@@ -10,31 +11,34 @@ import { generateMetadata as seoMetadata, pageKeywords } from "@/lib/seo";
 export const metadata: Metadata = seoMetadata({
     title: "Pusat Bantuan & Support",
     path: "/support",
-    description: "Pusat bantuan Beres.io. Temukan panduan penggunaan, tutorial, FAQ, dan hubungi tim support kami untuk bantuan teknis.",
+    description: `Kanal dukungan resmi ${complianceConfig.brandName} untuk onboarding, operasional, billing, dan eskalasi pengaduan.`,
     keywords: pageKeywords.support,
 });
 
-const SUPPORT_CARDS = [
+const supportCards = [
     {
-        title: "Pusat Bantuan",
-        description: "Panduan singkat dan jawaban cepat untuk pertanyaan umum.",
-        icon: BookOpen,
-        href: "/tutorial",
-        cta: "Lihat Tutorial",
-    },
-    {
-        title: "Live Support",
-        description: "Butuh bantuan cepat? Hubungi tim kami untuk solusi langsung.",
+        title: "WhatsApp Support",
+        description: "Untuk pertanyaan operasional cepat dan kendala harian.",
         icon: MessageCircle,
-        href: "/sales",
-        cta: "Hubungi Tim",
+        href: buildWhatsAppUrl(complianceConfig.supportWhatsApp, "Halo tim support Beres Cloud, saya butuh bantuan."),
+        cta: "Buka WhatsApp",
+        external: true,
     },
     {
-        title: "Status Layanan",
-        description: "Pantau informasi terbaru tentang ketersediaan layanan.",
+        title: "Email Support",
+        description: "Untuk issue yang membutuhkan lampiran dan tracking formal.",
+        icon: Mail,
+        href: buildMailtoUrl(complianceConfig.supportEmail, "Permintaan Dukungan Beres Cloud"),
+        cta: "Kirim Email",
+        external: false,
+    },
+    {
+        title: "Kanal Pengaduan",
+        description: "Untuk eskalasi layanan, billing, atau kepatuhan kebijakan.",
         icon: LifeBuoy,
-        href: "/support",
-        cta: "Cek Status",
+        href: buildMailtoUrl(complianceConfig.complaintChannel, "Pengaduan Layanan Beres Cloud"),
+        cta: "Ajukan Pengaduan",
+        external: false,
     },
 ];
 
@@ -42,60 +46,48 @@ export default function SupportPage() {
     return (
         <>
             <PageHero
-                badgeLabel="Support 24/7"
+                badgeLabel="Support Resmi"
                 title="Pusat Bantuan"
-                subtitle="Untuk Bisnis Anda"
-                description="Kami siap membantu mulai dari onboarding, troubleshooting, sampai konsultasi operasional."
-                primaryCta={{ label: "Hubungi Support", href: "#contact" }}
-                secondaryCta={{ label: "Lihat Tutorial", href: "/tutorial" }}
+                subtitle={complianceConfig.brandName}
+                description="Semua permintaan support diproses lewat kanal resmi agar SLA dan audit trail tetap jelas."
+                primaryCta={{ label: "Hubungi Support", href: buildWhatsAppUrl(complianceConfig.supportWhatsApp) }}
+                secondaryCta={{ label: "Kebijakan Refund", href: "/refund-cancellation" }}
                 align="center"
             />
 
             <Section>
-                <div className="space-y-10">
-                    <div className="max-w-2xl mx-auto text-center space-y-3">
-                        <Heading as="h2">Cara Kami Membantu</Heading>
-                        <Text variant="lead" align="center">
-                            Pilih jalur bantuan yang paling cepat untuk tim Anda.
-                        </Text>
-                    </div>
-
-                    <div className="grid gap-6 md:grid-cols-3">
-                        {SUPPORT_CARDS.map((card) => (
-                            <Card key={card.title} className="border-border/60 flex flex-col">
-                                <CardHeader className="space-y-4">
-                                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10">
-                                        <card.icon className="h-5 w-5 text-primary" />
-                                    </div>
-                                    <CardTitle className="text-base">{card.title}</CardTitle>
-                                </CardHeader>
-                                <CardContent className="flex flex-col gap-4">
-                                    <Text variant="muted">{card.description}</Text>
-                                    <Button variant="outline" className="rounded-2xl mt-auto" asChild>
-                                        <Link href={card.href}>
-                                            {card.cta}
-                                            <ArrowRight className="ml-2 h-4 w-4" />
-                                        </Link>
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
+                <div className="grid gap-6 md:grid-cols-3">
+                    {supportCards.map((card) => (
+                        <Card key={card.title} className="border-border/60 flex flex-col">
+                            <CardHeader className="space-y-4">
+                                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10">
+                                    <card.icon className="h-5 w-5 text-primary" />
+                                </div>
+                                <CardTitle className="text-base">{card.title}</CardTitle>
+                            </CardHeader>
+                            <CardContent className="flex flex-col gap-4">
+                                <Text variant="muted">{card.description}</Text>
+                                <Button variant="outline" className="rounded-2xl mt-auto" asChild>
+                                    <Link href={card.href} target={card.external ? "_blank" : undefined} rel={card.external ? "noreferrer" : undefined}>
+                                        {card.cta}
+                                        <ArrowRight className="ml-2 h-4 w-4" />
+                                    </Link>
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    ))}
                 </div>
             </Section>
 
-            <Section id="contact">
-                <div className="flex flex-col items-center gap-6 text-center">
-                    <Heading as="h2">Butuh Bantuan Lebih Lanjut?</Heading>
-                    <Text variant="lead" align="center">
-                        Tim kami akan menindaklanjuti permintaan support Anda secepat mungkin.
-                    </Text>
-                    <Button className="rounded-2xl px-8" asChild>
-                        <Link href="/sales">
-                            Hubungi Tim Support
-                            <ArrowRight className="ml-2 h-4 w-4" />
-                        </Link>
-                    </Button>
+            <Section>
+                <div className="rounded-2xl border border-border/60 bg-background p-6">
+                    <Heading as="h2">SLA & Identitas Layanan</Heading>
+                    <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-muted-foreground">
+                        <li>Respon awal support: maksimal 1 hari kerja.</li>
+                        <li>Jam layanan: {complianceConfig.businessHours}.</li>
+                        <li>Entitas layanan: {complianceConfig.legalEntityName}.</li>
+                        <li>Alamat terdaftar: {complianceConfig.businessAddress}.</li>
+                    </ul>
                 </div>
             </Section>
         </>

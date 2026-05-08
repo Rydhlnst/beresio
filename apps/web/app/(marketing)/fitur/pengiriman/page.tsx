@@ -96,7 +96,7 @@ export default function PengirimanPage() {
                 eyebrow: "Delivery Operations",
                 title: "Satu sistem untuk koordinasi kurir dan status pengiriman",
                 description:
-                    "Beres.io menghubungkan tim operasional, driver, dan pelanggan ke dalam workflow pengiriman yang lebih konsisten.",
+                    "Beres Cloud menghubungkan tim operasional, driver, dan pelanggan ke dalam workflow pengiriman yang lebih konsisten.",
                 items: FEATURE_ITEMS,
             }}
             spotlightSection={{
@@ -125,7 +125,7 @@ export default function PengirimanPage() {
             finalSection={{
                 title: "Ingin pengiriman bisnis lebih predictable?",
                 description:
-                    "Aktifkan manajemen pengiriman Beres.io agar tim Anda bisa menjaga SLA dengan koordinasi yang lebih sederhana.",
+                    "Aktifkan manajemen pengiriman Beres Cloud agar tim Anda bisa menjaga SLA dengan koordinasi yang lebih sederhana.",
                 primaryCta: { label: "Mulai Free Trial", href: "/wishlist" },
                 secondaryCta: { label: "Lihat Manajemen Tim", href: "/fitur/tim" },
             }}

@@ -196,8 +196,8 @@ crmRouter.get("/customers", authMiddleware, zValidator("query", listCustomersQue
         interface TagInfo { id: string; name: string; slug: string; color: string | null }
         const tagsByCustomer: Record<string, TagInfo[]> = {};
         for (const item of tags) {
-            if (!tagsByCustomer[item.customerId]) tagsByCustomer[item.customerId] = [];
-            tagsByCustomer[item.customerId].push(item.tag);
+            const list = tagsByCustomer[item.customerId] ?? (tagsByCustomer[item.customerId] = []);
+            list.push(item.tag);
         }
 
         const data = rows.map((row: any) => ({

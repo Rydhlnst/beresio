@@ -3,6 +3,7 @@ import { and, asc, eq } from 'drizzle-orm'
 import { authMiddleware } from '../middleware/auth'
 import { errors, ok } from '../lib/errors'
 import { getUserId } from '../lib/auth-context'
+import { parseJsonRecord } from '../lib/safe-json'
 import {
     member,
     organization,
@@ -27,6 +28,28 @@ type RoleInfo = {
     id: string
     slug: string
     name: string
+}
+
+type NavigationPayload = {
+    business: {
+        id: string
+        name: string
+        type: string
+        mode?: string | null
+        config: Record<string, unknown>
+    }
+    role: RoleInfo | null
+    navigationBase: NavItem[]
+    navigationVertical: NavItem[]
+    navigation: NavItem[]
+    permissions: string[]
+}
+
+const NAVIGATION_CACHE_TTL_MS = 30_000
+const navigationCache = new Map<string, { expiresAt: number; payload: NavigationPayload }>()
+
+export function clearNavigationCacheForTests() {
+    navigationCache.clear()
 }
 
 const NAV_REGISTRY: Record<string, Record<string, NavItem>> = {
@@ -329,14 +352,22 @@ businessesRouter.get('/:id/navigation', authMiddleware, async (c) => {
         const db = c.get('db')
         const businessId = c.req.param('id')
         const userId = getUserId(c)
+        const cacheKey = `${businessId}:${userId}`
+        const cached = navigationCache.get(cacheKey)
+        if (cached && cached.expiresAt > Date.now()) {
+            return ok(c, cached.payload)
+        }
 
         const [membership] = await db
             .select({
                 id: member.id,
                 roleId: member.roleId,
                 roleLegacy: member.role,
+                roleSlug: roles.slug,
+                roleName: roles.name,
             })
             .from(member)
+            .leftJoin(roles, eq(member.roleId, roles.id))
             .where(and(eq(member.organizationId, businessId), eq(member.userId, userId)))
             .limit(1)
 
@@ -360,23 +391,27 @@ businessesRouter.get('/:id/navigation', authMiddleware, async (c) => {
             return errors.notFound(c, 'Business not found')
         }
 
-        let config: Record<string, any> = {}
-        if (orgRow.metadata) {
-            try {
-                config = JSON.parse(orgRow.metadata)
-            } catch {
-                config = {}
-            }
-        }
+        const config = parseJsonRecord(orgRow.metadata)
 
         let roleId: string | null = membership.roleId ?? null
+        let role: RoleInfo | null =
+            roleId && membership.roleSlug
+                ? {
+                    id: roleId,
+                    slug: membership.roleSlug,
+                    name: membership.roleName ?? toFallbackLabel(membership.roleSlug),
+                }
+                : null
         if (!roleId && membership.roleLegacy) {
             const [roleRow] = await db
-                .select({ id: roles.id })
+                .select({ id: roles.id, slug: roles.slug, name: roles.name })
                 .from(roles)
                 .where(and(eq(roles.organizationId, businessId), eq(roles.slug, membership.roleLegacy)))
                 .limit(1)
             roleId = roleRow?.id ?? null
+            if (roleRow) {
+                role = roleRow as RoleInfo
+            }
         }
 
         const permissionsRows = roleId
@@ -389,17 +424,6 @@ businessesRouter.get('/:id/navigation', authMiddleware, async (c) => {
         const permissions = permissionsRows
             .map((row: { permission?: string }) => row.permission)
             .filter((permission: string | undefined): permission is string => typeof permission === 'string')
-
-        let role: RoleInfo | null = null
-        if (roleId) {
-            const [roleRow] = await db
-                .select({ id: roles.id, slug: roles.slug, name: roles.name })
-                .from(roles)
-                .where(eq(roles.id, roleId))
-                .limit(1)
-
-            if (roleRow) role = roleRow as RoleInfo
-        }
 
         if (!role && membership.roleLegacy) {
             role = {
@@ -460,7 +484,7 @@ businessesRouter.get('/:id/navigation', authMiddleware, async (c) => {
         const navigationVertical = applyPermissions(mapToNav(verticalModuleKeys))
         const navigation: NavItem[] = [...navigationBase, ...navigationVertical]
 
-        return ok(c, {
+        const payload: NavigationPayload = {
             business: {
                 id: orgRow.id,
                 name: orgRow.name,
@@ -473,7 +497,14 @@ businessesRouter.get('/:id/navigation', authMiddleware, async (c) => {
             navigationVertical,
             navigation,
             permissions: effectivePermissions,
+        }
+
+        navigationCache.set(cacheKey, {
+            expiresAt: Date.now() + NAVIGATION_CACHE_TTL_MS,
+            payload,
         })
+
+        return ok(c, payload)
     } catch (err: any) {
         console.error('[businesses/navigation]', err)
         return errors.internal(c, err.message)

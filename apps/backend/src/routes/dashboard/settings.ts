@@ -5,6 +5,7 @@ import { getOrgId, getUserId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
 import { eq } from 'drizzle-orm'
 import { organization, user } from '@beresio/db'
+import { parseJsonRecord } from '../../lib/safe-json'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
 type Variables = { db: any; user: any; session: any }
@@ -58,14 +59,7 @@ function getValidationMessage(error: z.ZodError, fallback = 'Invalid payload') {
 }
 
 function parseMetadata(raw: string | null) {
-    if (!raw) return {}
-    try {
-        const parsed = JSON.parse(raw)
-        if (parsed && typeof parsed === 'object') return parsed as Record<string, any>
-        return {}
-    } catch {
-        return {}
-    }
+    return parseJsonRecord(raw)
 }
 
 function buildMetadata(current: string | null, updater: (data: Record<string, any>) => void) {

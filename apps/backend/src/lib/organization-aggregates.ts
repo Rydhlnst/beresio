@@ -10,6 +10,7 @@ type AggregateRangeInput = {
 
 type AggregateScopeInput = {
     branchIds?: string[];
+    useProvidedBranchIds?: boolean;
 };
 
 export type OrganizationBranchAggregate = {
@@ -72,7 +73,9 @@ export async function getOrganizationBranchAggregate(
     options?: AggregateScopeInput & { range?: AggregateRangeInput }
 ): Promise<OrganizationBranchAggregate> {
     const db = c.get("db");
-    const scopedBranchIds = await resolveScopedBranchIds(c, orgId, options?.branchIds);
+    const scopedBranchIds = options?.useProvidedBranchIds
+        ? uniqueBranchIds(options?.branchIds ?? [])
+        : await resolveScopedBranchIds(c, orgId, options?.branchIds);
     if (scopedBranchIds.length === 0) {
         return {
             totalBranches: 0,

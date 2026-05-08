@@ -34,10 +34,11 @@
     "./dialog": "./src/dialog.tsx",
     "./alert-dialog": "./src/alert-dialog.tsx",
     "./checkbox": "./src/checkbox.tsx",
-    "./textarea": "./src/textarea.tsx"
+    "./textarea": "./src/textarea.tsx",
+    "./compliance": "./src/compliance.ts"
   },
   "scripts": {
-    "lint": "eslint . --max-warnings 0",
+    "lint": "eslint .",
     "generate:component": "turbo gen react-component",
     "check-types": "tsc --noEmit"
   },

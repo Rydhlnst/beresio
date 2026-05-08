@@ -52,6 +52,39 @@ export const laundryServices = pgTable("laundry_services", {
     };
 });
 
+export const laundryMachines = pgTable("laundry_machines", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: text("organization_id")
+        .notNull()
+        .references(() => organization.id, { onDelete: "cascade" }),
+    branchId: uuid("branch_id")
+        .notNull()
+        .references(() => branches.id, { onDelete: "cascade" }),
+    code: varchar("code", { length: 40 }).notNull(),
+    name: varchar("name", { length: 120 }).notNull(),
+    kind: text("kind").notNull().default("washer"), // washer | dryer | combo
+    status: text("status").notNull().default("available"), // available | busy | maintenance
+    dailyCapacityKg: integer("daily_capacity_kg").notNull().default(0),
+    isActive: boolean("is_active").notNull().default(true),
+    notes: text("notes"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdateFn(() => new Date()),
+}, (table) => {
+    return {
+        idxLaundryMachinesOrgBranch: index("idx_laundry_machines_org_branch").on(table.organizationId, table.branchId),
+        idxLaundryMachinesOrgBranchStatus: index("idx_laundry_machines_org_branch_status").on(
+            table.organizationId,
+            table.branchId,
+            table.status
+        ),
+        uqLaundryMachinesOrgBranchCode: uniqueIndex("uq_laundry_machines_org_branch_code").on(
+            table.organizationId,
+            table.branchId,
+            table.code
+        ),
+    };
+});
+
 export const laundryOrders = pgTable("laundry_orders", {
     id: uuid("id").primaryKey().defaultRandom(),
     organizationId: text("organization_id")
@@ -63,12 +96,17 @@ export const laundryOrders = pgTable("laundry_orders", {
     customerId: uuid("customer_id")
         .references(() => customers.id, { onDelete: "set null" }),
     orderNumber: varchar("order_number", { length: 32 }).notNull(),
-    status: text("status").notNull().default("received"), // received | processing | ready_for_pickup | out_for_delivery | completed | cancelled
+    sourceChannel: text("source_channel").notNull().default("operator_dashboard"), // operator_dashboard | web_direct | whatsapp_link
+    sourceIntakeId: uuid("source_intake_id"),
+    status: text("status").notNull().default("created"), // created | confirmed | pickup_requested | picked_up | washing | drying | ready | out_for_delivery | completed | cancelled
     orderType: text("order_type").notNull().default("walk_in"), // walk_in | pickup | drop_off
     customerName: varchar("customer_name", { length: 150 }),
     customerPhone: varchar("customer_phone", { length: 20 }),
     customerAddress: text("customer_address"),
     notes: text("notes"),
+    assignedMachineId: uuid("assigned_machine_id").references(() => laundryMachines.id, { onDelete: "set null" }),
+    assignedMachineCode: varchar("assigned_machine_code", { length: 40 }),
+    assignedMachineName: varchar("assigned_machine_name", { length: 120 }),
     estimatedCompletedAt: timestamp("estimated_completed_at"),
     subtotalAmount: integer("subtotal_amount").notNull(),
     discountAmount: integer("discount_amount").notNull().default(0),
@@ -82,6 +120,13 @@ export const laundryOrders = pgTable("laundry_orders", {
     createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdateFn(() => new Date()),
+    confirmedAt: timestamp("confirmed_at"),
+    pickupRequestedAt: timestamp("pickup_requested_at"),
+    pickedUpAt: timestamp("picked_up_at"),
+    washingAt: timestamp("washing_at"),
+    dryingAt: timestamp("drying_at"),
+    readyAt: timestamp("ready_at"),
+    outForDeliveryAt: timestamp("out_for_delivery_at"),
     completedAt: timestamp("completed_at"),
     cancelledAt: timestamp("cancelled_at"),
 }, (table) => {
@@ -101,6 +146,11 @@ export const laundryOrders = pgTable("laundry_orders", {
             table.organizationId,
             table.branchId,
             table.customerPhone
+        ),
+        idxLaundryOrdersOrgBranchMachine: index("idx_laundry_orders_org_branch_machine").on(
+            table.organizationId,
+            table.branchId,
+            table.assignedMachineId
         ),
         idxLaundryOrdersOrgBranchOutstanding: index("idx_laundry_orders_org_branch_outstanding").on(
             table.organizationId,
@@ -148,6 +198,12 @@ export const laundryPayments = pgTable("laundry_payments", {
         .notNull()
         .references(() => laundryOrders.id, { onDelete: "cascade" }),
     amount: integer("amount").notNull(),
+    provider: text("provider").notNull().default("manual"),
+    providerTransactionId: varchar("provider_transaction_id", { length: 160 }),
+    providerStatus: text("provider_status").notNull().default("SETTLED"), // PENDING | SETTLED | FAILED
+    idempotencyKey: varchar("idempotency_key", { length: 120 }),
+    reconciliationStatus: text("reconciliation_status").notNull().default("synced"), // synced | pending | mismatch | failed
+    reconciledAt: timestamp("reconciled_at"),
     paymentMethod: text("payment_method"),
     note: text("note"),
     recordedBy: text("recorded_by").references(() => user.id, { onDelete: "set null" }),
@@ -160,6 +216,15 @@ export const laundryPayments = pgTable("laundry_payments", {
             table.organizationId,
             table.branchId,
             table.createdAt
+        ),
+        idxLaundryPaymentsProviderStatus: index("idx_laundry_payments_provider_status").on(
+            table.provider,
+            table.providerStatus,
+            table.createdAt
+        ),
+        uqLaundryPaymentsOrderIdempotency: uniqueIndex("uq_laundry_payments_order_idempotency").on(
+            table.orderId,
+            table.idempotencyKey
         ),
     };
 });
@@ -187,6 +252,36 @@ export const laundryOrderStatusHistory = pgTable("laundry_order_status_history",
             table.organizationId,
             table.branchId,
             table.createdAt
+        ),
+    };
+});
+
+export const laundryLoyaltyLedger = pgTable("laundry_loyalty_ledger", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: text("organization_id")
+        .notNull()
+        .references(() => organization.id, { onDelete: "cascade" }),
+    customerId: uuid("customer_id")
+        .notNull()
+        .references(() => customers.id, { onDelete: "cascade" }),
+    orderId: uuid("order_id")
+        .notNull()
+        .references(() => laundryOrders.id, { onDelete: "cascade" }),
+    eventType: text("event_type").notNull().default("order_completed"), // order_completed | manual_adjustment
+    pointsDelta: integer("points_delta").notNull().default(0),
+    spendingDelta: integer("spending_delta").notNull().default(0),
+    note: text("note"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => {
+    return {
+        idxLaundryLoyaltyLedgerOrgCustomer: index("idx_laundry_loyalty_ledger_org_customer").on(
+            table.organizationId,
+            table.customerId,
+            table.createdAt
+        ),
+        uqLaundryLoyaltyLedgerOrderEvent: uniqueIndex("uq_laundry_loyalty_ledger_order_event").on(
+            table.orderId,
+            table.eventType
         ),
     };
 });

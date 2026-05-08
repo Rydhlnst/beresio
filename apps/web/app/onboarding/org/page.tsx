@@ -6,11 +6,12 @@ import { Section } from "../../_components/Section";
 import { Button, Heading, Input, Text } from "@repo/ui";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import { generateMetadata as seoMetadata } from "@/lib/seo";
+import { requireSessionWithOrganization } from "@/lib/authz";
 
 export const metadata: Metadata = seoMetadata({
     title: "Onboarding - Siapkan Organisasi Anda",
     path: "/onboarding/org",
-    description: "Onboarding Beres.io - Lengkapi data organisasi Anda untuk memulai menggunakan platform kasir digital.",
+    description: "Onboarding Beres Cloud - Lengkapi data organisasi Anda untuk memulai menggunakan platform kasir digital.",
     noIndex: true, // Onboarding should not be indexed
 });
 
@@ -32,14 +33,16 @@ const ONBOARDING_STEPS = [
     },
 ];
 
-export default function OnboardingOrgPage() {
+export default async function OnboardingOrgPage() {
+    // AuthZ guard: onboarding is only for authenticated users in an organization.
+    await requireSessionWithOrganization();
     return (
         <>
             <PageHero
                 badgeLabel="Onboarding"
                 title="Siapkan Organisasi Anda"
                 subtitle="Dalam Beberapa Langkah"
-                description="Lengkapi informasi dasar agar tim Beres.io bisa menyiapkan konfigurasi terbaik untuk bisnis Anda."
+                description="Lengkapi informasi dasar agar tim Beres Cloud bisa menyiapkan konfigurasi terbaik untuk bisnis Anda."
                 primaryCta={{ label: "Mulai Isi Data", href: "#form" }}
                 secondaryCta={{ label: "Kembali ke Dashboard", href: "/dashboard" }}
                 align="center"
@@ -80,8 +83,8 @@ export default function OnboardingOrgPage() {
                             Informasi ini akan membantu kami menyiapkan struktur organisasi dan outlet pertama Anda.
                         </Text>
                         <div className="flex flex-col gap-3 text-sm text-muted-foreground">
-                            <span>• Anda bisa menambahkan outlet tambahan setelah onboarding selesai.</span>
-                            <span>• Tim support akan membantu jika ada data yang perlu disesuaikan.</span>
+                            <span>- Anda bisa menambahkan outlet tambahan setelah onboarding selesai.</span>
+                            <span>- Tim support akan membantu jika ada data yang perlu disesuaikan.</span>
                         </div>
                     </div>
 
@@ -106,7 +109,7 @@ export default function OnboardingOrgPage() {
                                 </Link>
                             </Button>
                             <Text variant="muted">
-                                Form ini masih placeholder untuk alur onboarding.
+                                Data onboarding dipakai untuk konfigurasi awal tenant dan verifikasi kesiapan operasional.
                             </Text>
                         </CardContent>
                     </Card>

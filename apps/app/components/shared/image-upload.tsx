@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Button } from "@repo/ui/button";
 import { cn } from "@/lib/utils";
 import { Upload, X, ImageIcon, Loader2 } from "lucide-react";
@@ -11,10 +11,14 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 type ImageUploadProps = {
-  value?: string;
+  value?: string | null;
   onChange: (url: string) => void;
   onClear?: () => void;
+  onRemove?: () => void;
   disabled?: boolean;
+  className?: string;
+  width?: number;
+  height?: number;
 };
 
 function fileToBase64(file: File): Promise<string> {
@@ -26,9 +30,32 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
-export function ImageUpload({ value, onChange, onClear, disabled }: ImageUploadProps) {
+export function ImageUpload({
+  value,
+  onChange,
+  onClear,
+  onRemove,
+  disabled,
+  className,
+  width,
+  height,
+}: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const clearHandler = onClear ?? onRemove;
+
+  const openFileDialog = useCallback(() => {
+    if (disabled || isUploading) return;
+    inputRef.current?.click();
+  }, [disabled, isUploading]);
+
+  const wrapperStyle: React.CSSProperties | undefined = width
+    ? {
+        maxWidth: width,
+        ...(width && height ? { aspectRatio: `${width} / ${height}` } : {}),
+      }
+    : undefined;
 
   const validateFile = (file: File): boolean => {
     if (!ALLOWED_TYPES.includes(file.type)) {
@@ -106,99 +133,113 @@ export function ImageUpload({ value, onChange, onClear, disabled }: ImageUploadP
   );
 
   if (value) {
+    const imageSizes = width ? `${width}px` : "200px";
     return (
-      <div className="relative w-full aspect-square max-w-[200px] rounded-lg border border-border overflow-hidden group">
-        <Image
-          src={value}
-          alt="Product image"
-          fill
-          className="object-cover"
-          sizes="200px"
-        />
-        {!disabled && (
-          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => document.getElementById("image-upload")?.click()}
-              disabled={isUploading}
-            >
-              {isUploading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Upload className="h-4 w-4" />
+      <>
+        <div
+          className={cn(
+            "relative w-full aspect-square max-w-[200px] rounded-lg border border-border overflow-hidden group",
+            className
+          )}
+          style={wrapperStyle}
+        >
+          <Image
+            src={value}
+            alt="Product image"
+            fill
+            className="object-cover"
+            sizes={imageSizes}
+          />
+          {!disabled && (
+            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={openFileDialog}
+                disabled={isUploading}
+              >
+                {isUploading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4" />
+                )}
+                Ganti
+              </Button>
+              {clearHandler && (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={clearHandler}
+                  disabled={isUploading}
+                >
+                  <X className="h-4 w-4" />
+                  Hapus
+                </Button>
               )}
-              Ganti
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              onClick={onClear}
-              disabled={isUploading}
-            >
-              <X className="h-4 w-4" />
-              Hapus
-            </Button>
-          </div>
-        )}
+            </div>
+          )}
+        </div>
         <input
-          id="image-upload"
+          ref={inputRef}
           type="file"
           accept="image/jpeg,image/png,image/webp"
           onChange={handleInputChange}
           className="hidden"
           disabled={disabled || isUploading}
         />
-      </div>
+      </>
     );
   }
 
   return (
-    <div
-      onDragOver={(e) => {
-        e.preventDefault();
-        if (!disabled && !isUploading) setIsDragging(true);
-      }}
-      onDragLeave={() => setIsDragging(false)}
-      onDrop={handleDrop}
-      className={cn(
-        "relative w-full aspect-video max-w-[300px] rounded-lg border-2 border-dashed",
-        "flex flex-col items-center justify-center gap-2 p-6",
-        "transition-colors cursor-pointer",
-        isDragging && "border-primary bg-primary/5",
-        !isDragging && "border-border hover:border-muted-foreground",
-        (disabled || isUploading) && "opacity-50 cursor-not-allowed"
-      )}
-      onClick={() => !disabled && !isUploading && document.getElementById("image-upload")?.click()}
-    >
-      {isUploading ? (
-        <>
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">Mengupload...</p>
-        </>
-      ) : (
-        <>
-          <div className="rounded-full bg-muted p-3">
-            <ImageIcon className="h-6 w-6 text-muted-foreground" />
-          </div>
-          <div className="text-center">
-            <p className="text-sm font-medium">Klik atau drag gambar</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              JPG, PNG, WebP (max 5MB)
-            </p>
-          </div>
-        </>
-      )}
+    <>
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (!disabled && !isUploading) setIsDragging(true);
+        }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={handleDrop}
+        className={cn(
+          "relative w-full aspect-video max-w-[300px] rounded-lg border-2 border-dashed",
+          "flex flex-col items-center justify-center gap-2 p-6",
+          "transition-colors cursor-pointer",
+          isDragging && "border-primary bg-primary/5",
+          !isDragging && "border-border hover:border-muted-foreground",
+          (disabled || isUploading) && "opacity-50 cursor-not-allowed",
+          className
+        )}
+        style={wrapperStyle}
+        onClick={openFileDialog}
+        aria-disabled={disabled || isUploading}
+      >
+        {isUploading ? (
+          <>
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Mengupload...</p>
+          </>
+        ) : (
+          <>
+            <div className="rounded-full bg-muted p-3">
+              <ImageIcon className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-medium">Klik atau drag gambar</p>
+              <p className="text-xs text-muted-foreground mt-1">JPG, PNG, WebP (max 5MB)</p>
+            </div>
+          </>
+        )}
+      </div>
       <input
-        id="image-upload"
+        ref={inputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp"
         onChange={handleInputChange}
         className="hidden"
         disabled={disabled || isUploading}
       />
-    </div>
+    </>
   );
 }

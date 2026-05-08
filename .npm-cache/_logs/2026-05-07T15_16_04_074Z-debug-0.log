@@ -1,0 +1,26 @@
+0 verbose cli C:\Program Files\nodejs\node.exe C:\Program Files\nodejs\node_modules\npm\bin\npm-cli.js
+1 info using npm@10.9.2
+2 info using node@v22.13.1
+3 silly config load:file:C:\Program Files\nodejs\node_modules\npm\npmrc
+4 silly config load:file:D:\Projects\beresio\.npmrc
+5 silly config load:file:C:\Users\LENOVO\.npmrc
+6 silly config load:file:C:\Users\LENOVO\AppData\Roaming\npm\etc\npmrc
+7 verbose title npm exec pnpm@9.0.0 install --lockfile-only
+8 verbose argv "exec" "--yes" "--" "pnpm@9.0.0" "install" "--lockfile-only"
+9 verbose logfile logs-max:10 dir:D:\Projects\beresio\.npm-cache\_logs\2026-05-07T15_16_04_074Z-
+10 verbose logfile D:\Projects\beresio\.npm-cache\_logs\2026-05-07T15_16_04_074Z-debug-0.log
+11 silly logfile start cleaning logs, removing 1 files
+12 silly logfile done cleaning log files
+13 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+14 http fetch GET https://registry.npmjs.org/pnpm attempt 1 failed with EACCES
+15 http fetch GET https://registry.npmjs.org/pnpm attempt 2 failed with EACCES
+16 http fetch GET https://registry.npmjs.org/pnpm attempt 3 failed with EACCES
+17 http fetch GET 200 https://registry.npmjs.org/pnpm 70139ms (cache stale)
+18 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+19 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+20 verbose cwd D:\Projects\beresio
+21 verbose os Windows_NT 10.0.26200
+22 verbose node v22.13.1
+23 verbose npm  v10.9.2
+24 verbose exit 0
+25 info ok

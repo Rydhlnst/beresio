@@ -13,7 +13,7 @@ import { FeatureLandingTemplate } from "../_components/FeatureLandingTemplate";
 export const metadata: Metadata = {
     title: "Kasir Digital (POS) - Transaksi Cepat & Multi-Payment",
     description:
-        "Kasir digital Beres.io mendukung multi-payment, cetak struk otomatis, dan integrasi QRIS. Transaksi lebih cepat dengan antarmuka yang intuitif.",
+        "Kasir digital Beres Cloud mendukung multi-payment, cetak struk otomatis, dan integrasi QRIS. Transaksi lebih cepat dengan antarmuka yang intuitif.",
 };
 
 const FEATURE_ITEMS = [
@@ -85,7 +85,7 @@ const SPOTLIGHT_ITEMS = [
 export default function KasirPage() {
     return (
         <FeatureLandingTemplate
-            badgeLabel="Fitur Kasir Beres.io"
+            badgeLabel="Fitur Kasir Beres Cloud"
             title="Kasir Digital"
             subtitle="Cepat, Stabil, dan Siap untuk Jam Sibuk"
             description="Rancang pengalaman transaksi yang lebih cepat untuk tim kasir Anda, dengan alur yang konsisten dari scan produk sampai struk keluar."
@@ -95,7 +95,7 @@ export default function KasirPage() {
                 eyebrow: "POS Core",
                 title: "Semua kebutuhan transaksi dalam satu sistem kasir",
                 description:
-                    "Beres.io menyatukan pembayaran, struk, dan kontrol operasional kasir tanpa layar yang membingungkan.",
+                    "Beres Cloud menyatukan pembayaran, struk, dan kontrol operasional kasir tanpa layar yang membingungkan.",
                 items: FEATURE_ITEMS,
             }}
             spotlightSection={{
@@ -124,7 +124,7 @@ export default function KasirPage() {
             finalSection={{
                 title: "Siap percepat transaksi di outlet Anda?",
                 description:
-                    "Aktifkan kasir digital Beres.io dan jalankan operasional checkout dengan ritme yang lebih stabil setiap hari.",
+                    "Aktifkan kasir digital Beres Cloud dan jalankan operasional checkout dengan ritme yang lebih stabil setiap hari.",
                 primaryCta: { label: "Mulai Free Trial", href: "/wishlist" },
                 secondaryCta: { label: "Lihat Paket Harga", href: "/harga" },
             }}

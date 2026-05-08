@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+﻿import { describe, expect, it, vi } from "vitest";
 import { createDbMock, createTestApp } from "./test-utils";
 
 vi.mock("../../middleware/auth", () => ({
@@ -32,7 +32,7 @@ describe("rbac routes", () => {
 
         const app = createRbacApp(db);
         const res = await app.request("/api/dashboard/rbac/bootstrap", { method: "POST" });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
@@ -51,7 +51,7 @@ describe("rbac routes", () => {
 
         const app = createRbacApp(db);
         const res = await app.request("/api/dashboard/rbac/bootstrap", { method: "POST" });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(403);
         expect(body.success).toBe(false);
@@ -99,7 +99,7 @@ describe("rbac routes", () => {
 
         const app = createRbacApp(db);
         const res = await app.request("/api/dashboard/rbac/bootstrap", { method: "POST" });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
@@ -111,3 +111,4 @@ describe("rbac routes", () => {
         });
     });
 });
+

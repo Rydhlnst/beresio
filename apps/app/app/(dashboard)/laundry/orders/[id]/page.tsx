@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { Metadata } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -62,6 +62,23 @@ export default async function LaundryOrderDetailPage({ params }: LaundryOrderDet
     }
 
     const order = ((await orderRes.json().catch(() => ({}))) as any)?.data ?? null;
+    const [driversRes, machinesRes] = order
+        ? await Promise.all([
+            rpc.api.dashboard.laundry.drivers.$get(undefined, { headers: { cookie } }),
+            rpc.api.dashboard.laundry.machines.$get(
+                {
+                    query: { branchId: order.branchId },
+                },
+                { headers: { cookie } }
+            ),
+        ])
+        : [null, null];
+    const drivers = driversRes?.ok
+        ? ((((await driversRes.json().catch(() => ({}))) as any)?.data ?? []) as any[])
+        : [];
+    const machines = machinesRes?.ok
+        ? ((((await machinesRes.json().catch(() => ({}))) as any)?.data ?? []) as any[])
+        : [];
     const receiptPayload = receiptRes.ok ? (((await receiptRes.json().catch(() => ({}))) as any)?.data ?? null) : null;
 
     return (
@@ -87,8 +104,10 @@ export default async function LaundryOrderDetailPage({ params }: LaundryOrderDet
                 </div>
             ) : null}
 
-            {order ? <LaundryOrderDetailClient order={order} /> : null}
+            {order ? <LaundryOrderDetailClient order={order} drivers={drivers} machines={machines} /> : null}
         </div>
     );
 }
+
+
 

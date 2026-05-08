@@ -16,6 +16,7 @@ import {
 } from "recharts";
 
 import { SectionCard } from "@/components/dashboard/shared/section-card";
+import { buildSafeApiUrl } from "@/lib/safe-api-url";
 
 type TrendPoint = {
     date: string;
@@ -36,10 +37,6 @@ type OrgDashboardChartsClientProps = {
 
 const PIE_COLORS = ["#16a34a", "#f59e0b", "#0ea5e9", "#7c3aed", "#ef4444"];
 
-function getApiBaseUrl() {
-    return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
-}
-
 function normalizeOrderType(type: string) {
     const lower = type.toLowerCase();
     if (lower.includes("dine")) return "Dine-in";
@@ -55,15 +52,26 @@ export function OrgDashboardChartsClient({
     const [trendByBranch, setTrendByBranch] = useState(initialTrendByBranch);
     const [ordersByType, setOrdersByType] = useState(initialOrdersByType);
 
+    const compactFormatter = useMemo(() => new Intl.NumberFormat("id-ID", { notation: "compact" }), []);
+    const currencyFormatter = useMemo(() => new Intl.NumberFormat("id-ID"), []);
+
+    const formatCompact = useMemo(() => {
+        return (value: number) => compactFormatter.format(Number(value));
+    }, [compactFormatter]);
+
+    const formatCurrency = useMemo(() => {
+        return (value: number) => `Rp ${currencyFormatter.format(Number(value))}`;
+    }, [currencyFormatter]);
+
     useEffect(() => {
         let cancelled = false;
         const refresh = async () => {
             try {
                 const [trendRes, ordersRes] = await Promise.all([
-                    fetch(`${getApiBaseUrl()}/api/dashboard/performance/trend-by-branch?timeRange=7d`, {
+                    fetch(buildSafeApiUrl("/api/dashboard/performance/trend-by-branch?timeRange=7d"), {
                         credentials: "include",
                     }),
-                    fetch(`${getApiBaseUrl()}/api/dashboard/performance/orders-by-type`, {
+                    fetch(buildSafeApiUrl("/api/dashboard/performance/orders-by-type"), {
                         credentials: "include",
                     }),
                 ]);
@@ -118,11 +126,11 @@ export function OrgDashboardChartsClient({
             <SectionCard title="Revenue Trend (7 Hari)" className="h-auto min-h-[340px] lg:col-span-2">
                 <div className="h-[260px]">
                     <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={trendChartData}>
+                            <LineChart data={trendChartData}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="date" />
-                            <YAxis tickFormatter={(value) => new Intl.NumberFormat("id-ID", { notation: "compact" }).format(Number(value))} />
-                            <Tooltip formatter={(value: number) => `Rp ${new Intl.NumberFormat("id-ID").format(value)}`} />
+                            <YAxis tickFormatter={formatCompact} />
+                            <Tooltip formatter={formatCurrency} />
                             <Legend />
                             {trendBranchNames.map((name, index) => (
                                 <Line

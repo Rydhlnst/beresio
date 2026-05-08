@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://beres.io";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://beres.cloud";
 
 export default function robots(): MetadataRoute.Robots {
     return {
@@ -16,8 +16,6 @@ export default function robots(): MetadataRoute.Robots {
                     "/onboarding/",
                     "/login",
                     "/register",
-                    "/sign-in",
-                    "/sign-up",
                     "/join",
                     "/forgot-password",
                     "/reset-password",

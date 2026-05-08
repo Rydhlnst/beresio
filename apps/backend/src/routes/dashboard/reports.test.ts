@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+﻿import { describe, expect, it, vi } from "vitest";
 import { createDbMock, createTestApp } from "./test-utils";
 
 vi.mock("../../middleware/auth", () => ({
@@ -27,7 +27,7 @@ describe("reports routes", () => {
         const app = createReportsApp(createDbMock());
 
         const res = await app.request("/api/dashboard/reports/catalog");
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
@@ -41,10 +41,11 @@ describe("reports routes", () => {
         const res = await app.request(
             "/api/dashboard/reports/summary?range=custom&dateFrom=invalid-date&dateTo=2026-04-01"
         );
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(400);
         expect(body.success).toBe(false);
         expect(body.error.code).toBe("BAD_REQUEST");
     });
 });
+

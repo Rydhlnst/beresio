@@ -1,6 +1,7 @@
 import "server-only";
 
 import { headers } from "next/headers";
+import { cache } from "react";
 import { and, asc, eq } from "drizzle-orm";
 
 import { auth } from "@/lib/auth";
@@ -94,9 +95,11 @@ export function buildBranchDashboardPath(orgSlug: string, branchCode: string) {
     return `/branch/${orgSlug}/${normalizeBranchCode(branchCode) ?? branchCode.toLowerCase()}`;
 }
 
-export async function resolveDashboardRoutingTarget(
-    input: ResolveRoutingInput = {}
-): Promise<DashboardRoutingTarget | null> {
+const resolveDashboardRoutingTargetCached = cache(async (
+    requestedOrgSlug: string | null,
+    requestedBranchSlug: string | null,
+    forceBranchPath: boolean
+): Promise<DashboardRoutingTarget | null> => {
     const db = createDbNextjs(process.env.DATABASE_URL!);
     const authInstance = auth(db);
     const reqHeaders = await headers();
@@ -112,7 +115,6 @@ export async function resolveDashboardRoutingTarget(
     if (organizations.length === 0) return null;
 
     const activeOrganizationId = (session as any)?.activeOrganizationId ?? organizations[0]?.id;
-    const requestedOrgSlug = normalizeSlug(input.orgSlug);
 
     const activeOrganization =
         (requestedOrgSlug
@@ -176,7 +178,6 @@ export async function resolveDashboardRoutingTarget(
             .orderBy(asc(branches.name));
     }
 
-    const requestedBranchSlug = normalizeBranchCode(input.branchSlug);
     const activeBranchId = await getActiveBranchId();
 
     const defaultBranch =
@@ -193,7 +194,6 @@ export async function resolveDashboardRoutingTarget(
     const orgSlug = normalizeSlug(activeOrganization.slug) ?? slugifyFromName(activeOrganization.name);
     const defaultBranchCode = normalizeBranchCode(defaultBranch?.code);
 
-    const forceBranchPath = input.forceBranchPath === true;
     const targetPath = forceBranchPath
         ? defaultBranchCode
             ? buildBranchDashboardPath(orgSlug, defaultBranchCode)
@@ -222,6 +222,20 @@ export async function resolveDashboardRoutingTarget(
         defaultBranchCode: defaultBranchCode ?? null,
         targetPath,
     };
+});
+
+export async function resolveDashboardRoutingTarget(
+    input: ResolveRoutingInput = {}
+): Promise<DashboardRoutingTarget | null> {
+    const requestedOrgSlug = normalizeSlug(input.orgSlug);
+    const requestedBranchSlug = normalizeBranchCode(input.branchSlug);
+    const forceBranchPath = input.forceBranchPath === true;
+
+    return resolveDashboardRoutingTargetCached(
+        requestedOrgSlug,
+        requestedBranchSlug,
+        forceBranchPath
+    );
 }
 
 export async function resolveCanonicalBranchPathByBranchId(branchId: string) {

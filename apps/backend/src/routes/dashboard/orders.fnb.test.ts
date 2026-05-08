@@ -30,6 +30,12 @@ vi.mock("../../lib/stock", () => ({
     resolveInventoryBySku: vi.fn(async () => new Map()),
 }));
 
+vi.mock("../../middleware/branch-context", () => ({
+    requireBranchContext: () => async (_c: any, next: any) => {
+        await next();
+    },
+}));
+
 import { ordersRouter } from "./orders";
 
 const createOrdersApp = (db: any) => createTestApp(ordersRouter, "/api/dashboard/orders", db);

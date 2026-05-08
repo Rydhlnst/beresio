@@ -1,4 +1,5 @@
 import { createUpstashClient } from "./upstash";
+import { isJsonRecord, parseJsonWithGuard } from "../safe-json";
 
 const KPI_CACHE_TTL_SECONDS = 20;
 const KPI_INVALIDATION_TTL_SECONDS = 24 * 60 * 60;
@@ -7,6 +8,10 @@ type CachedKpi<T> = {
     cachedAt: number;
     data: T;
 };
+
+function isCachedKpi<T>(value: unknown): value is CachedKpi<T> {
+    return isJsonRecord(value) && typeof value.cachedAt === "number" && "data" in value;
+}
 
 function normalizeScope(branchIds: string[]) {
     if (!Array.isArray(branchIds) || branchIds.length === 0) return "none";
@@ -28,14 +33,24 @@ export async function readKpiCache<T>(
     const redis = createUpstashClient(c?.env);
     if (!redis.enabled) return null;
 
-    const [cachedRaw, invalidRaw] = await Promise.all([
-        redis.get(kpiDataKey(options.orgId, options.branchIds)),
-        redis.get(kpiInvalidationKey(options.orgId)),
-    ]);
+    let cachedRaw: string | null = null;
+    let invalidRaw: string | null = null;
+    try {
+        [cachedRaw, invalidRaw] = await Promise.all([
+            redis.get(kpiDataKey(options.orgId, options.branchIds)),
+            redis.get(kpiInvalidationKey(options.orgId)),
+        ]);
+    } catch (error) {
+        console.warn("[kpi-cache/read] cache unavailable, fallback to db", {
+            message: error instanceof Error ? error.message : String(error),
+            orgId: options.orgId,
+        });
+        return null;
+    }
 
     if (!cachedRaw) return null;
 
-    const cached = JSON.parse(cachedRaw) as CachedKpi<T>;
+    const cached = parseJsonWithGuard<CachedKpi<T>>(cachedRaw, isCachedKpi);
     if (!cached || typeof cached.cachedAt !== "number") return null;
 
     const invalidSince = Number(invalidRaw ?? 0);
@@ -58,16 +73,30 @@ export async function writeKpiCache<T>(
         data: options.data,
     };
 
-    await redis.set(
-        kpiDataKey(options.orgId, options.branchIds),
-        JSON.stringify(payload),
-        KPI_CACHE_TTL_SECONDS
-    );
+    try {
+        await redis.set(
+            kpiDataKey(options.orgId, options.branchIds),
+            JSON.stringify(payload),
+            KPI_CACHE_TTL_SECONDS
+        );
+    } catch (error) {
+        console.warn("[kpi-cache/write] cache unavailable, skip write", {
+            message: error instanceof Error ? error.message : String(error),
+            orgId: options.orgId,
+        });
+    }
 }
 
 export async function invalidateKpiCache(c: any, orgId: string) {
     const redis = createUpstashClient(c?.env);
     if (!redis.enabled) return;
 
-    await redis.set(kpiInvalidationKey(orgId), String(Date.now()), KPI_INVALIDATION_TTL_SECONDS);
+    try {
+        await redis.set(kpiInvalidationKey(orgId), String(Date.now()), KPI_INVALIDATION_TTL_SECONDS);
+    } catch (error) {
+        console.warn("[kpi-cache/invalidate] cache unavailable, skip invalidate", {
+            message: error instanceof Error ? error.message : String(error),
+            orgId,
+        });
+    }
 }

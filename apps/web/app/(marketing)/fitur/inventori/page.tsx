@@ -86,7 +86,7 @@ const SPOTLIGHT_ITEMS = [
 export default function InventoriPage() {
     return (
         <FeatureLandingTemplate
-            badgeLabel="Inventori Beres.io"
+            badgeLabel="Inventori Beres Cloud"
             title="Kontrol Inventori"
             subtitle="Presisi Stok untuk Operasional yang Stabil"
             description="Satukan monitoring stok, alert otomatis, dan mutasi barang ke dalam satu workspace yang lebih mudah dioperasikan tim Anda."
@@ -110,7 +110,7 @@ export default function InventoriPage() {
                 eyebrow: "Decision Support",
                 title: "Kurangi kehilangan penjualan akibat stok tidak terkendali",
                 description:
-                    "Beres.io membantu tim gudang dan outlet mengambil keputusan restock berdasarkan data aktual, bukan asumsi.",
+                    "Beres Cloud membantu tim gudang dan outlet mengambil keputusan restock berdasarkan data aktual, bukan asumsi.",
                 bullets: [
                     "Owner dan manager melihat status stok dari dashboard yang sama",
                     "Tim gudang mendapat prioritas item yang harus segera ditangani",

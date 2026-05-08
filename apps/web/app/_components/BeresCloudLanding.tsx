@@ -3,7 +3,6 @@ import type { CSSProperties, ReactNode } from "react";
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/tabs";
 import { cn } from "@repo/ui/lib/utils";
 import {
     ArrowRight,
@@ -17,6 +16,7 @@ import {
 import type { FAQItem } from "./FAQ";
 import { APP_CONTENT_WIDTH } from "./layout-width";
 import { HeroDashboardMockup, type HeroDashboardMockupProps } from "./HeroDashboard";
+import { LandingWorkflowSection } from "./LandingWorkflowSection";
 import { LazySavingsSection } from "./LazySavingsSection";
 import { LazyLandingFAQSection } from "./LazyLandingFAQSection";
 
@@ -279,8 +279,8 @@ export function BeresCloudLanding() {
         <div className="bg-background font-[var(--font-beres-dm-sans)] text-foreground">
             <main>
                 <section className="relative overflow-hidden border-b border-border/60">
-                    <div className="pointer-events-none absolute inset-0 -z-10 [background-image:linear-gradient(to_right,hsl(var(--border)/0.35)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.35)_1px,transparent_1px)] [background-size:44px_44px] opacity-30" />
-                    <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_right,hsl(var(--secondary))_0%,transparent_46%)]" />
+                    {/* <div className="pointer-events-none absolute inset-0 -z-10 [background-image:linear-gradient(to_right,hsl(var(--border)/0.35)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.35)_1px,transparent_1px)] [background-size:44px_44px] opacity-30" /> */}
+                    {/* <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_right,hsl(var(--secondary))_0%,transparent_46%)]" /> */}
                     <div className={cn(APP_CONTENT_WIDTH, "pb-16 pt-14 sm:pt-20 lg:pb-24")}>
                         <Reveal className="max-w-3xl">
                             <Badge className="rounded-full border border-border/80 bg-secondary px-4 py-1.5 text-[11px] font-semibold text-foreground">
@@ -321,9 +321,9 @@ export function BeresCloudLanding() {
                     <div className={APP_CONTENT_WIDTH}>
                         <Reveal>
                             <p className="mb-5 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Terintegrasi dengan</p>
-                            <div className="hidden grid-cols-6 gap-3 md:grid">
+                            <div className="hidden grid-cols-6 gap-3 md:grid items-center h-full">
                                 {INTEGRATIONS.map((item) => (
-                                    <div key={item} className="rounded-full border border-border/70 bg-secondary px-4 py-2 text-center text-sm font-medium text-muted-foreground">
+                                    <div key={item} className="rounded-full border border-border/70 bg-secondary px-4 py-2 h-full text-center text-sm font-medium text-muted-foreground items-center justify-center">
                                         {item}
                                     </div>
                                 ))}
@@ -361,8 +361,8 @@ export function BeresCloudLanding() {
                                     </Card>
                                 ))}
                             </div>
-                            <div className="flex items-center justify-center py-3 text-primary">
-                                <ChevronRight className="h-8 w-8 lg:h-10 lg:w-10" />
+                            <div className="flex w-full h-full items-center justify-center py-3 text-primary">
+                                <ChevronRight className="h-8 w-8 lg:h-10 lg:w-10 rotate-90 lg:rotate-0" />
                             </div>
                             <div className="space-y-3">
                                 {[
@@ -381,6 +381,7 @@ export function BeresCloudLanding() {
                         </Reveal>
                     </div>
                 </section>
+                <LandingWorkflowSection />
                 <section id="solusi" className="border-b border-border/60 py-16 sm:py-20">
                     <div className={APP_CONTENT_WIDTH}>
                         <Reveal>
@@ -391,32 +392,31 @@ export function BeresCloudLanding() {
                         </Reveal>
 
                         <Reveal className="mt-10">
-                            <Tabs defaultValue={VERTICALS[0].id} className="w-full">
-                                <TabsList className="h-auto w-full flex-wrap justify-start gap-2 bg-transparent p-0">
-                                    {VERTICALS.map((vertical) => (
-                                        <TabsTrigger
-                                            key={vertical.id}
-                                            value={vertical.id}
-                                            className="rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-muted-foreground data-[state=active]:border-primary/50 data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
-                                        >
-                                            {vertical.label}
-                                        </TabsTrigger>
-                                    ))}
-                                </TabsList>
-                                {VERTICALS.map((vertical) => (
-                                    <TabsContent key={vertical.id} value={vertical.id} className="mt-5 focus-visible:outline-none">
-                                        <div className="overflow-hidden rounded-[28px] border border-border/80 bg-[linear-gradient(132deg,hsl(var(--background))_0%,hsl(var(--secondary)/0.55)_100%)] p-6 sm:p-8">
+                            <div className="space-y-3">
+                                {VERTICALS.map((vertical, index) => (
+                                    <details
+                                        key={vertical.id}
+                                        open={index === 0}
+                                        className="overflow-hidden rounded-[28px] border border-border/80 bg-background"
+                                    >
+                                        <summary className="cursor-pointer list-none p-5 sm:p-6">
+                                            <div className="flex items-center gap-3">
+                                                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                                                    {vertical.icon}
+                                                </span>
+                                                <p className="text-base font-semibold tracking-tight text-foreground">
+                                                    {vertical.label}
+                                                </p>
+                                                <span className="ml-auto rounded-full border border-border/70 bg-muted/20 px-3 py-1 text-xs font-semibold text-muted-foreground">
+                                                    Lihat workflow
+                                                </span>
+                                            </div>
+                                        </summary>
+
+                                        <div className="border-t border-border/70 p-6 sm:p-8">
                                             <div className="grid gap-8 lg:grid-cols-[1.08fr_0.92fr] lg:items-start">
                                                 <div>
-                                                    <div className="flex items-center gap-3 text-xl">
-                                                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                                                            {vertical.icon}
-                                                        </span>
-                                                        <h3 className="text-2xl font-semibold tracking-tight text-foreground">
-                                                            {vertical.label}
-                                                        </h3>
-                                                    </div>
-                                                    <ul className="mt-6 grid gap-3 sm:grid-cols-2">
+                                                    <ul className="grid gap-3 sm:grid-cols-2">
                                                         {vertical.points.map((point) => (
                                                             <li key={point} className="flex items-start gap-2.5 text-sm text-muted-foreground">
                                                                 <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary" />
@@ -439,7 +439,6 @@ export function BeresCloudLanding() {
                                                 </div>
 
                                                 <aside className="relative overflow-hidden rounded-2xl border border-primary/20 bg-background/95 p-5 shadow-[0_16px_44px_-28px_hsl(var(--primary)/0.55)]">
-                                                    <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top,hsl(var(--primary)/0.18)_0%,transparent_72%)]" />
                                                     <div className="relative">
                                                         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary/80">
                                                             Workflow Module
@@ -449,11 +448,11 @@ export function BeresCloudLanding() {
                                                         </p>
 
                                                         <div className="mt-5 space-y-3">
-                                                            {vertical.workflow.map((flow, index) => (
+                                                            {vertical.workflow.map((flow, flowIndex) => (
                                                                 <div
                                                                     key={flow.stage}
                                                                     className="industry-flow-row relative rounded-xl border border-border/70 bg-secondary/45 p-3.5"
-                                                                    style={{ "--flow-delay": `${index * 110}ms` } as CSSProperties}
+                                                                    style={{ "--flow-delay": `${flowIndex * 110}ms` } as CSSProperties}
                                                                 >
                                                                     <div className="flex items-start gap-3">
                                                                         <span className="industry-flow-dot mt-1.5 h-2.5 w-2.5 rounded-full bg-primary" />
@@ -465,7 +464,7 @@ export function BeresCloudLanding() {
                                                                             {flow.latency}
                                                                         </span>
                                                                     </div>
-                                                                    {index < vertical.workflow.length - 1 && (
+                                                                    {flowIndex < vertical.workflow.length - 1 && (
                                                                         <div className="pointer-events-none absolute left-[1.15rem] top-[calc(100%-0.2rem)] h-4 w-px bg-primary/25" />
                                                                     )}
                                                                 </div>
@@ -492,9 +491,9 @@ export function BeresCloudLanding() {
                                                 </aside>
                                             </div>
                                         </div>
-                                    </TabsContent>
+                                    </details>
                                 ))}
-                            </Tabs>
+                            </div>
                         </Reveal>
                     </div>
                 </section>

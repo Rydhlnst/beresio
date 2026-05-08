@@ -1,34 +1,67 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ShieldCheck, Lock, FileText, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { complianceConfig, buildMailtoUrl } from "@repo/ui/compliance";
 import { PageHero } from "@/app/_components/PageHero";
 import { Section } from "@/app/_components/Section";
 import { Button, Heading, Text } from "@repo/ui";
-import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import { generateMetadata as seoMetadata, pageKeywords } from "@/lib/seo";
 
 export const metadata: Metadata = seoMetadata({
-    title: "Kebijakan Privasi - Perlindungan Data Bisnis Anda",
+    title: "Kebijakan Privasi",
     path: "/privacy",
-    description: "Kebijakan privasi Beres.io. Pelajari bagaimana kami mengelola data bisnis Anda dengan aman, enkripsi terkini, dan kontrol akses ketat.",
+    description: `${complianceConfig.brandName} menjelaskan cara pengumpulan, penggunaan, penyimpanan, dan perlindungan data pengguna secara operasional.`,
     keywords: pageKeywords.privacy,
 });
 
-const PRIVACY_POINTS = [
+const sections = [
     {
-        title: "Data yang Dikumpulkan",
-        description: "Informasi akun, data transaksi, dan konfigurasi outlet.",
-        icon: FileText,
+        title: "1. Data yang Kami Kumpulkan",
+        items: [
+            "Data akun: nama, email, nomor telepon, dan informasi organisasi.",
+            "Data operasional: transaksi, katalog produk/layanan, pelanggan, serta aktivitas tim.",
+            "Data teknis: alamat IP, jenis perangkat, dan log akses untuk keamanan layanan.",
+        ],
     },
     {
-        title: "Keamanan",
-        description: "Akses dibatasi, audit log, dan kontrol berbasis peran.",
-        icon: Lock,
+        title: "2. Tujuan Pemrosesan",
+        items: [
+            "Menyediakan fitur inti platform, termasuk billing, laporan, dan manajemen operasional.",
+            "Mencegah fraud, penyalahgunaan akun, dan menjaga integritas data transaksi.",
+            "Menyediakan dukungan pengguna, investigasi insiden, dan pemenuhan kewajiban hukum.",
+        ],
     },
     {
-        title: "Hak Anda",
-        description: "Minta salinan data, perbaikan, atau penghapusan sesuai kebijakan.",
-        icon: ShieldCheck,
+        title: "3. Penyimpanan dan Retensi Data",
+        items: [
+            "Data disimpan selama akun aktif dan selama diperlukan untuk tujuan hukum/audit.",
+            "Data billing dan transaksi dapat disimpan lebih lama sesuai kewajiban perpajakan/regulasi.",
+            "Permintaan penghapusan data diproses setelah verifikasi identitas dan hak kepemilikan akun.",
+        ],
+    },
+    {
+        title: "4. Berbagi Data dengan Pihak Ketiga",
+        items: [
+            "Kami menggunakan penyedia infrastruktur dan gateway pembayaran hanya untuk layanan yang relevan.",
+            "Kami tidak menjual data pengguna.",
+            "Akses pihak ketiga dibatasi berdasarkan kebutuhan operasional dan perjanjian kerahasiaan.",
+        ],
+    },
+    {
+        title: "5. Hak Pengguna",
+        items: [
+            "Meminta salinan data, koreksi data, dan penghapusan data sesuai ketentuan hukum.",
+            "Meminta pembatasan pemrosesan tertentu untuk kasus khusus.",
+            "Mengajukan komplain melalui kanal resmi yang tercantum pada halaman ini.",
+        ],
+    },
+    {
+        title: "6. Keamanan Data",
+        items: [
+            "Kontrol akses berbasis peran, audit log, dan pemantauan aktivitas mencurigakan.",
+            "Kredensial pembayaran sensitif diproses melalui komponen hosted gateway, bukan penyimpanan manual kami.",
+            "Insiden keamanan ditangani melalui prosedur respons insiden internal.",
+        ],
     },
 ];
 
@@ -36,54 +69,60 @@ export default function PrivacyPage() {
     return (
         <>
             <PageHero
-                badgeLabel="Legal"
+                badgeLabel={`Legal ${complianceConfig.legalVersion}`}
                 title="Kebijakan Privasi"
-                subtitle="Beres.io"
-                description="Ringkasan cara kami mengelola data, keamanan, dan hak Anda sebagai pengguna."
-                primaryCta={{ label: "Hubungi Support", href: "/support" }}
-                secondaryCta={{ label: "Syarat & Ketentuan", href: "/terms" }}
+                subtitle={complianceConfig.brandName}
+                description="Dokumen ini menjelaskan pemrosesan data pelanggan, merchant, dan pengguna internal di Beres Cloud."
+                primaryCta={{ label: "Hubungi Tim Support", href: "/support" }}
+                secondaryCta={{ label: "Syarat Penggunaan", href: "/terms" }}
                 align="center"
             />
 
             <Section>
-                <div className="space-y-10">
-                    <div className="max-w-2xl mx-auto text-center space-y-3">
-                        <Heading as="h2">Ringkasan Utama</Heading>
-                        <Text variant="lead" align="center">
-                            Versi singkat sebelum dokumen legal lengkap dipublikasikan.
-                        </Text>
-                    </div>
-
-                    <div className="grid gap-6 md:grid-cols-3">
-                        {PRIVACY_POINTS.map((point) => (
-                            <Card key={point.title} className="border-border/60">
-                                <CardHeader className="space-y-4">
-                                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand/10">
-                                        <point.icon className="h-5 w-5 text-brand" />
-                                    </div>
-                                    <CardTitle className="text-base">{point.title}</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <Text variant="muted">{point.description}</Text>
-                                </CardContent>
-                            </Card>
-                        ))}
+                <div className="space-y-6 rounded-2xl border border-border/60 bg-background p-6">
+                    <Heading as="h2">Informasi Legal</Heading>
+                    <div className="grid gap-3 text-sm text-muted-foreground sm:grid-cols-2">
+                        <p><span className="font-semibold text-foreground">Entitas:</span> {complianceConfig.legalEntityName}</p>
+                        <p><span className="font-semibold text-foreground">Berlaku sejak:</span> {complianceConfig.legalEffectiveDate}</p>
+                        <p><span className="font-semibold text-foreground">Versi:</span> {complianceConfig.legalVersion}</p>
+                        <p><span className="font-semibold text-foreground">Domain resmi:</span> {complianceConfig.canonicalDomain}</p>
+                        <p className="sm:col-span-2"><span className="font-semibold text-foreground">Alamat:</span> {complianceConfig.businessAddress}</p>
                     </div>
                 </div>
             </Section>
 
             <Section>
-                <div className="flex flex-col items-center gap-6 text-center">
-                    <Heading as="h2">Butuh Penjelasan Lebih Lengkap?</Heading>
-                    <Text variant="lead" align="center">
-                        Tim kami siap membantu menjelaskan kebijakan data dan keamanan.
-                    </Text>
-                    <Button className="rounded-2xl px-8" asChild>
-                        <Link href="/support">
-                            Hubungi Tim Privacy
-                            <ArrowRight className="ml-2 h-4 w-4" />
-                        </Link>
-                    </Button>
+                <div className="space-y-8">
+                    {sections.map((section) => (
+                        <article key={section.title} className="rounded-2xl border border-border/60 bg-background p-6">
+                            <Heading as="h3" className="text-xl">{section.title}</Heading>
+                            <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-muted-foreground">
+                                {section.items.map((item) => (
+                                    <li key={item}>{item}</li>
+                                ))}
+                            </ul>
+                        </article>
+                    ))}
+                </div>
+            </Section>
+
+            <Section>
+                <div className="rounded-2xl border border-border/60 bg-background p-6 text-sm text-muted-foreground">
+                    <Heading as="h3">Kontak Privasi & Pengaduan</Heading>
+                    <p className="mt-3">Untuk pertanyaan privasi atau permintaan hak data, gunakan kanal resmi berikut:</p>
+                    <ul className="mt-3 list-disc space-y-2 pl-5">
+                        <li>Email support: {complianceConfig.supportEmail}</li>
+                        <li>Email pengaduan: {complianceConfig.complaintChannel}</li>
+                        <li>Jam layanan: {complianceConfig.businessHours}</li>
+                    </ul>
+                    <div className="mt-5 flex flex-wrap gap-3">
+                        <Button asChild className="rounded-xl">
+                            <Link href={buildMailtoUrl(complianceConfig.supportEmail, "Permintaan Privasi Data")}>Kirim Email Support<ArrowRight className="ml-2 h-4 w-4" /></Link>
+                        </Button>
+                        <Button asChild variant="outline" className="rounded-xl">
+                            <Link href="/refund-cancellation">Lihat Refund & Pembatalan</Link>
+                        </Button>
+                    </div>
                 </div>
             </Section>
         </>

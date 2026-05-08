@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { ArrowRight, BadgePercent, Check } from "lucide-react"
+import { complianceConfig } from "@repo/ui/compliance"
 import { SectionClient } from "./SectionClient"
 import { cn } from "@repo/ui/lib/utils"
 import { Button, Heading, Text } from "@repo/ui"
@@ -63,8 +64,8 @@ const plans: Plan[] = [
             { label: "Modul dasar sesuai vertical" },
         ],
         support: "Chatbot / FAQ",
-        ctaLabel: "Mulai dari Solo",
-        ctaHref: "/wishlist",
+        ctaLabel: "Checkout Solo",
+        ctaHref: "/billing/checkout?plan=solo",
     },
     {
         name: "Starter",
@@ -84,8 +85,8 @@ const plans: Plan[] = [
             { label: "Manajemen tim (3 user)" },
         ],
         support: "Email (48 jam respons)",
-        ctaLabel: "Pilih Starter",
-        ctaHref: "/wishlist",
+        ctaLabel: "Checkout Starter",
+        ctaHref: "/billing/checkout?plan=starter",
     },
     {
         name: "Professional",
@@ -107,8 +108,8 @@ const plans: Plan[] = [
             { label: "API access (5.000 calls/bulan)" },
         ],
         support: "WhatsApp Priority (24 jam respons)",
-        ctaLabel: "Ambil Professional",
-        ctaHref: "/wishlist",
+        ctaLabel: "Checkout Professional",
+        ctaHref: "/billing/checkout?plan=professional",
     },
     {
         name: "Enterprise",
@@ -129,8 +130,8 @@ const plans: Plan[] = [
             { label: "SLA 99.9% uptime" },
         ],
         support: "24/7 Dedicated + Account Manager",
-        ctaLabel: "Hubungi Sales",
-        ctaHref: "/sales",
+        ctaLabel: "Checkout Enterprise (Demo)",
+        ctaHref: "/billing/checkout?plan=enterprise",
     },
 ]
 
@@ -318,7 +319,7 @@ export function Pricing({ contentClassName }: PricingProps) {
                     </TabsList>
                     <div className="flex items-center gap-3 rounded-full border border-border/60 bg-background px-4 py-2 text-xs text-muted-foreground">
                         <BadgePercent className="h-4 w-4 text-emerald-500" />
-                        Diskon tahunan berlaku otomatis di checkout
+                        Checkout ditampilkan dalam Demo Mode (tanpa charge live)
                     </div>
                 </div>
 
@@ -372,12 +373,38 @@ export function Pricing({ contentClassName }: PricingProps) {
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
                         <Button className="rounded-full bg-brand text-brand-foreground font-bold" asChild>
-                            <Link href="/wishlist">Mulai Free Trial</Link>
+                            <Link href="/billing/checkout">Mulai Checkout Demo</Link>
                         </Button>
                         <Button variant="outline" className="rounded-full font-bold" asChild>
-                            <Link href="/demo">Jadwalkan Demo</Link>
+                            <Link href="/billing/status/INV-DEMO-240415">Lihat Status Pembayaran</Link>
                         </Button>
                     </div>
+                </div>
+            </div>
+
+            <div id="provider-mapping" className="mt-10 rounded-[20px] border border-border/60 bg-background p-6 md:p-8">
+                <Heading as="h3" className="text-2xl font-black">
+                    Bagaimana Pembayaran Bekerja
+                </Heading>
+                <Text variant="muted" className="mt-2">
+                    {complianceConfig.brandName} adalah platform SaaS manajemen operasional. Dana pembayaran diproses oleh gateway resmi merchant/billing sesuai mapping berikut.
+                </Text>
+                <div className="mt-6 grid gap-4 md:grid-cols-2">
+                    {complianceConfig.providerMapping.map((mapping) => (
+                        <div key={mapping.provider} className="rounded-2xl border border-border/60 bg-muted/20 p-4">
+                            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{mapping.provider}</p>
+                            <p className="mt-2 text-sm font-semibold text-foreground">{mapping.role}</p>
+                            <p className="mt-2 text-xs text-muted-foreground">State koneksi: {mapping.connectionState}</p>
+                            <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-muted-foreground">
+                                {mapping.useCases.map((useCase) => (
+                                    <li key={useCase}>{useCase}</li>
+                                ))}
+                            </ul>
+                            <p className="mt-3 text-xs text-muted-foreground">
+                                Metode: {mapping.supportedMethods.join(", ")}
+                            </p>
+                        </div>
+                    ))}
                 </div>
             </div>
         </SectionClient>

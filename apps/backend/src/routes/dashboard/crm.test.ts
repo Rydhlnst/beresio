@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+﻿import { describe, expect, it, vi } from "vitest";
 import { createDbMock, createTestApp } from "./test-utils";
 
 vi.mock("../../middleware/auth", () => ({
@@ -68,7 +68,7 @@ describe("crm routes", () => {
         const app = createCrmApp(db);
 
         const res = await app.request("/api/dashboard/crm/customers?page=1&limit=25");
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
@@ -93,7 +93,7 @@ describe("crm routes", () => {
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ phone: "0812" }),
         });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(400);
         expect(body.success).toBe(false);
@@ -116,7 +116,7 @@ describe("crm routes", () => {
         const app = createCrmApp(db);
 
         const res = await app.request("/api/dashboard/crm/analytics/overview?period=30d");
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
@@ -144,10 +144,11 @@ describe("crm routes", () => {
         const res = await app.request("/api/dashboard/crm/customers/cus-missing", {
             method: "DELETE",
         });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(404);
         expect(body.success).toBe(false);
         expect(body.error.code).toBe("NOT_FOUND");
     });
 });
+

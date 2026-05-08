@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+﻿import { describe, expect, it, vi } from "vitest";
 import { createDbMock, createTestApp } from "./test-utils";
 
 vi.mock("../../middleware/auth", () => ({
@@ -44,7 +44,7 @@ describe("transactions routes", () => {
         const app = createTransactionsApp(db);
 
         const res = await app.request("/api/dashboard/transactions");
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
@@ -55,6 +55,54 @@ describe("transactions routes", () => {
             status: "paid",
             type: "sale",
         });
+    });
+
+    it("GET / rejects branchId outside user's access", async () => {
+        const app = createTransactionsApp(createDbMock());
+
+        const res = await app.request("/api/dashboard/transactions?branchId=br-2");
+        const body = await res.json() as any;
+
+        expect(res.status).toBe(403);
+        expect(body).toEqual({
+            success: false,
+            error: {
+                code: "FORBIDDEN",
+                message: "No access to branch",
+            },
+        });
+    });
+
+    it("GET /:id returns 403 when transaction belongs to non-accessible branch", async () => {
+        const db = createDbMock({
+            selectResults: [
+                [{
+                    id: "trx-2",
+                    amount: "10000",
+                    discountAmount: "0",
+                    taxAmount: "0",
+                    status: "paid",
+                    type: "sale",
+                    paymentMethod: "cash",
+                    notes: null,
+                    createdAt: new Date("2026-04-01T00:00:00.000Z"),
+                    updatedAt: new Date("2026-04-01T00:00:00.000Z"),
+                    branchId: "br-2",
+                    branchName: "Other Branch",
+                    customerId: null,
+                    customerName: null,
+                }],
+                [],
+            ],
+        });
+        const app = createTransactionsApp(db);
+
+        const res = await app.request("/api/dashboard/transactions/trx-2");
+        const body = await res.json() as any;
+
+        expect(res.status).toBe(403);
+        expect(body.error.code).toBe("FORBIDDEN");
+        expect(body.error.message).toBe("No access to branch");
     });
 
     it("POST / rejects invalid status", async () => {
@@ -69,7 +117,7 @@ describe("transactions routes", () => {
                 items: [{ productId: "prod-1", quantity: 1, unitPrice: 10000 }],
             }),
         });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(400);
         expect(body.success).toBe(false);
@@ -89,7 +137,7 @@ describe("transactions routes", () => {
                 items: [{ productId: "prod-1", quantity: 0, unitPrice: 10000 }],
             }),
         });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(400);
         expect(body.success).toBe(false);
@@ -104,7 +152,7 @@ describe("transactions routes", () => {
         });
 
         const res = await app.request("/api/dashboard/transactions");
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(500);
         expect(body.success).toBe(false);
@@ -112,3 +160,4 @@ describe("transactions routes", () => {
         expect(body.error.message).toBe("Internal server error");
     });
 });
+

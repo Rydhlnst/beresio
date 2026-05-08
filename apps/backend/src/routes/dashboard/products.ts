@@ -179,13 +179,14 @@ productsRouter.get('/', authMiddleware, async (c) => {
         const conditions = [eq(products.organizationId, orgId)]
         
         if (search) {
-            conditions.push(
-                or(
-                    ilike(products.name, `%${search}%`),
-                    ilike(products.sku, `%${search}%`),
-                    ilike(products.barcode, `%${search}%`)
-                )
+            const searchCondition = or(
+                ilike(products.name, `%${search}%`),
+                ilike(products.sku, `%${search}%`),
+                ilike(products.barcode, `%${search}%`)
             )
+            if (searchCondition) {
+                conditions.push(searchCondition)
+            }
         }
         
         if (categoryId) {
@@ -349,6 +350,53 @@ productsRouter.get('/:id', authMiddleware, async (c) => {
         const db = c.get('db')
         const orgId = await getOrgId(c)
         const productId = c.req.param('id')
+
+        // Guard static subpaths that can be shadowed by the dynamic `/:id` matcher.
+        if (productId === 'categories') {
+            const rows = await db
+                .select({
+                    id: productCategories.id,
+                    name: productCategories.name,
+                    slug: productCategories.slug,
+                    description: productCategories.description,
+                    parentId: productCategories.parentId,
+                    sortOrder: productCategories.sortOrder,
+                    isActive: productCategories.isActive,
+                    createdAt: productCategories.createdAt,
+                })
+                .from(productCategories)
+                .where(and(
+                    eq(productCategories.organizationId, orgId),
+                    eq(productCategories.isActive, true)
+                ))
+                .orderBy(asc(productCategories.sortOrder), asc(productCategories.name))
+
+            return ok(c, { data: rows })
+        }
+
+        if (productId === 'suppliers') {
+            const rows = await db
+                .select({
+                    id: suppliers.id,
+                    name: suppliers.name,
+                    code: suppliers.code,
+                    contactName: suppliers.contactName,
+                    email: suppliers.email,
+                    phone: suppliers.phone,
+                    address: suppliers.address,
+                    city: suppliers.city,
+                    isActive: suppliers.isActive,
+                    createdAt: suppliers.createdAt,
+                })
+                .from(suppliers)
+                .where(and(
+                    eq(suppliers.organizationId, orgId),
+                    eq(suppliers.isActive, true)
+                ))
+                .orderBy(asc(suppliers.name))
+
+            return ok(c, { data: rows })
+        }
 
         const [row] = await db
             .select({
