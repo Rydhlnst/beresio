@@ -1,135 +1,63 @@
-# Turborepo starter
+# Beres Cloud Monorepo
 
-This Turborepo starter is maintained by the Turborepo core team.
+Monorepo untuk Beres Cloud (ERP/operational OS untuk tenant UMKM). Repo ini berisi backend API, dashboard tenant, customer order app, dan marketing site.
 
-## Using this example
+## Apps
 
-Run the following command:
+- `apps/backend`: Hono.js API (Cloudflare Workers). Sumber utama endpoint dashboard dan public order intake.
+- `apps/app`: Dashboard tenant (Next.js). Operasional internal dan verifikasi order.
+- `apps/order`: Customer order app (Next.js). Entry dari WhatsApp untuk membuat order terstruktur.
+- `apps/web`: Marketing/public site (Next.js). Redirect ke dashboard dan order app bila perlu.
+- `apps/docs`: Dokumentasi internal.
 
-```sh
-npx create-turbo@latest
-```
+## Arsitektur Singkat
 
-## What's inside?
+- Customer order masuk melalui `apps/order` -> `apps/backend` (public routes).
+- Order masuk disimpan sebagai intake (pre-verification).
+- Tenant memverifikasi intake dari `apps/app` -> `apps/backend` (dashboard routes).
+- Order operasional hanya dibuat setelah intake diterima.
 
-This Turborepo includes the following packages/apps:
+## Struktur Data Inti (high level)
 
-### Apps and Packages
+- `customer_order_intakes`: intake publik dari customer.
+- `laundry_orders`: order operasional setelah diverifikasi.
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+## Routing Penting
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+- Customer order: `/order/[tenantSlug]` dan `/order/[tenantSlug]/[branchSlug]` di `apps/order`.
+- Dashboard laundry: `/laundry/orders` di `apps/app`.
 
-### Utilities
+## Menjalankan Lokal
 
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
+1. Install dependencies
 
 ```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build
-
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
+pnpm install
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+2. Jalankan app tertentu
 
 ```
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build --filter=docs
+# Backend API
+pnpm -C apps/backend dev
 
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
+# Dashboard tenant
+pnpm -C apps/app dev
+
+# Customer order app
+pnpm -C apps/order dev
+
+# Marketing site
+pnpm -C apps/web dev
 ```
 
-### Develop
+## Env Penting
 
-To develop all apps and packages, run the following command:
+- `NEXT_PUBLIC_API_URL` (apps/order, apps/web): base URL ke backend.
+- `OWNER_APP_URL` (apps/web): redirect ke dashboard tenant.
+- `ORDER_APP_URL` (apps/web): redirect ke customer order app.
 
-```
-cd my-turborepo
+## Catatan
 
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev
-
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
-```
-
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-```
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev --filter=web
-
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo login
-
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-```
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo link
-
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+- Customer order flow sekarang dipisah ke `apps/order` untuk memudahkan wildcard/domain routing.
+- `apps/web` tidak lagi menampung route `/order` agar tidak double handling.

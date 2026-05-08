@@ -6,13 +6,19 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@repo/ui/button";
 import { ArrowLeft } from "lucide-react";
+import { getActiveOrganizationContext } from "@/lib/organization-context";
 
 export const metadata: Metadata = {
-  title: "Tambah Order | Beres",
+  title: "Tambah Order",
   description: "Buat order baru untuk pelanggan",
 };
 
 export default async function CreateOrderPage() {
+  const activeOrg = await getActiveOrganizationContext();
+  if (activeOrg?.businessType === "laundry") {
+    redirect("/laundry/orders/new");
+  }
+
   const db = createDbNextjs(process.env.DATABASE_URL!);
   const authInstance = auth(db);
   const reqHeaders = await headers();

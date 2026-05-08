@@ -1,7 +1,7 @@
 import React from 'react';
 import { SymbolView } from 'expo-symbols';
 import { Link, Tabs } from 'expo-router';
-import { Platform, Pressable } from 'react-native';
+import { Platform, Pressable, Text } from 'react-native';
 
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -21,14 +21,15 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Tab One',
+          title: 'Vertical',
           tabBarIcon: ({ color }) => (
             <SymbolView
-              name={{
-                ios: 'chevron.left.forwardslash.chevron.right',
-                android: 'code',
-                web: 'code',
-              }}
+              name="chevron.left.forwardslash.chevron.right"
+              fallback={
+                <Text style={{ color, fontSize: Platform.select({ ios: 18, default: 16 }) }}>
+                  {'</>'}
+                </Text>
+              }
               tintColor={color}
               size={28}
             />
@@ -38,7 +39,8 @@ export default function TabLayout() {
               <Pressable style={{ marginRight: 15 }}>
                 {({ pressed }) => (
                   <SymbolView
-                    name={{ ios: 'info.circle', android: 'info', web: 'info' }}
+                    name="info.circle"
+                    fallback={<Text style={{ color: Colors[colorScheme].text, fontSize: 16 }}>i</Text>}
                     size={25}
                     tintColor={Colors[colorScheme].text}
                     style={{ opacity: pressed ? 0.5 : 1 }}
@@ -52,18 +54,40 @@ export default function TabLayout() {
       <Tabs.Screen
         name="two"
         options={{
-          title: 'Tab Two',
+          title: 'Sandbox',
           tabBarIcon: ({ color }) => (
             <SymbolView
-              name={{
-                ios: 'chevron.left.forwardslash.chevron.right',
-                android: 'code',
-                web: 'code',
-              }}
+              name="chevron.left.forwardslash.chevron.right"
+              fallback={
+                <Text style={{ color, fontSize: Platform.select({ ios: 18, default: 16 }) }}>
+                  {'</>'}
+                </Text>
+              }
               tintColor={color}
               size={28}
             />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="vertical/[businessType]"
+        options={{
+          href: null,
+          headerShown: false,
+        }}
+      />
+      <Tabs.Screen
+        name="vertical/[businessType]/[moduleId]"
+        options={{
+          href: null,
+          headerShown: false,
+        }}
+      />
+      <Tabs.Screen
+        name="vertical/[businessType]/[moduleId]/flow/[action]"
+        options={{
+          href: null,
+          headerShown: false,
         }}
       />
     </Tabs>

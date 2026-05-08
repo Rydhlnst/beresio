@@ -7,7 +7,7 @@ import { ErrorRetryAction } from "@/components/dashboard/shared/error-retry-acti
 import { ErrorToast } from "@/components/dashboard/shared/error-toast";
 
 export const metadata: Metadata = {
-    title: "Inventory | Beres",
+    title: "Inventory",
     description: "Pantau stok lintas cabang dan kelola transfer",
 };
 

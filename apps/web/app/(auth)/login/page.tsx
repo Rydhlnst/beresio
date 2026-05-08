@@ -5,7 +5,7 @@ import { createDbNextjs } from "@beresio/db";
 import { LoginForm } from "./_components/login-form";
 
 export const metadata = {
-    title: "Masuk | Beres",
+    title: "Masuk",
     description: "Masuk ke akun Beres kamu",
 };
 

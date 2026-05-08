@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import {
@@ -11,8 +12,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@repo/ui/select";
+import { complianceConfig } from "@repo/ui/compliance";
 import { cn } from "@/lib/utils";
 import { ImageUpload } from "@/components/shared/image-upload";
+import { getSafeApiBaseUrl } from "@/lib/safe-api-url";
 
 type SettingsPageClientProps = {
     organization: {
@@ -20,6 +23,7 @@ type SettingsPageClientProps = {
         name: string;
         slug?: string | null;
         businessType?: string | null;
+        mode?: "single" | "multi" | null;
         subscriptionPlan?: string | null;
         logoUrl?: string | null;
         metadata?: unknown;
@@ -61,6 +65,10 @@ function getMetadataValue(metadata: unknown, key: string): string | null {
     const value = (metadata as Record<string, unknown>)[key];
     if (typeof value === "string") return value;
     return null;
+}
+
+function getApiBaseUrl() {
+    return getSafeApiBaseUrl();
 }
 
 function ToggleSwitch({
@@ -135,6 +143,10 @@ export function SettingsPageClient({ organization, billing, isOwner }: SettingsP
     const [emailUpdates, setEmailUpdates] = useState(false);
     const [muteSounds, setMuteSounds] = useState(false);
     const [pushTimeout, setPushTimeout] = useState("10");
+    const [orgMode, setOrgMode] = useState<"single" | "multi">(
+        organization?.mode === "multi" ? "multi" : "single"
+    );
+    const [isModeSubmitting, setIsModeSubmitting] = useState(false);
 
     useEffect(() => {
         if (!sections.find((section) => section.id === activeSection)) {
@@ -154,6 +166,47 @@ export function SettingsPageClient({ organization, billing, isOwner }: SettingsP
     const memberUsage = billing?.usage?.members;
     const branchLimit = branchUsage?.limit === null ? "Tak terbatas" : (branchUsage?.limit ?? "-");
     const memberLimit = memberUsage?.limit === null ? "Tak terbatas" : (memberUsage?.limit ?? "-");
+    const legalEntity = getMetadataValue(organization?.metadata, "legalEntityName");
+    const legalAddress = getMetadataValue(organization?.metadata, "legalAddress");
+    const taxId = getMetadataValue(organization?.metadata, "taxId");
+    const complaintEmail = getMetadataValue(organization?.metadata, "complaintEmail");
+    const legalChecklist = [
+        { label: "Legal Entity Name", done: Boolean(legalEntity) },
+        { label: "Alamat Bisnis", done: Boolean(legalAddress) },
+        { label: "NPWP/NIB", done: Boolean(taxId) },
+        { label: "Email Pengaduan", done: Boolean(complaintEmail) },
+    ];
+    const legalCompletionPercent = Math.round(
+        (legalChecklist.filter((item) => item.done).length / legalChecklist.length) * 100
+    );
+
+    const handleUpgradeMode = async () => {
+        if (!isOwner || orgMode === "multi") return;
+
+        setIsModeSubmitting(true);
+        try {
+            const res = await fetch(`${getApiBaseUrl()}/api/dashboard/organization`, {
+                method: "PATCH",
+                credentials: "include",
+                headers: {
+                    "content-type": "application/json",
+                },
+                body: JSON.stringify({ mode: "multi" }),
+            });
+            const body = await res.json().catch(() => null);
+            if (!res.ok || !(body as any)?.success) {
+                toast.error((body as any)?.error?.message || "Gagal upgrade mode organisasi.");
+                return;
+            }
+
+            setOrgMode("multi");
+            toast.success("Mode organisasi berhasil di-upgrade ke Multi Branch.");
+        } catch {
+            toast.error("Terjadi kesalahan sistem. Coba lagi.");
+        } finally {
+            setIsModeSubmitting(false);
+        }
+    };
 
     return (
         <div className="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)]">
@@ -194,6 +247,10 @@ export function SettingsPageClient({ organization, billing, isOwner }: SettingsP
 
                 {activeSection === "Organisasi" && (
                     <div className="space-y-6">
+                        <div className="rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-xs text-amber-900">
+                            Perubahan langsung di level organisasi tetap tersedia, tetapi tidak direkomendasikan.
+                            Untuk operasional harian, utamakan CRUD dari level cabang agar data dan audit lebih akurat.
+                        </div>
                         <div className="rounded-xl border border-border/60 bg-background/40 p-6 space-y-6">
                             <div>
                                 <h3 className="text-sm font-semibold text-foreground mb-4">Logo Organisasi</h3>
@@ -220,15 +277,54 @@ export function SettingsPageClient({ organization, billing, isOwner }: SettingsP
                             <Button className="h-9 text-xs font-semibold">Simpan Perubahan</Button>
                         </div>
                         <SettingsGroup
+                            title="Business Mode"
+                            description="SINGLE hanya 1 cabang, MULTI untuk ekspansi cabang."
+                        >
+                            <div className="px-4 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                    <p className="text-sm font-semibold text-foreground">
+                                        Mode saat ini: {orgMode === "multi" ? "Multi Branch" : "Single Branch"}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        Upgrade mode bersifat satu arah: single ke multi.
+                                    </p>
+                                </div>
+                                {isOwner ? (
+                                    <Button
+                                        variant={orgMode === "multi" ? "outline" : "default"}
+                                        className="h-9 text-xs font-semibold"
+                                        disabled={orgMode === "multi" || isModeSubmitting}
+                                        onClick={handleUpgradeMode}
+                                    >
+                                        {orgMode === "multi"
+                                            ? "Mode Multi Aktif"
+                                            : isModeSubmitting
+                                                ? "Memproses..."
+                                                : "Upgrade ke Multi"}
+                                    </Button>
+                                ) : (
+                                    <p className="text-xs text-muted-foreground">Hanya owner yang bisa upgrade mode.</p>
+                                )}
+                            </div>
+                        </SettingsGroup>
+                        <SettingsGroup
                             title="Alamat & Legalitas"
                             description="Informasi yang muncul di invoice atau kontrak."
                         >
-                            <div className="px-4 py-4 flex items-center justify-between gap-4">
-                                <div>
-                                    <p className="text-sm font-semibold text-foreground">Alamat Bisnis</p>
-                                    <p className="text-xs text-muted-foreground mt-1">Belum diatur</p>
+                            <div className="px-4 py-4 space-y-3">
+                                <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
+                                    <p className="text-xs text-muted-foreground">Legal Entity</p>
+                                    <p className="text-sm font-semibold text-foreground">{legalEntity ?? "Belum diatur"}</p>
                                 </div>
-                                <Button variant="outline" className="h-9 text-xs font-semibold">Isi Detail</Button>
+                                <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
+                                    <p className="text-xs text-muted-foreground">Alamat Bisnis</p>
+                                    <p className="text-sm font-semibold text-foreground">{legalAddress ?? "Belum diatur"}</p>
+                                </div>
+                                <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
+                                    <p className="text-xs text-muted-foreground">NPWP/NIB</p>
+                                    <p className="text-sm font-semibold text-foreground">{taxId ?? "Belum diatur"}</p>
+                                </div>
+                                <Button variant="outline" className="h-9 text-xs font-semibold">Perbarui Detail Legal</Button>
                             </div>
                         </SettingsGroup>
                     </div>
@@ -269,7 +365,7 @@ export function SettingsPageClient({ organization, billing, isOwner }: SettingsP
                 {activeSection === "Integrasi" && (
                     <SettingsGroup
                         title="Integrasi Bisnis"
-                        description="Aktifkan channel operasional dan pembayaran."
+                        description="Aktifkan channel operasional dan payment gateway dengan status koneksi yang jelas."
                     >
                         <div className="px-4 py-4 flex items-center justify-between gap-4">
                             <div>
@@ -278,13 +374,28 @@ export function SettingsPageClient({ organization, billing, isOwner }: SettingsP
                             </div>
                             <Button variant="outline" className="h-9 text-xs font-semibold">Hubungkan</Button>
                         </div>
-                        <div className="px-4 py-4 flex items-center justify-between gap-4">
-                            <div>
-                                <p className="text-sm font-semibold text-foreground">Payment Gateway</p>
-                                <p className="text-xs text-muted-foreground mt-1">Midtrans - QRIS</p>
+                        {complianceConfig.providerMapping.map((provider) => (
+                            <div key={provider.provider} className="px-4 py-4 flex items-center justify-between gap-4">
+                                <div>
+                                    <p className="text-sm font-semibold text-foreground">
+                                        {provider.provider === "midtrans" ? "Midtrans" : "Xendit"}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        {provider.role}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        State: {provider.connectionState === "not_connected"
+                                            ? "Not connected"
+                                            : provider.connectionState === "sandbox"
+                                                ? "Sandbox"
+                                                : "Active"}
+                                    </p>
+                                </div>
+                                <Button variant="outline" className="h-9 text-xs font-semibold">
+                                    Kelola
+                                </Button>
                             </div>
-                            <Button variant="outline" className="h-9 text-xs font-semibold">Kelola</Button>
-                        </div>
+                        ))}
                         <div className="px-4 py-4 flex items-center justify-between gap-4">
                             <div>
                                 <p className="text-sm font-semibold text-foreground">WhatsApp Notif</p>
@@ -457,7 +568,7 @@ export function SettingsPageClient({ organization, billing, isOwner }: SettingsP
                     <div className="space-y-4">
                         <SettingsGroup
                             title="Plan & Usage"
-                            description="Rangkuman paket dan batas penggunaan."
+                            description="Rangkuman paket, batas penggunaan, dan kesiapan onboarding gateway."
                         >
                             <div className="px-4 py-4 flex items-center justify-between gap-4">
                                 <div>
@@ -478,6 +589,40 @@ export function SettingsPageClient({ organization, billing, isOwner }: SettingsP
                                     <p className="text-lg font-semibold text-foreground">
                                         {memberUsage?.current ?? "-"} / {memberLimit}
                                     </p>
+                                </div>
+                            </div>
+                            <div className="px-4 py-4">
+                                <p className="text-xs text-muted-foreground">Gateway readiness</p>
+                                <p className="text-sm font-semibold text-foreground mt-1">
+                                    Legal profile completion: {legalCompletionPercent}%
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Flow checkout ditampilkan dalam demo mode sampai aktivasi production disetujui.
+                                </p>
+                            </div>
+                        </SettingsGroup>
+
+                        <SettingsGroup
+                            title="Compliance Checklist"
+                            description="Item wajib sebelum aktivasi payment gateway production."
+                        >
+                            <div className="px-4 py-4 space-y-2">
+                                {legalChecklist.map((item) => (
+                                    <div
+                                        key={item.label}
+                                        className={cn(
+                                            "flex items-center justify-between rounded-lg border px-3 py-2 text-xs",
+                                            item.done
+                                                ? "border-emerald-300/60 bg-emerald-50 text-emerald-900"
+                                                : "border-amber-300/60 bg-amber-50 text-amber-900"
+                                        )}
+                                    >
+                                        <span>{item.label}</span>
+                                        <span className="font-semibold">{item.done ? "Complete" : "Required"}</span>
+                                    </div>
+                                ))}
+                                <div className="rounded-lg border border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground">
+                                    Kanal pengaduan default: {complaintEmail ?? complianceConfig.complaintChannel}
                                 </div>
                             </div>
                         </SettingsGroup>

@@ -22,7 +22,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/tabs";
 import { Checkbox } from "@repo/ui/checkbox";
 import { useForm } from "@tanstack/react-form";
-import { zodValidator } from "@tanstack/zod-form-adapter";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Loader2, Package, ImageIcon } from "lucide-react";
@@ -69,8 +68,7 @@ export function ProductFormDialog({
 }: ProductFormDialogProps) {
   const [activeTab, setActiveTab] = useState("basic");
 
-  const form = useForm({
-    defaultValues: {
+  const defaultValues = {
       name: initialData?.name || "",
       sku: initialData?.sku || "",
       barcode: initialData?.barcode || "",
@@ -85,10 +83,12 @@ export function ProductFormDialog({
       imageUrl: initialData?.imageUrl || "",
       isActive: initialData?.isActive !== false,
       isFeatured: initialData?.isFeatured === true,
-    },
-    validatorAdapter: zodValidator(),
+  } satisfies ProductFormData;
+
+  const form = useForm({
+    defaultValues,
     validators: {
-      onChange: productSchema,
+      onChange: productSchema as any,
     },
     onSubmit: async ({ value }) => {
       try {

@@ -58,7 +58,7 @@ export function LoginForm() {
             if (error) {
                 toast.error("Email atau password tidak valid");
             } else {
-                push("/dashboard");
+                push("/");
                 refresh();
             }
         } catch (err) {
@@ -73,7 +73,7 @@ export function LoginForm() {
         try {
             await authClient.signIn.social({
                 provider: "google",
-                callbackURL: "/dashboard",
+                callbackURL: "/",
             });
         } catch (err) {
             toast.error("Failed to sign in with Google");
@@ -213,7 +213,7 @@ export function LoginForm() {
                     <div className="text-center pt-2">
                         <Text align="center" className="text-sm text-muted-foreground">
                             Don't have an account?{" "}
-                            <Link href="/sign-up" className="text-primary font-semibold hover:underline transition-colors duration-150 ease-out">
+                            <Link href="/register" className="text-primary font-semibold hover:underline transition-colors duration-150 ease-out">
                                 Request Now
                             </Link>
                         </Text>

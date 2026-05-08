@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { z } from 'zod'
 import { authMiddleware } from '../../middleware/auth'
 import { getOrgId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
@@ -7,6 +8,56 @@ import { highlights } from '@beresio/db'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
 type Variables = { db: any; user: any; session: any }
+
+const createHighlightBodySchema = z.object({
+    title: z.string().trim().min(1, 'title is required'),
+    description: z.string().nullable().optional(),
+    orderIndex: z.coerce.number().int().optional().default(0),
+})
+
+const updateHighlightBodySchema = z.object({
+    title: z.string().trim().min(1).optional(),
+    description: z.string().nullable().optional(),
+    orderIndex: z.coerce.number().int().optional(),
+    isArchived: z.boolean().optional(),
+}).superRefine((value, ctx) => {
+    if (
+        value.title === undefined
+        && value.description === undefined
+        && value.orderIndex === undefined
+        && value.isArchived === undefined
+    ) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'No fields to update',
+            path: [],
+        })
+    }
+})
+
+const highlightOrderItemSchema = z.object({
+    id: z.string().trim().min(1),
+    orderIndex: z.coerce.number().int(),
+})
+
+const reorderHighlightsBodySchema = z.object({
+    order: z.array(highlightOrderItemSchema).optional(),
+    ids: z.array(z.string().trim().min(1)).optional(),
+}).superRefine((value, ctx) => {
+    const hasOrder = Array.isArray(value.order) && value.order.length > 0
+    const hasIds = Array.isArray(value.ids) && value.ids.length > 0
+    if (!hasOrder && !hasIds) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'order is required',
+            path: [],
+        })
+    }
+})
+
+function getValidationMessage(error: z.ZodError, fallback = 'Invalid payload') {
+    return error.issues[0]?.message ?? fallback
+}
 
 export const highlightsRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
@@ -29,7 +80,7 @@ highlightsRouter.get('/', authMiddleware, async (c) => {
         return ok(c, rows)
     } catch (err: any) {
         console.error('[highlights/list]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -39,24 +90,26 @@ highlightsRouter.post('/', authMiddleware, async (c) => {
         const db = c.get('db')
         const orgId = await getOrgId(c)
         const body = await c.req.json().catch(() => null)
-
-        const title = body?.title?.trim()
-        if (!title) return errors.badRequest(c, 'title is required')
+        const parsedBody = createHighlightBodySchema.safeParse(body)
+        if (!parsedBody.success) {
+            return errors.badRequest(c, getValidationMessage(parsedBody.error))
+        }
+        const { title, description, orderIndex } = parsedBody.data
 
         const [created] = await db
             .insert(highlights)
             .values({
                 organizationId: orgId,
                 title,
-                description: body?.description ?? null,
-                orderIndex: Number(body?.orderIndex ?? 0),
+                description: description ?? null,
+                orderIndex,
             })
             .returning()
 
         return ok(c, created)
     } catch (err: any) {
         console.error('[highlights/create]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -77,7 +130,7 @@ highlightsRouter.get('/:id', authMiddleware, async (c) => {
         return ok(c, row)
     } catch (err: any) {
         console.error('[highlights/detail]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -88,14 +141,24 @@ highlightsRouter.patch('/:id', authMiddleware, async (c) => {
         const orgId = await getOrgId(c)
         const highlightId = c.req.param('id')
         const body = await c.req.json().catch(() => null)
+        const parsedBody = updateHighlightBodySchema.safeParse(body)
+        if (!parsedBody.success) {
+            return errors.badRequest(c, getValidationMessage(parsedBody.error))
+        }
+        const {
+            title,
+            description,
+            orderIndex,
+            isArchived,
+        } = parsedBody.data
 
         const updated = await db
             .update(highlights)
             .set({
-                title: body?.title ?? undefined,
-                description: body?.description ?? undefined,
-                orderIndex: body?.orderIndex ?? undefined,
-                isArchived: typeof body?.isArchived === 'boolean' ? body.isArchived : undefined,
+                title,
+                description,
+                orderIndex,
+                isArchived,
             })
             .where(and(eq(highlights.id, highlightId), eq(highlights.organizationId, orgId)))
             .returning()
@@ -104,7 +167,7 @@ highlightsRouter.patch('/:id', authMiddleware, async (c) => {
         return ok(c, updated[0])
     } catch (err: any) {
         console.error('[highlights/update]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -125,7 +188,7 @@ highlightsRouter.delete('/:id', authMiddleware, async (c) => {
         return ok(c, updated[0])
     } catch (err: any) {
         console.error('[highlights/archive]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -135,14 +198,16 @@ highlightsRouter.patch('/order', authMiddleware, async (c) => {
         const db = c.get('db')
         const orgId = await getOrgId(c)
         const body = await c.req.json().catch(() => null)
+        const parsedBody = reorderHighlightsBodySchema.safeParse(body)
+        if (!parsedBody.success) {
+            return errors.badRequest(c, getValidationMessage(parsedBody.error))
+        }
 
-        const orderList: Array<{ id: string; orderIndex: number }> = Array.isArray(body?.order)
-            ? body.order
-            : Array.isArray(body?.ids)
-                ? body.ids.map((id: string, index: number) => ({ id, orderIndex: index }))
+        const orderList: Array<{ id: string; orderIndex: number }> = Array.isArray(parsedBody.data.order)
+            ? parsedBody.data.order
+            : Array.isArray(parsedBody.data.ids)
+                ? parsedBody.data.ids.map((id: string, index: number) => ({ id, orderIndex: index }))
                 : []
-
-        if (orderList.length === 0) return errors.badRequest(c, 'order is required')
 
         const ids = orderList.map((item) => item.id)
 
@@ -165,6 +230,6 @@ highlightsRouter.patch('/order', authMiddleware, async (c) => {
         return ok(c, { updated: true })
     } catch (err: any) {
         console.error('[highlights/order]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })

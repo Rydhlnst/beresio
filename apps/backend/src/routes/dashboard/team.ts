@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { z } from 'zod'
 import { authMiddleware } from '../../middleware/auth'
 import { getOrgId, getUserId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
@@ -17,6 +18,8 @@ type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_
 type Variables = { db: any; user: any; session: any }
 
 const DEFAULT_LIMIT = 50
+const DEFAULT_INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000
+const MAX_INVITE_TTL_MS = 30 * 24 * 60 * 60 * 1000
 
 function normalizeSlug(input: string) {
     return input
@@ -27,6 +30,15 @@ function normalizeSlug(input: string) {
 }
 
 export const teamRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>()
+
+const createInvitationSchema = z.object({
+    email: z.string().trim().email().max(150),
+    branchId: z.string().trim().min(1).nullable().optional(),
+    roleId: z.string().trim().min(1).nullable().optional(),
+    role: z.string().trim().min(1).nullable().optional(),
+    teamId: z.string().trim().min(1).nullable().optional(),
+    expiresAt: z.union([z.string().trim().min(1), z.date()]).optional(),
+}).strict()
 
 teamRouter.get('/members', authMiddleware, async (c) => {
     try {
@@ -51,13 +63,16 @@ teamRouter.get('/members', authMiddleware, async (c) => {
 
         if (search) {
             const q = `%${search}%`
-            conditions.push(or(
+            const searchCondition = or(
                 ilike(user.name, q),
                 ilike(user.email, q),
                 ilike(member.role, q),
                 ilike(roles.name, q),
                 ilike(roles.slug, q),
-            ))
+            )
+            if (searchCondition) {
+                conditions.push(searchCondition)
+            }
         }
 
         if (branchId) {
@@ -501,11 +516,13 @@ teamRouter.post('/invitations', authMiddleware, async (c) => {
         const orgId = await getOrgId(c)
         const inviterId = getUserId(c)
         const body = await c.req.json().catch(() => null)
+        const parsedBody = createInvitationSchema.safeParse(body)
+        if (!parsedBody.success) {
+            return errors.badRequest(c, parsedBody.error.issues[0]?.message ?? 'Invalid payload')
+        }
 
-        const email = body?.email?.trim()
-        if (!email) return errors.badRequest(c, 'email is required')
-
-        const branchId = body?.branchId ?? null
+        const email = parsedBody.data.email
+        const branchId = parsedBody.data.branchId ?? null
         if (branchId) {
             const [branchRow] = await db
                 .select({ id: branches.id })
@@ -516,8 +533,8 @@ teamRouter.post('/invitations', authMiddleware, async (c) => {
             if (!branchRow) return errors.notFound(c, 'Branch not found')
         }
 
-        let roleId = body?.roleId ?? null
-        let roleSlug: string | null = body?.role ?? null
+        let roleId = parsedBody.data.roleId ?? null
+        let roleSlug: string | null = parsedBody.data.role ?? null
 
         if (roleId) {
             const [roleRow] = await db
@@ -530,18 +547,33 @@ teamRouter.post('/invitations', authMiddleware, async (c) => {
             roleSlug = roleRow.slug
         }
 
-        const expiresAt = body?.expiresAt ? new Date(body.expiresAt) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+        if (roleSlug) {
+            roleSlug = normalizeSlug(roleSlug)
+        }
+
+        const rawExpiresAt = parsedBody.data.expiresAt
+        const candidateExpiresAt = rawExpiresAt
+            ? new Date(rawExpiresAt)
+            : new Date(Date.now() + DEFAULT_INVITE_TTL_MS)
+        if (Number.isNaN(candidateExpiresAt.getTime())) {
+            return errors.badRequest(c, 'expiresAt is invalid')
+        }
+        const ttlMs = candidateExpiresAt.getTime() - Date.now()
+        if (ttlMs > MAX_INVITE_TTL_MS) {
+            return errors.badRequest(c, 'expiresAt is too far in the future')
+        }
+        const expiresAt = candidateExpiresAt
 
         const [created] = await db
             .insert(invitation)
             .values({
                 organizationId: orgId,
-                teamId: body?.teamId ?? null,
+                teamId: parsedBody.data.teamId ?? null,
                 email,
                 role: roleSlug,
                 roleId,
                 branchId,
-                status: body?.status ?? 'pending',
+                status: 'pending',
                 sentAt: new Date(),
                 expiresAt,
                 inviterId,

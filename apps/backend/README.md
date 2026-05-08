@@ -1,21 +1,34 @@
-```txt
-npm install
-npm run dev
+# Backend (Hono + Cloudflare Workers)
+
+Backend API untuk Beres Cloud. Menyediakan:
+- Dashboard routes (auth) untuk operasional tenant.
+- Public routes untuk customer order intake.
+
+## Tech
+
+- Hono.js
+- Drizzle ORM
+- Cloudflare Workers
+
+## Menjalankan Lokal
+
+```
+pnpm -C apps/backend dev
 ```
 
-```txt
-npm run deploy
+## Struktur Route Utama
+
+- `/api/dashboard/*` -> authenticated dashboard API.
+- `/api/public/*` -> public API (customer order intake).
+
+## Laundry Order Flow (ringkas)
+
+1. Public order intake -> `/api/public/laundry/order-intakes`
+2. Dashboard verifikasi -> `/api/dashboard/laundry/order-intakes/:id/accept`
+3. Setelah accepted, dibuat `laundry_orders`.
+
+## Testing
+
 ```
-
-[For generating/synchronizing types based on your Worker configuration run](https://developers.cloudflare.com/workers/wrangler/commands/#types):
-
-```txt
-npm run cf-typegen
-```
-
-Pass the `CloudflareBindings` as generics when instantiation `Hono`:
-
-```ts
-// src/index.ts
-const app = new Hono<{ Bindings: CloudflareBindings }>()
+pnpm -C apps/backend test
 ```

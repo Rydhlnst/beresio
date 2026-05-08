@@ -8,7 +8,7 @@ import { BookOpen } from "lucide-react";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Menu & Resep | Beres",
+  title: "Menu & Resep",
   description: "Kelola daftar menu, kategori, dan resep masakan",
 };
 

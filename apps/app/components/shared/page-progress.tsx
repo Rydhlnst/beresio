@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import { usePathname } from "next/navigation"
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
 import { cn } from "@/lib/utils"
 
 type ProgressPhase = "idle" | "loading" | "finishing"
@@ -66,6 +65,14 @@ export function PageProgressProvider({ children }: { children: React.ReactNode }
       }, 250)
     }
   }, [phase, clearTimeoutRef])
+
+  React.useEffect(
+    () => () => {
+      clearTimeoutRef(timeoutRef)
+      clearTimeoutRef(finishingRef)
+    },
+    [clearTimeoutRef]
+  )
 
   React.useEffect(() => {
     const handlePopState = () => start()
@@ -132,40 +139,51 @@ export function usePageProgress() {
 
 export function PageProgressBar({ className }: { className?: string }) {
   const { phase, progressKey } = usePageProgress()
-  const reduceMotion = useReducedMotion()
+  const [reduceMotion, setReduceMotion] = React.useState(false)
+  const [style, setStyle] = React.useState<{ width: string; opacity: number }>({
+    width: "0%",
+    opacity: 0,
+  })
   const isVisible = phase !== "idle"
 
+  React.useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)")
+    const update = () => setReduceMotion(media.matches)
+    update()
+    media.addEventListener("change", update)
+    return () => media.removeEventListener("change", update)
+  }, [])
+
+  React.useEffect(() => {
+    if (!isVisible) return
+
+    if (phase === "loading") {
+      setStyle({ width: "0%", opacity: 1 })
+      const raf = window.requestAnimationFrame(() => {
+        setStyle({ width: "85%", opacity: 1 })
+      })
+      return () => window.cancelAnimationFrame(raf)
+    }
+
+    setStyle({ width: "100%", opacity: 0 })
+  }, [phase, progressKey, isVisible])
+
+  if (!isVisible) return null
+
   return (
-    <AnimatePresence>
-      {isVisible ? (
-        <motion.div
-          key={progressKey}
-          className={cn("fixed left-0 top-0 z-[70] h-[3px] bg-primary", className)}
-          initial={{ width: "0%", opacity: 1 }}
-          animate={
-            phase === "loading"
-              ? {
-                  width: "85%",
-                  opacity: 1,
-                  transition: reduceMotion
-                    ? { duration: 0 }
-                    : { duration: 1.1, ease: "easeOut" },
-                }
-              : {
-                  width: "100%",
-                  opacity: 0,
-                  transition: reduceMotion
-                    ? { duration: 0 }
-                    : { duration: 0.2, ease: "easeOut" },
-                }
-          }
-          exit={{
-            opacity: 0,
-            transition: reduceMotion ? { duration: 0 } : { duration: 0.15 },
-          }}
-          aria-hidden="true"
-        />
-      ) : null}
-    </AnimatePresence>
+    <div
+      key={progressKey}
+      className={cn("fixed left-0 top-0 z-[70] h-[3px] bg-primary", className)}
+      style={{
+        width: style.width,
+        opacity: style.opacity,
+        transition: reduceMotion
+          ? "none"
+          : phase === "loading"
+            ? "width 1100ms ease-out, opacity 150ms ease-out"
+            : "width 200ms ease-out, opacity 200ms ease-out",
+      }}
+      aria-hidden="true"
+    />
   )
 }

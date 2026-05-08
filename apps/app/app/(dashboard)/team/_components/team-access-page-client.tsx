@@ -251,7 +251,9 @@ export function TeamAccessPageClient({
             }
 
             setInvitesState((prev) =>
-                prev.map((row) => (row.id === invite.id ? { ...row, ...result.data } : row))
+                prev.map((row) =>
+                    row.id === invite.id ? { ...row, ...(result.data as Partial<InviteRecord>) } : row
+                )
             );
 
             setInviteMutationId(null);
@@ -271,7 +273,9 @@ export function TeamAccessPageClient({
             }
 
             setInvitesState((prev) =>
-                prev.map((row) => (row.id === invite.id ? { ...row, ...result.data } : row))
+                prev.map((row) =>
+                    row.id === invite.id ? { ...row, ...(result.data as Partial<InviteRecord>) } : row
+                )
             );
 
             setInviteMutationId(null);
@@ -301,7 +305,7 @@ export function TeamAccessPageClient({
                 return;
             }
 
-            setInvitesState((prev) => [result.data, ...prev]);
+            setInvitesState((prev) => [result.data as InviteRecord, ...prev]);
             setInviteEmail("");
             setInviteRoleId(undefined);
             setInviteBranchId(undefined);

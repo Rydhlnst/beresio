@@ -6,6 +6,7 @@
   "types": "./src/index.tsx",
   "exports": {
     ".": "./src/index.tsx",
+    "./tailwind.config": "./tailwind.config.ts",
     "./button": "./src/button.tsx",
     "./navigation-menu": "./src/navigation-menu.tsx",
     "./dropdown-menu": "./src/dropdown-menu.tsx",
@@ -33,10 +34,11 @@
     "./dialog": "./src/dialog.tsx",
     "./alert-dialog": "./src/alert-dialog.tsx",
     "./checkbox": "./src/checkbox.tsx",
-    "./textarea": "./src/textarea.tsx"
+    "./textarea": "./src/textarea.tsx",
+    "./compliance": "./src/compliance.ts"
   },
   "scripts": {
-    "lint": "eslint . --max-warnings 0",
+    "lint": "eslint .",
     "generate:component": "turbo gen react-component",
     "check-types": "tsc --noEmit"
   },

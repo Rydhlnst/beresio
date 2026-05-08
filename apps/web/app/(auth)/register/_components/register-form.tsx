@@ -11,6 +11,7 @@ import { authClient } from "@/lib/auth-client";
 import { registerSchema, type RegisterFormValues } from "@/lib/validations/auth";
 import { GoogleOAuthButton } from "@/components/auth/google-oauth-button";
 import { PasswordStrength } from "@/components/auth/password-strength";
+import { sendAccountCreatedEmailAction } from "../../actions";
 
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
@@ -46,6 +47,10 @@ export function RegisterForm() {
                 return;
             }
 
+            await sendAccountCreatedEmailAction({
+                name: values.name,
+                email: values.email,
+            });
             toast.success("Akun berhasil dibuat! Cek email kamu.");
             router.push("/verify-email?email=" + encodeURIComponent(values.email));
         } catch {
@@ -174,7 +179,7 @@ export function RegisterForm() {
                     Sudah punya akun?{" "}
                     <Link
                         href="/login"
-                        className="font-medium text-primary hover:underline underline-offset-4"
+                        className="font-medium text-brand hover:underline underline-offset-4"
                     >
                         Masuk
                     </Link>

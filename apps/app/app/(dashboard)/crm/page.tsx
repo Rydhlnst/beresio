@@ -9,14 +9,14 @@ import { PageErrorState } from "@/components/dashboard/shared/page-error-state";
 import { ErrorRetryAction } from "@/components/dashboard/shared/error-retry-action";
 
 export const metadata: Metadata = {
-  title: "Pelanggan | Beres",
+  title: "Pelanggan",
   description: "Kelola data pelanggan, tags, dan interaksi",
 };
 
 export default async function CRMPage({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   try {
     const db = createDbNextjs(process.env.DATABASE_URL!);
@@ -31,11 +31,13 @@ export default async function CRMPage({
 
     const cookie = reqHeaders.get("cookie") || "";
 
+    const resolvedSearchParams = await searchParams;
+
     // Parse query params
-    const page = typeof searchParams.page === 'string' ? searchParams.page : '1';
-    const search = typeof searchParams.search === 'string' ? searchParams.search : undefined;
-    const tagId = typeof searchParams.tagId === 'string' ? searchParams.tagId : undefined;
-    const status = typeof searchParams.status === 'string' ? searchParams.status : undefined;
+    const page = typeof resolvedSearchParams.page === 'string' ? resolvedSearchParams.page : '1';
+    const search = typeof resolvedSearchParams.search === 'string' ? resolvedSearchParams.search : undefined;
+    const tagId = typeof resolvedSearchParams.tagId === 'string' ? resolvedSearchParams.tagId : undefined;
+    const status = typeof resolvedSearchParams.status === 'string' ? resolvedSearchParams.status : undefined;
 
     // Fetch customers with error handling
     let customersRes, tagsRes, analyticsRes;

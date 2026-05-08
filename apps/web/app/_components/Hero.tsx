@@ -13,10 +13,10 @@ export function Hero() {
             <div className="flex flex-col items-start pb-[clamp(2rem,5vw,4rem)] relative">
                 <div className="max-w-4xl space-y-8">
                     {/* Status Badge */}
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 text-primary text-[11px] font-extrabold uppercase tracking-widest animate-fade-in">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-brand/20 bg-brand/5 text-brand text-[11px] font-extrabold uppercase tracking-widest animate-fade-in">
                         <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand opacity-75" />
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-brand" />
                         </span>
                         Sempurnakan Bisnis Anda - Segera Hadir
                     </div>
@@ -28,11 +28,11 @@ export function Hero() {
                             className="text-[clamp(2.5rem,7vw,5.5rem)] font-black leading-[0.9] tracking-tighter text-foreground text-left"
                         >
                             Kelola Bisnis <br />
-                            <span className="text-primary">Tanpa Batas</span> Dengan <br />
+                            <span className="text-brand">Tanpa Batas</span> Dengan <br />
                             Satu Platform.
                         </Heading>
                         <Text variant="lead" align="left">
-                            Beres.io menghadirkan solusi kasir, inventori, dan laporan keuangan dalam satu genggaman.
+                            Beres Cloud menghadirkan solusi kasir, inventori, dan laporan keuangan dalam satu genggaman.
                             Efisien, transparan, dan siap membantu bisnis Anda naik kelas.
                         </Text>
                     </div>
@@ -41,7 +41,7 @@ export function Hero() {
                     <div className="flex flex-wrap items-center gap-4 pt-4">
                         <Button
                             size="lg"
-                            className="rounded-2xl px-10 h-14 font-extrabold text-base bg-primary text-primary-foreground hover:scale-105 transition-all shadow-xl shadow-primary/20"
+                            className="rounded-2xl px-10 h-14 font-extrabold text-base bg-brand text-brand-foreground hover:scale-105 transition-all shadow-xl shadow-brand/20"
                             asChild
                         >
                             <Link href="/wishlist">
@@ -65,3 +65,4 @@ export function Hero() {
         </Section>
     );
 }
+

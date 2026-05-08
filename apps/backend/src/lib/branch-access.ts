@@ -1,6 +1,7 @@
 import type { Context } from 'hono'
 import { and, eq, inArray } from 'drizzle-orm'
 import { branchMembers, branches, member, roles } from '@beresio/db'
+import { parseJsonStringArray } from './safe-json'
 
 const ORG_WIDE_ROLE_SLUGS = new Set([
     'owner',
@@ -34,19 +35,11 @@ function normalizeRoleList(input: unknown): string[] {
     if (!trimmed) return []
 
     if (trimmed.startsWith('[')) {
-        try {
-            const parsed = JSON.parse(trimmed)
-            if (Array.isArray(parsed)) {
-                return parsed
-                    .map((value) => (typeof value === 'string' ? value.trim().toLowerCase() : ''))
-                    .filter(Boolean)
-            }
-        } catch {
-            // fall through to default parsing
-        }
+        const parsed = parseJsonStringArray(trimmed)
+        if (parsed) return parsed
     }
 
-    return input
+    return trimmed
         .split(',')
         .map((value) => value.trim().toLowerCase())
         .filter(Boolean)
@@ -91,14 +84,6 @@ async function getMemberAccessContext(c: Context, orgId: string) {
     const resolvedRoles = Array.from(roleSlugs)
     const isOrgWide = resolvedRoles.some((role) => ORG_WIDE_ROLE_SLUGS.has(role))
 
-    console.log('[DEBUG] getMemberAccessContext:', {
-        userId,
-        orgId,
-        row,
-        roleSlugs: resolvedRoles,
-        isOrgWide,
-    })
-
     return { memberId: row?.memberId ?? null, roleSlugs: resolvedRoles }
 }
 
@@ -106,34 +91,25 @@ export async function getBranchAccessContext(c: Context, orgId: string): Promise
     const db = c.get('db')
     const { memberId, roleSlugs } = await getMemberAccessContext(c, orgId)
     
-    console.log('[DEBUG] getAccessibleBranchIds:', { memberId, roleSlugs, orgId })
-    
     if (!memberId) {
-        console.log('[DEBUG] No memberId found, returning empty branch list')
         return { branchIds: [], isOrgWide: false }
     }
 
     const isOrgWide = roleSlugs.some((role) => ORG_WIDE_ROLE_SLUGS.has(role))
 
-    // Check if user has organization-wide access (owner, admin, etc.)
     if (isOrgWide) {
-        console.log('[DEBUG] User has org-wide role:', roleSlugs)
         const rows = await db
             .select({ branchId: branches.id })
             .from(branches)
             .where(eq(branches.organizationId, orgId))
-        console.log('[DEBUG] Found branches for org:', rows.length)
         return { branchIds: rows.map((row: any) => row.branchId), isOrgWide }
     }
 
-    // Otherwise, get branches from branchMembers assignment
-    console.log('[DEBUG] Getting branch assignments from branchMembers for member:', memberId)
     const rows = await db
         .select({ branchId: branchMembers.branchId })
         .from(branchMembers)
         .where(and(eq(branchMembers.organizationId, orgId), eq(branchMembers.memberId, memberId)))
 
-    console.log('[DEBUG] Found branch assignments:', rows.length)
     return { branchIds: rows.map((row: any) => row.branchId), isOrgWide }
 }
 

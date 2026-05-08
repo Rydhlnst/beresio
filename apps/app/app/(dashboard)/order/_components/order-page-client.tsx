@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
@@ -31,6 +31,7 @@ import {
 import { CardEmptyState } from "@/components/dashboard/shared/card-empty-state";
 import { useTransitionRouter } from "@/hooks/use-transition-router";
 import { cn } from "@/lib/utils";
+import { buildSafeApiUrl } from "@/lib/safe-api-url";
 import {
     CheckCircle2,
     Clock,
@@ -47,6 +48,11 @@ import { useForm } from "@tanstack/react-form";
 import { z } from "zod";
 import { createOrderAction, updateOrderAction, updateOrderItemsAction } from "../_actions/orders";
 import { updateCustomerAction } from "../_actions/customers";
+import IncomingOrderIntakesClient from "../../laundry/orders/incoming-order-intakes-client";
+import {
+    FNB_REALTIME_EVENT_NAME,
+    type FnbRealtimeClientEvent,
+} from "@/components/dashboard/realtime/fnb-realtime-events";
 
 type LaundryOrderStatus =
     | "received"
@@ -114,6 +120,24 @@ type CustomerOption = {
     email?: string | null;
     address?: string | null;
 };
+type IncomingOrderIntake = {
+    id: string;
+    referenceCode: string;
+    status: string;
+    orderType: string;
+    customerName: string;
+    customerPhone: string;
+    customerAddress: string;
+    pickupPreferenceAt: string | null;
+    riskScore: number;
+    riskLevel: "low" | "medium" | "high";
+    riskFlags: string[];
+    branchName: string | null;
+    notes: string | null;
+    createdAt: string;
+    convertedOrderId: string | null;
+    verifiedAt: string | null;
+};
 
 type OrderFilters = {
     status: string;
@@ -128,6 +152,7 @@ type OrderPageClientProps = {
     orders: OrderSummary[];
     branches: BranchOption[];
     customers: CustomerOption[];
+    incomingIntakes: IncomingOrderIntake[];
     selectedOrderId: string | null;
     selectedOrder: OrderDetail | null;
     filters: OrderFilters;
@@ -279,10 +304,35 @@ function paymentStatusLabel(status: string) {
     return "Menunggu";
 }
 
+function getApiUrl(path: string) {
+    return buildSafeApiUrl(path);
+}
+
+function normalizeSummary(order: OrderSummary) {
+    return {
+        ...order,
+        status: normalizeOrderStatus(order.status),
+        type: normalizeOrderType(order.type),
+    };
+}
+
+function normalizeDetail(order: OrderDetail) {
+    return {
+        ...order,
+        status: normalizeOrderStatus(order.status),
+        type: normalizeOrderType(order.type),
+        events: order.events.map((event) => ({
+            ...event,
+            status: normalizeOrderStatus(event.status),
+        })),
+    };
+}
+
 export function OrderPageClient({
     orders: ordersInput,
     branches,
     customers,
+    incomingIntakes,
     selectedOrderId,
     selectedOrder: selectedOrderInput,
     filters,
@@ -294,26 +344,11 @@ export function OrderPageClient({
         ? customers
         : (customers as unknown as { data?: CustomerOption[] })?.data ?? [];
     const { refresh, replace } = useTransitionRouter();
-    const orders = useMemo(() => {
-        return ordersInput.map((order) => ({
-            ...order,
-            status: normalizeOrderStatus(order.status),
-            type: normalizeOrderType(order.type),
-        }));
-    }, [ordersInput]);
-
-    const selectedOrder = useMemo(() => {
-        if (!selectedOrderInput) return null;
-        return {
-            ...selectedOrderInput,
-            status: normalizeOrderStatus(selectedOrderInput.status),
-            type: normalizeOrderType(selectedOrderInput.type),
-            events: selectedOrderInput.events.map((event) => ({
-                ...event,
-                status: normalizeOrderStatus(event.status),
-            })),
-        };
-    }, [selectedOrderInput]);
+    const [orders, setOrders] = useState(() => ordersInput.map(normalizeSummary));
+    const [selectedOrder, setSelectedOrder] = useState<OrderDetail | null>(
+        selectedOrderInput ? normalizeDetail(selectedOrderInput) : null
+    );
+    const realtimeRefreshTimerRef = useRef<number | null>(null);
 
     const normalizedFilterStatus = filters.status ? normalizeOrderStatus(filters.status) : "";
     const normalizedFilterType = filters.type ? normalizeOrderType(filters.type) : "";
@@ -338,11 +373,71 @@ export function OrderPageClient({
     const [customerError, setCustomerError] = useState<string | null>(null);
 
     useEffect(() => {
+        setOrders(ordersInput.map(normalizeSummary));
+    }, [ordersInput]);
+
+    useEffect(() => {
+        setSelectedOrder(selectedOrderInput ? normalizeDetail(selectedOrderInput) : null);
+    }, [selectedOrderInput]);
+
+    const refreshOrdersList = useCallback(async () => {
+        const params = new URLSearchParams();
+        if (activeStatus !== "all") params.set("status", activeStatus);
+        if (filters.branchId) params.set("branchId", filters.branchId);
+        if (normalizedFilterType) params.set("type", normalizedFilterType);
+        const query = searchQuery.trim();
+        if (query) params.set("q", query);
+        if (filters.dateFrom) params.set("dateFrom", filters.dateFrom);
+        if (filters.dateTo) params.set("dateTo", filters.dateTo);
+
+        const suffix = params.toString();
+        const response = await fetch(
+            getApiUrl(`/api/dashboard/orders${suffix ? `?${suffix}` : ""}`),
+            { credentials: "include" }
+        ).catch(() => null);
+        if (!response?.ok) return;
+
+        const payload = await response.json().catch(() => null) as { data?: OrderSummary[] } | null;
+        const rows = Array.isArray(payload?.data) ? payload.data : [];
+        const normalized = rows.map(normalizeSummary);
+        setOrders(normalized);
+
+        setSelectedOrder((current) => {
+            if (!current) return current;
+            const stillExists = normalized.some((order) => order.id === current.id);
+            return stillExists ? current : null;
+        });
+    }, [activeStatus, filters.branchId, normalizedFilterType, searchQuery, filters.dateFrom, filters.dateTo]);
+
+    const refreshSelectedOrder = useCallback(async (targetOrderId?: string | null) => {
+        const orderId = targetOrderId?.trim() || selectedOrderId || selectedOrder?.id || null;
+        if (!orderId) return;
+
+        const response = await fetch(
+            getApiUrl(`/api/dashboard/orders/${encodeURIComponent(orderId)}`),
+            { credentials: "include" }
+        ).catch(() => null);
+        if (!response?.ok) {
+            if (response?.status === 404) {
+                setSelectedOrder(null);
+            }
+            return;
+        }
+
+        const payload = await response.json().catch(() => null) as { data?: OrderDetail | null } | null;
+        if (payload?.data) {
+            setSelectedOrder(normalizeDetail(payload.data));
+        }
+    }, [selectedOrderId, selectedOrder?.id]);
+
+    useEffect(() => {
         const interval = window.setInterval(() => {
-            refresh();
-        }, 30000);
+            if (document.visibilityState !== "visible") return;
+            void refreshOrdersList();
+            void refreshSelectedOrder();
+        }, 45000);
         return () => window.clearInterval(interval);
-    }, [refresh]);
+    }, [refreshOrdersList, refreshSelectedOrder]);
 
     useEffect(() => {
         setSearchQuery(filters.q);
@@ -351,7 +446,7 @@ export function OrderPageClient({
 
     useEffect(() => {
         if (!selectedOrder) return;
-        setUpdateStatus(selectedOrder.status);
+        setUpdateStatus(normalizeOrderStatus(selectedOrder.status));
         setUpdatePaymentStatus(selectedOrder.paymentStatus ?? "pending");
         setUpdatePaymentMethod(selectedOrder.paymentMethod ?? "");
         setUpdateCustomerId(selectedOrder.customer?.id ?? "none");
@@ -369,6 +464,44 @@ export function OrderPageClient({
         if (!updateCustomerId || updateCustomerId === "none") return null;
         return normalizedCustomers.find((customer) => customer.id === updateCustomerId) ?? null;
     }, [normalizedCustomers, updateCustomerId]);
+
+    useEffect(() => {
+        const onRealtime = (event: Event) => {
+            const detail = (event as CustomEvent<FnbRealtimeClientEvent>).detail;
+            if (!detail) return;
+            if (detail.eventType === "connected" || detail.eventType === "ping" || detail.eventType === "pong") {
+                return;
+            }
+
+            if (realtimeRefreshTimerRef.current) {
+                window.clearTimeout(realtimeRefreshTimerRef.current);
+                realtimeRefreshTimerRef.current = null;
+            }
+
+            realtimeRefreshTimerRef.current = window.setTimeout(() => {
+                realtimeRefreshTimerRef.current = null;
+
+                const payload = (detail.payload && typeof detail.payload === "object")
+                    ? detail.payload
+                    : null;
+                const orderIdFromPayload = payload && typeof payload.orderId === "string"
+                    ? payload.orderId
+                    : null;
+
+                void refreshOrdersList();
+                void refreshSelectedOrder(orderIdFromPayload);
+            }, 350);
+        };
+
+        window.addEventListener(FNB_REALTIME_EVENT_NAME, onRealtime as EventListener);
+        return () => {
+            window.removeEventListener(FNB_REALTIME_EVENT_NAME, onRealtime as EventListener);
+            if (realtimeRefreshTimerRef.current) {
+                window.clearTimeout(realtimeRefreshTimerRef.current);
+                realtimeRefreshTimerRef.current = null;
+            }
+        };
+    }, [refreshOrdersList, refreshSelectedOrder]);
 
     useEffect(() => {
         const handle = window.setTimeout(() => {
@@ -393,7 +526,7 @@ export function OrderPageClient({
         );
         const isFinal = selectedOrder.status === "completed" || selectedOrder.status === "cancelled";
         return sorted.map((event, idx) => ({
-            label: statusLabel(event.status),
+            label: statusLabel(normalizeOrderStatus(event.status)),
             time: formatDistanceToNow(new Date(event.createdAt), { addSuffix: true, locale: id }),
             status: isFinal ? "done" : idx === sorted.length - 1 ? "active" : "done",
         }));
@@ -673,6 +806,8 @@ export function OrderPageClient({
                 </Tabs>
             </div>
 
+            <IncomingOrderIntakesClient intakes={incomingIntakes} />
+
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
                 <div className="rounded-xl border border-border/60 bg-card">
                     <div className="flex flex-col gap-3 border-b border-border/40 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
@@ -756,8 +891,8 @@ export function OrderPageClient({
                             </p>
                         </div>
                         {selectedOrder ? (
-                            <Badge variant="outline" className={cn("border text-[11px] font-semibold", statusBadge(selectedOrder.status))}>
-                                {statusLabel(selectedOrder.status)}
+                            <Badge variant="outline" className={cn("border text-[11px] font-semibold", statusBadge(normalizeOrderStatus(selectedOrder.status)))}>
+                                {statusLabel(normalizeOrderStatus(selectedOrder.status))}
                             </Badge>
                         ) : null}
                     </div>
@@ -835,7 +970,7 @@ export function OrderPageClient({
                                         <User className="h-4 w-4 text-muted-foreground" />
                                         {selectedOrder.customer?.name ?? "Tanpa customer"}
                                     </div>
-                                    <p className="text-xs text-muted-foreground">{typeLabel(selectedOrder.type)}</p>
+                                    <p className="text-xs text-muted-foreground">{typeLabel(normalizeOrderType(selectedOrder.type))}</p>
                                     <Button
                                         variant="outline"
                                         className="h-8 text-xs font-semibold"
@@ -976,7 +1111,7 @@ export function OrderPageClient({
                             <p className="text-xs font-semibold text-muted-foreground uppercase">Customer</p>
                             <Select
                                 value={field.state.value ?? "none"}
-                                onValueChange={(value) => field.handleChange(value === "none" ? null : value)}
+                                onValueChange={(value) => field.handleChange(value)}
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Pilih customer (opsional)" />
@@ -998,7 +1133,7 @@ export function OrderPageClient({
                         {(field) => (
                         <div className="space-y-1">
                             <p className="text-xs font-semibold text-muted-foreground uppercase">Tipe Order</p>
-                            <Select value={field.state.value} onValueChange={field.handleChange}>
+                            <Select value={field.state.value} onValueChange={(value) => field.handleChange(value as LaundryOrderType)}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Pilih tipe" />
                                 </SelectTrigger>
@@ -1072,7 +1207,7 @@ export function OrderPageClient({
                                     onClick={() => {
                                         field.handleChange([
                                             ...field.state.value,
-                                            { name: "", quantity: 1, unitPrice: 0 },
+                                            { name: "", sku: "", quantity: 1, unitPrice: 0 },
                                         ]);
                                     }}
                                 >
@@ -1087,7 +1222,12 @@ export function OrderPageClient({
                                             value={item.name}
                                             onChange={(event) => {
                                                 const next = [...field.state.value];
-                                                next[idx] = { ...next[idx], name: event.target.value };
+                                                next[idx] = {
+                                                    name: event.target.value,
+                                                    sku: next[idx]?.sku ?? "",
+                                                    quantity: next[idx]?.quantity ?? 1,
+                                                    unitPrice: next[idx]?.unitPrice ?? 0,
+                                                };
                                                 field.handleChange(next);
                                             }}
                                         />
@@ -1096,7 +1236,12 @@ export function OrderPageClient({
                                             value={item.sku ?? ""}
                                             onChange={(event) => {
                                                 const next = [...field.state.value];
-                                                next[idx] = { ...next[idx], sku: event.target.value };
+                                                next[idx] = {
+                                                    name: next[idx]?.name ?? "",
+                                                    sku: event.target.value,
+                                                    quantity: next[idx]?.quantity ?? 1,
+                                                    unitPrice: next[idx]?.unitPrice ?? 0,
+                                                };
                                                 field.handleChange(next);
                                             }}
                                         />
@@ -1108,7 +1253,12 @@ export function OrderPageClient({
                                                 value={item.quantity}
                                                 onChange={(event) => {
                                                     const next = [...field.state.value];
-                                                    next[idx] = { ...next[idx], quantity: Number(event.target.value) };
+                                                    next[idx] = {
+                                                        name: next[idx]?.name ?? "",
+                                                        sku: next[idx]?.sku ?? "",
+                                                        quantity: Number(event.target.value),
+                                                        unitPrice: next[idx]?.unitPrice ?? 0,
+                                                    };
                                                     field.handleChange(next);
                                                 }}
                                             />
@@ -1119,7 +1269,12 @@ export function OrderPageClient({
                                                 value={item.unitPrice}
                                                 onChange={(event) => {
                                                     const next = [...field.state.value];
-                                                    next[idx] = { ...next[idx], unitPrice: Number(event.target.value) };
+                                                    next[idx] = {
+                                                        name: next[idx]?.name ?? "",
+                                                        sku: next[idx]?.sku ?? "",
+                                                        quantity: next[idx]?.quantity ?? 1,
+                                                        unitPrice: Number(event.target.value),
+                                                    };
                                                     field.handleChange(next);
                                                 }}
                                             />
@@ -1178,7 +1333,12 @@ export function OrderPageClient({
                                 value={item.name}
                                 onChange={(event) => {
                                     const next = [...editItems];
-                                    next[idx] = { ...next[idx], name: event.target.value };
+                                    next[idx] = {
+                                        name: event.target.value,
+                                        sku: next[idx]?.sku ?? "",
+                                        quantity: next[idx]?.quantity ?? 1,
+                                        unitPrice: next[idx]?.unitPrice ?? 0,
+                                    };
                                     setEditItems(next);
                                 }}
                             />
@@ -1187,7 +1347,12 @@ export function OrderPageClient({
                                 value={item.sku ?? ""}
                                 onChange={(event) => {
                                     const next = [...editItems];
-                                    next[idx] = { ...next[idx], sku: event.target.value };
+                                    next[idx] = {
+                                        name: next[idx]?.name ?? "",
+                                        sku: event.target.value,
+                                        quantity: next[idx]?.quantity ?? 1,
+                                        unitPrice: next[idx]?.unitPrice ?? 0,
+                                    };
                                     setEditItems(next);
                                 }}
                             />
@@ -1199,7 +1364,12 @@ export function OrderPageClient({
                                     value={item.quantity}
                                     onChange={(event) => {
                                         const next = [...editItems];
-                                        next[idx] = { ...next[idx], quantity: Number(event.target.value) };
+                                        next[idx] = {
+                                            name: next[idx]?.name ?? "",
+                                            sku: next[idx]?.sku ?? "",
+                                            quantity: Number(event.target.value),
+                                            unitPrice: next[idx]?.unitPrice ?? 0,
+                                        };
                                         setEditItems(next);
                                     }}
                                 />
@@ -1210,7 +1380,12 @@ export function OrderPageClient({
                                     value={item.unitPrice}
                                     onChange={(event) => {
                                         const next = [...editItems];
-                                        next[idx] = { ...next[idx], unitPrice: Number(event.target.value) };
+                                        next[idx] = {
+                                            name: next[idx]?.name ?? "",
+                                            sku: next[idx]?.sku ?? "",
+                                            quantity: next[idx]?.quantity ?? 1,
+                                            unitPrice: Number(event.target.value),
+                                        };
                                         setEditItems(next);
                                     }}
                                 />

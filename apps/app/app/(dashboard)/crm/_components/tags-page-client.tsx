@@ -164,9 +164,15 @@ export function TagsPageClient({ tags: initialTags }: TagsPageClientProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">Tags Pelanggan</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Kelola tags untuk mengelompokkan pelanggan
+          </p>
+        </div>
         <Button onClick={() => setIsCreateDialogOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" />
+          <Plus className="mr-2 h-4 w-4" />
           Tambah Tag
         </Button>
       </div>

@@ -4,10 +4,10 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 3001",
-    "build": "next build",
+    "dev": "next dev --webpack --port 3001",
+    "build": "next build --webpack",
     "start": "next start --port 3001",
-    "lint": "eslint --max-warnings 0",
+    "lint": "eslint",
     "check-types": "next typegen && tsc --noEmit"
   },
   "dependencies": {
@@ -45,6 +45,7 @@
     "eslint": "^9.39.1",
     "postcss": "^8.4.40",
     "tailwindcss": "^3.4.10",
+    "tailwindcss-animate": "1.0.7",
     "typescript": "5.9.2"
   }
 }

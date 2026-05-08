@@ -244,6 +244,7 @@ export function useGooglePlaces({ apiKey, country = "id", onManualMode }: UseGoo
 
       incrementCallCount();
       const sessionToken = ensureSessionToken();
+      const googleMaps = window.google?.maps;
 
       return runWithRetry(
         () =>
@@ -254,8 +255,8 @@ export function useGooglePlaces({ apiKey, country = "id", onManualMode }: UseGoo
                 types,
                 componentRestrictions: { country },
                 sessionToken: sessionToken ?? undefined,
-                location: locationBias
-                  ? new window.google.maps.LatLng(locationBias.lat, locationBias.lng)
+                location: locationBias && googleMaps
+                  ? new googleMaps.LatLng(locationBias.lat, locationBias.lng)
                   : undefined,
                 radius: locationBias ? radius : undefined,
               },

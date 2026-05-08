@@ -20,5 +20,11 @@ export const activityLogs = pgTable("activity_logs", {
         idxActivityOrg: index("idx_activity_org").on(table.organizationId, table.createdAt),
         idxActivityOrgType: index("idx_activity_org_type").on(table.organizationId, table.type),
         idxActivityOrgLevel: index("idx_activity_org_level").on(table.organizationId, table.level),
+        idxActivityOrgEntity: index("idx_activity_org_entity").on(
+            table.organizationId,
+            table.entityType,
+            table.entityId,
+            table.createdAt
+        ),
     };
 });

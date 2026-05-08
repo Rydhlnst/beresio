@@ -1,195 +1,222 @@
-"use client"
+"use client";
 
-import React, { useState, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import {
-    Plus,
-    Minus,
-    ArrowRight,
-    Check
-} from "lucide-react"
-import { cn } from "@repo/ui/lib/utils"
-import { Button } from "@repo/ui/button"
-import { Heading, Text } from "@repo/ui"
-import { SectionClient } from "./SectionClient"
+import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { Minus, Plus, Check, ArrowRight } from "lucide-react";
+import { animate } from "framer-motion";
+import { Button, Text } from "@repo/ui";
+import { cn } from "@repo/ui/lib/utils";
+import { SectionClient } from "./SectionClient";
 
-const FEATURES = [
-    { id: "pos", name: "Point of Sale (POS)", savingPerUser: 50000 },
-    { id: "inventory", name: "Inventory Management", savingPerUser: 120000 },
-    { id: "reports", name: "Financial Reports", savingPerUser: 80000 },
-    { id: "staff", name: "Attendance & Scheduling", savingPerUser: 70000 },
-    { id: "crm", name: "Customer Management (CRM)", savingPerUser: 90000 },
-    { id: "procurement", name: "Digital Procurement", savingPerUser: 100000 },
-    { id: "hr", name: "HR & Payroll Automations", savingPerUser: 110000 },
-    { id: "online", name: "Online Store Integration", savingPerUser: 85000 },
-    { id: "accounting", name: "Auto-Accounting", savingPerUser: 150000 },
-]
+type FeatureOption = {
+    id: string;
+    name: string;
+    monthlyRatePerStaff: number;
+};
 
-export function SavingsCalculator() {
-    const [selectedFeatures, setSelectedFeatures] = useState<string[]>(["pos", "inventory", "reports"])
-    const [teamSize, setTeamSize] = useState(10)
-    const [monthlySavings, setMonthlySavings] = useState(0)
+const FEATURE_OPTIONS: FeatureOption[] = [
+    { id: "pos", name: "POS & Checkout", monthlyRatePerStaff: 50000 },
+    { id: "inventory", name: "Inventori Otomatis", monthlyRatePerStaff: 85000 },
+    { id: "reporting", name: "Laporan Real-time", monthlyRatePerStaff: 65000 },
+    { id: "delivery", name: "Pengiriman Terintegrasi", monthlyRatePerStaff: 70000 },
+    { id: "crm", name: "CRM & Retensi Pelanggan", monthlyRatePerStaff: 55000 },
+    { id: "ops", name: "Workflow Operasional", monthlyRatePerStaff: 60000 },
+];
 
-    useEffect(() => {
-        const rate = FEATURES
-            .filter(f => selectedFeatures.includes(f.id))
-            .reduce((acc, curr) => acc + curr.savingPerUser, 0)
-
-        setMonthlySavings(rate * teamSize)
-    }, [selectedFeatures, teamSize])
-
-    const toggleFeature = (id: string) => {
-        setSelectedFeatures(prev =>
-            prev.includes(id)
-                ? prev.filter(f => f !== id)
-                : [...prev, id]
-        )
-    }
-
-    const formatCurrency = (val: number) => {
-        return new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            maximumFractionDigits: 0
-        }).format(val)
-    }
-
-    return (
-        <SectionClient id="calculator" className="relative overflow-hidden bg-background">
-            {/* Background decorative elements matching WhyChooseUs */}
-            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-border/60 to-transparent" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
-
-            {/* Header matching WhyChooseUs standards */}
-            <div className="max-w-3xl mb-16 text-start relative z-10">
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5 }}
-                >
-                    <Text variant="overline" className="mb-6">
-                        Kalkulator ROI Beres.io
-                    </Text>
-                    <Heading as="h3" className="mb-6 text-foreground">
-                        Hitung Potensi Efisiensi<br />
-                        <span className="text-primary-foreground/90 text-sm font-medium">Berapapun penghematanmu, pastikan operasionalmu sudah Beres.</span>
-                    </Heading>
-                    <Text variant="lead">
-                        Pilih fitur yang Anda butuhkan dan tentukan skala tim Anda untuk melihat seberapa banyak waktu dan biaya yang dapat dihemat setiap tahun.
-                    </Text>
-                </motion.div>
-            </div>
-
-            <div className="bg-muted/5 border border-border/40 backdrop-blur-sm rounded-[32px] p-8 md:p-12 shadow-2xl shadow-primary/5 space-y-12 transition-all duration-300">
-                {/* Top: Checkbox Grid (Notion Layout) */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-x-10 gap-y-6">
-                    {FEATURES.map((feature) => {
-                        const isSelected = selectedFeatures.includes(feature.id)
-                        return (
-                            <button
-                                key={feature.id}
-                                onClick={() => toggleFeature(feature.id)}
-                                className="flex items-center gap-4 text-left group transition-all"
-                            >
-                                <div className={cn(
-                                    "w-5 h-5 rounded-md border transition-all flex items-center justify-center",
-                                    isSelected
-                                        ? "bg-primary border-primary shadow-lg shadow-primary/20"
-                                        : "bg-background border-border group-hover:border-primary/50"
-                                )}>
-                                    <AnimatePresence>
-                                        {isSelected && (
-                                            <motion.div
-                                                initial={{ scale: 0, opacity: 0 }}
-                                                animate={{ scale: 1, opacity: 1 }}
-                                                exit={{ scale: 0, opacity: 0 }}
-                                            >
-                                                <Check className="w-3.5 h-3.5 text-primary-foreground stroke-[3]" />
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className={cn(
-                                        "text-sm font-bold tracking-tight transition-colors",
-                                        isSelected ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"
-                                    )}>
-                                        {feature.name}
-                                    </span>
-                                    <span className="text-[11px] text-muted-foreground/60 italic font-medium">
-                                        {formatCurrency(feature.savingPerUser)}/tim
-                                    </span>
-                                </div>
-                            </button>
-                        )
-                    })}
-                </div>
-
-                {/* Bottom Result Banner (Notion Style with project colors) */}
-                <div className="bg-muted/20 border border-border/40 rounded-[32px] p-[clamp(1.5rem,4vw,2.5rem)] grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8 xl:gap-12 items-start xl:items-center">
-                    {/* Team Size */}
-                    <div className="space-y-4 sm:col-span-2 lg:col-span-1 border-b sm:border-b-0 sm:border-r border-border/20 md:border-border/40 pb-6 sm:pb-0 sm:pr-8 lg:border-r-0 lg:pr-0">
-                        <label htmlFor="team-size" className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-primary">Team Size</label>
-                        <div className="flex items-center gap-4 bg-background border border-border/60 rounded-2xl p-4 shadow-sm w-full max-w-[220px] group transition-all hover:border-primary/40">
-                            <input
-                                id="team-size"
-                                aria-label="Team size"
-                                type="number"
-                                value={teamSize}
-                                onChange={(e) => setTeamSize(Math.max(1, parseInt(e.target.value) || 1))}
-                                className="w-full bg-transparent border-none focus:ring-0 text-3xl font-black p-0 tracking-tighter text-foreground"
-                            />
-                            <div className="flex flex-col border-l border-border/60 pl-3">
-                                <button
-                                    onClick={() => setTeamSize(prev => prev + 1)}
-                                    aria-label="Increase team size"
-                                    className="p-1 hover:text-primary transition-colors"
-                                >
-                                    <Plus className="w-4 h-4" />
-                                </button>
-                                <button
-                                    onClick={() => setTeamSize(prev => Math.max(1, prev - 1))}
-                                    aria-label="Decrease team size"
-                                    className="p-1 hover:text-primary transition-colors"
-                                >
-                                    <Minus className="w-4 h-4" />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Monthly Savings */}
-                    <div className="space-y-4 border-b border-border/20 md:border-border/40 pb-6 sm:pb-0 sm:border-b-0">
-                        <label className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-primary">Monthly Savings</label>
-                        <div className="text-[clamp(1.5rem,4vw,2.5rem)] font-black tracking-tighter text-foreground tabular-nums break-words">
-                            {formatCurrency(monthlySavings)}
-                        </div>
-                    </div>
-
-                    {/* Annual Savings */}
-                    <div className="space-y-4">
-                        <label className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-primary">Annual Savings</label>
-                        <div className="text-[clamp(2rem,5vw,3.5rem)] font-black tracking-tighter text-primary drop-shadow-sm tabular-nums break-words">
-                            {formatCurrency(monthlySavings * 12)}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div className="mt-16 flex flex-col items-center gap-6">
-                <Button size="lg" className="rounded-2xl px-14 h-16 font-extrabold text-lg bg-primary text-primary-foreground hover:scale-105 hover:shadow-2xl hover:shadow-primary/20 transition-all duration-300" asChild>
-                    <a href="/wishlist">
-                        Amankan Posisi Wishlist Anda
-                        <ArrowRight className="ml-3 h-5 w-5" />
-                    </a>
-                </Button>
-                <p className="text-xs text-muted-foreground font-semibold flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    Estimasi berdasarkan data efisiensi operasional 1000+ mitra bisnis.
-                </p>
-            </div>
-        </SectionClient>
-    )
+function formatCurrency(value: number) {
+    return new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
+        maximumFractionDigits: 0,
+    }).format(value);
 }
 
+type AnimatedNumberProps = {
+    value: number;
+    className?: string;
+    formatter?: (value: number) => string;
+};
+
+function AnimatedNumber({ value, className, formatter }: AnimatedNumberProps) {
+    const [displayValue, setDisplayValue] = useState(value);
+    const previousValueRef = useRef(value);
+
+    useEffect(() => {
+        if (previousValueRef.current === value) {
+            setDisplayValue(value);
+            return;
+        }
+
+        const controls = animate(previousValueRef.current, value, {
+            duration: 0.35,
+            ease: "easeOut",
+            onUpdate: (latest) => {
+                setDisplayValue(Math.round(latest));
+            },
+        });
+
+        previousValueRef.current = value;
+
+        return () => controls.stop();
+    }, [value]);
+
+    return (
+        <span className={className}>
+            {formatter ? formatter(displayValue) : displayValue.toLocaleString("id-ID")}
+        </span>
+    );
+}
+
+export function SavingsCalculator() {
+    const [selectedFeatures, setSelectedFeatures] = useState<string[]>([
+        "pos",
+        "inventory",
+        "reporting",
+    ]);
+    const [teamSize, setTeamSize] = useState(8);
+
+    const monthlySavings = useMemo(() => {
+        const totalRate = FEATURE_OPTIONS.filter((feature) =>
+            selectedFeatures.includes(feature.id)
+        ).reduce((acc, feature) => acc + feature.monthlyRatePerStaff, 0);
+        return totalRate * teamSize;
+    }, [selectedFeatures, teamSize]);
+
+    const annualSavings = monthlySavings * 12;
+
+    const toggleFeature = (id: string) => {
+        setSelectedFeatures((previous) =>
+            previous.includes(id)
+                ? previous.filter((item) => item !== id)
+                : [...previous, id]
+        );
+    };
+
+    return (
+        <SectionClient id="savings-calculator" className="border-b border-border/60 bg-background">
+            <div className="w-full">
+                <div className="max-w-3xl">
+                    <Text className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                        Savings Calculator
+                    </Text>
+                    <h2 className="mt-3 text-balance font-[var(--font-beres-instrument-serif)] text-[clamp(2rem,5vw,3rem)] leading-tight tracking-tight text-foreground">
+                        Simulasikan potensi efisiensi operasional bisnis Anda
+                    </h2>
+                    <Text variant="lead" className="mt-4 text-muted-foreground">
+                        Pilih modul yang akan dipakai dan sesuaikan ukuran tim. Estimasi ini membantu Anda melihat dampak langsung Beres Cloud terhadap biaya operasional.
+                    </Text>
+                </div>
+
+                <div className="mt-10 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+                    <div className="border border-border/70 bg-background p-5 sm:p-6">
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                            Pilih modul
+                        </p>
+                        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                            {FEATURE_OPTIONS.map((feature) => {
+                                const active = selectedFeatures.includes(feature.id);
+                                return (
+                                    <button
+                                        key={feature.id}
+                                        type="button"
+                                        onClick={() => toggleFeature(feature.id)}
+                                        className={cn(
+                                            "flex items-start gap-3 border px-3 py-3 text-left transition-colors",
+                                            active
+                                                ? "border-primary/50 bg-primary/10"
+                                                : "border-border/70 bg-background hover:bg-secondary/60"
+                                        )}
+                                    >
+                                        <span
+                                            className={cn(
+                                                "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center border",
+                                                active
+                                                    ? "border-primary bg-primary text-primary-foreground"
+                                                    : "border-border bg-background"
+                                            )}
+                                        >
+                                            {active && <Check className="h-3 w-3" />}
+                                        </span>
+                                        <span className="space-y-1">
+                                            <span className="block text-sm font-medium text-foreground">
+                                                {feature.name}
+                                            </span>
+                                            <span className="block text-xs text-muted-foreground">
+                                                {formatCurrency(feature.monthlyRatePerStaff)} / staff / bulan
+                                            </span>
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    <div className="border border-border/70 bg-secondary/40 p-5 sm:p-6">
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                            Hasil simulasi
+                        </p>
+
+                        <div className="mt-4 border border-border/70 bg-background p-4">
+                            <div className="flex items-center justify-between">
+                                <p className="text-sm font-medium text-foreground">Ukuran Tim</p>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        aria-label="Kurangi ukuran tim"
+                                        onClick={() => setTeamSize((prev) => Math.max(1, prev - 1))}
+                                        className="flex h-8 w-8 items-center justify-center border border-border/70 bg-background hover:bg-secondary"
+                                    >
+                                        <Minus className="h-4 w-4" />
+                                    </button>
+                                    <AnimatedNumber
+                                        value={teamSize}
+                                        className="min-w-[56px] text-center text-[1.75rem] font-semibold text-foreground"
+                                    />
+                                    <button
+                                        type="button"
+                                        aria-label="Tambah ukuran tim"
+                                        onClick={() => setTeamSize((prev) => prev + 1)}
+                                        className="flex h-8 w-8 items-center justify-center border border-border/70 bg-background hover:bg-secondary"
+                                    >
+                                        <Plus className="h-4 w-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-4 space-y-3 border border-border/70 bg-background p-4">
+                            <div>
+                                <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                                    Estimasi hemat per bulan
+                                </p>
+                                <p className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
+                                    <AnimatedNumber value={monthlySavings} formatter={formatCurrency} />
+                                </p>
+                            </div>
+                            <div className="border-t border-border/70 pt-3">
+                                <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                                    Estimasi hemat per tahun
+                                </p>
+                                <p className="mt-1 text-3xl font-semibold tracking-tight text-primary">
+                                    <AnimatedNumber value={annualSavings} formatter={formatCurrency} />
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="mt-5">
+                            <Button className="h-12 w-full bg-primary text-primary-foreground hover:bg-primary/90" asChild>
+                                <Link href="/demo">
+                                    Diskusikan Simulasi Ini
+                                    <ArrowRight className="ml-2 h-4 w-4" />
+                                </Link>
+                            </Button>
+                            <p className="mt-2 text-xs text-muted-foreground">
+                                Estimasi berdasarkan pola efisiensi operasional merchant Beres Cloud.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </SectionClient>
+    );
+}

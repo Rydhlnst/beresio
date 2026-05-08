@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+﻿import { describe, expect, it, vi } from "vitest";
 import { createDbMock, createTestApp } from "./test-utils";
 
 vi.mock("../../middleware/auth", () => ({
@@ -23,20 +23,22 @@ describe("rbac routes", () => {
             selectResults: [
                 [{ id: "mem-1", role: "owner", roleId: null }],
                 [],
-                [{ id: "role-owner" }],
+                [{ id: "role-owner", slug: "owner" }],
+                [],
             ],
-            insertResults: [[]],
+            insertResults: [[], []],
             updateResults: [[{ id: "mem-1", roleId: "role-owner" }]],
         });
 
         const app = createRbacApp(db);
         const res = await app.request("/api/dashboard/rbac/bootstrap", { method: "POST" });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
         expect(body.data).toMatchObject({
-            rolesInserted: 5,
+            rolesInserted: 7,
+            permissionsInserted: 13,
             memberUpdated: true,
             roleSlug: "owner",
         });
@@ -49,7 +51,7 @@ describe("rbac routes", () => {
 
         const app = createRbacApp(db);
         const res = await app.request("/api/dashboard/rbac/bootstrap", { method: "POST" });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(403);
         expect(body.success).toBe(false);
@@ -59,20 +61,54 @@ describe("rbac routes", () => {
         const db = createDbMock({
             selectResults: [
                 [{ id: "mem-1", role: "owner", roleId: "role-1" }],
-                [{ id: "role-1", slug: "owner" }],
+                [
+                    { id: "role-1", slug: "owner" },
+                    { id: "role-2", slug: "admin" },
+                    { id: "role-3", slug: "branch_manager" },
+                    { id: "role-4", slug: "cashier" },
+                    { id: "role-5", slug: "laundry_worker" },
+                    { id: "role-6", slug: "driver" },
+                    { id: "role-7", slug: "staff" },
+                ],
+                [
+                    { id: "role-1", slug: "owner" },
+                    { id: "role-2", slug: "admin" },
+                    { id: "role-3", slug: "branch_manager" },
+                    { id: "role-4", slug: "cashier" },
+                    { id: "role-5", slug: "laundry_worker" },
+                    { id: "role-6", slug: "driver" },
+                    { id: "role-7", slug: "staff" },
+                ],
+                [
+                    { roleId: "role-1", permission: "dashboard.read" },
+                    { roleId: "role-1", permission: "branch.read" },
+                    { roleId: "role-1", permission: "team.read" },
+                    { roleId: "role-1", permission: "settings.read" },
+                    { roleId: "role-1", permission: "order.read" },
+                    { roleId: "role-1", permission: "order.create" },
+                    { roleId: "role-1", permission: "laundry.status.update" },
+                    { roleId: "role-1", permission: "laundry.payment.record" },
+                    { roleId: "role-1", permission: "laundry.service.manage" },
+                    { roleId: "role-1", permission: "pickup.read" },
+                    { roleId: "role-1", permission: "pickup.manage" },
+                    { roleId: "role-1", permission: "laundry.driver.assign" },
+                    { roleId: "role-1", permission: "report.read" },
+                ],
             ],
         });
 
         const app = createRbacApp(db);
         const res = await app.request("/api/dashboard/rbac/bootstrap", { method: "POST" });
-        const body = await res.json();
+        const body = (await res.json()) as any;
 
         expect(res.status).toBe(200);
         expect(body.success).toBe(true);
         expect(body.data).toMatchObject({
             rolesInserted: 0,
+            permissionsInserted: 39,
             memberUpdated: false,
             roleSlug: "owner",
         });
     });
 });
+

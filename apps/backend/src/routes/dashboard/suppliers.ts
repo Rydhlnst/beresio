@@ -1,8 +1,9 @@
 import { Hono } from 'hono'
+import { z } from 'zod'
 import { authMiddleware } from '../../middleware/auth'
 import { getOrgId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
-import { and, asc, desc, eq, ilike, sql, count, or, inArray } from 'drizzle-orm'
+import { and, asc, desc, eq, ilike, sql, or, inArray } from 'drizzle-orm'
 import { suppliers, products } from '@beresio/db'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
@@ -10,6 +11,67 @@ type Variables = { db: any; user: any; session: any }
 
 const DEFAULT_LIMIT = 20
 const MAX_LIMIT = 100
+
+const createSupplierSchema = z.object({
+    name: z.string().trim().min(1, 'Nama pemasok wajib diisi'),
+    code: z.string().optional().nullable(),
+    contactName: z.string().optional().nullable(),
+    email: z.string().optional().nullable(),
+    phone: z.string().optional().nullable(),
+    address: z.string().optional().nullable(),
+    city: z.string().optional().nullable(),
+    province: z.string().optional().nullable(),
+    postalCode: z.string().optional().nullable(),
+    bankName: z.string().optional().nullable(),
+    bankAccountNumber: z.string().optional().nullable(),
+    bankAccountName: z.string().optional().nullable(),
+    notes: z.string().optional().nullable(),
+    isActive: z.boolean().optional(),
+})
+
+const updateSupplierSchema = z.object({
+    name: z.string().trim().min(1, 'Nama pemasok wajib diisi').optional(),
+    code: z.string().optional().nullable(),
+    contactName: z.string().optional().nullable(),
+    email: z.string().optional().nullable(),
+    phone: z.string().optional().nullable(),
+    address: z.string().optional().nullable(),
+    city: z.string().optional().nullable(),
+    province: z.string().optional().nullable(),
+    postalCode: z.string().optional().nullable(),
+    bankName: z.string().optional().nullable(),
+    bankAccountNumber: z.string().optional().nullable(),
+    bankAccountName: z.string().optional().nullable(),
+    notes: z.string().optional().nullable(),
+    isActive: z.boolean().optional(),
+}).superRefine((value, ctx) => {
+    if (
+        value.name === undefined
+        && value.code === undefined
+        && value.contactName === undefined
+        && value.email === undefined
+        && value.phone === undefined
+        && value.address === undefined
+        && value.city === undefined
+        && value.province === undefined
+        && value.postalCode === undefined
+        && value.bankName === undefined
+        && value.bankAccountNumber === undefined
+        && value.bankAccountName === undefined
+        && value.notes === undefined
+        && value.isActive === undefined
+    ) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Tidak ada field yang diupdate',
+            path: [],
+        })
+    }
+})
+
+function getValidationMessage(error: z.ZodError, fallback = 'Invalid payload') {
+    return error.issues[0]?.message ?? fallback
+}
 
 export const suppliersRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
@@ -146,7 +208,7 @@ suppliersRouter.get('/', authMiddleware, async (c) => {
         })
     } catch (err: any) {
         console.error('[suppliers/list]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -204,7 +266,7 @@ suppliersRouter.get('/:id', authMiddleware, async (c) => {
         })
     } catch (err: any) {
         console.error('[suppliers/detail]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -215,12 +277,14 @@ suppliersRouter.post('/', authMiddleware, async (c) => {
         const db = c.get('db')
         const orgId = await getOrgId(c)
         const body = await c.req.json().catch(() => null)
+        const parsedBody = createSupplierSchema.safeParse(body)
+        if (!parsedBody.success) {
+            return errors.badRequest(c, getValidationMessage(parsedBody.error))
+        }
 
-        // Validation
-        const name = body?.name?.trim()
-        if (!name) return errors.badRequest(c, 'Nama pemasok wajib diisi')
-
-        const code = body?.code?.trim()
+        const parsed = parsedBody.data
+        const name = parsed.name
+        const code = parsed.code?.trim()
         
         // Check code uniqueness
         if (code) {
@@ -242,18 +306,18 @@ suppliersRouter.post('/', authMiddleware, async (c) => {
                 organizationId: orgId,
                 name,
                 code: code || null,
-                contactName: body?.contactName?.trim() || null,
-                email: body?.email?.trim() || null,
-                phone: body?.phone?.trim() || null,
-                address: body?.address?.trim() || null,
-                city: body?.city?.trim() || null,
-                province: body?.province?.trim() || null,
-                postalCode: body?.postalCode?.trim() || null,
-                bankName: body?.bankName?.trim() || null,
-                bankAccountNumber: body?.bankAccountNumber?.trim() || null,
-                bankAccountName: body?.bankAccountName?.trim() || null,
-                notes: body?.notes?.trim() || null,
-                isActive: body?.isActive !== false,
+                contactName: parsed.contactName?.trim() || null,
+                email: parsed.email?.trim() || null,
+                phone: parsed.phone?.trim() || null,
+                address: parsed.address?.trim() || null,
+                city: parsed.city?.trim() || null,
+                province: parsed.province?.trim() || null,
+                postalCode: parsed.postalCode?.trim() || null,
+                bankName: parsed.bankName?.trim() || null,
+                bankAccountNumber: parsed.bankAccountNumber?.trim() || null,
+                bankAccountName: parsed.bankAccountName?.trim() || null,
+                notes: parsed.notes?.trim() || null,
+                isActive: parsed.isActive !== false,
             })
             .returning()
 
@@ -269,7 +333,7 @@ suppliersRouter.post('/', authMiddleware, async (c) => {
         })
     } catch (err: any) {
         console.error('[suppliers/create]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -281,6 +345,11 @@ suppliersRouter.patch('/:id', authMiddleware, async (c) => {
         const orgId = await getOrgId(c)
         const supplierId = c.req.param('id')
         const body = await c.req.json().catch(() => null)
+        const parsedBody = updateSupplierSchema.safeParse(body)
+        if (!parsedBody.success) {
+            return errors.badRequest(c, getValidationMessage(parsedBody.error))
+        }
+        const parsed = parsedBody.data
 
         // Check supplier exists
         const [existing] = await db
@@ -295,7 +364,7 @@ suppliersRouter.patch('/:id', authMiddleware, async (c) => {
         if (!existing) return errors.notFound(c, 'Pemasok tidak ditemukan')
 
         // Check code uniqueness if changing
-        const newCode = body?.code?.trim()
+        const newCode = parsed.code?.trim()
         if (newCode && newCode !== existing.code) {
             const [duplicate] = await db
                 .select({ id: suppliers.id })
@@ -311,24 +380,20 @@ suppliersRouter.patch('/:id', authMiddleware, async (c) => {
         // Build updates
         const updates: any = {}
         
-        if (body?.name !== undefined) updates.name = body.name.trim()
+        if (parsed.name !== undefined) updates.name = parsed.name.trim()
         if (newCode !== undefined) updates.code = newCode || null
-        if (body?.contactName !== undefined) updates.contactName = body.contactName?.trim() || null
-        if (body?.email !== undefined) updates.email = body.email?.trim() || null
-        if (body?.phone !== undefined) updates.phone = body.phone?.trim() || null
-        if (body?.address !== undefined) updates.address = body.address?.trim() || null
-        if (body?.city !== undefined) updates.city = body.city?.trim() || null
-        if (body?.province !== undefined) updates.province = body.province?.trim() || null
-        if (body?.postalCode !== undefined) updates.postalCode = body.postalCode?.trim() || null
-        if (body?.bankName !== undefined) updates.bankName = body.bankName?.trim() || null
-        if (body?.bankAccountNumber !== undefined) updates.bankAccountNumber = body.bankAccountNumber?.trim() || null
-        if (body?.bankAccountName !== undefined) updates.bankAccountName = body.bankAccountName?.trim() || null
-        if (body?.notes !== undefined) updates.notes = body.notes?.trim() || null
-        if (body?.isActive !== undefined) updates.isActive = body.isActive
-
-        if (Object.keys(updates).length === 0) {
-            return errors.badRequest(c, 'Tidak ada field yang diupdate')
-        }
+        if (parsed.contactName !== undefined) updates.contactName = parsed.contactName?.trim() || null
+        if (parsed.email !== undefined) updates.email = parsed.email?.trim() || null
+        if (parsed.phone !== undefined) updates.phone = parsed.phone?.trim() || null
+        if (parsed.address !== undefined) updates.address = parsed.address?.trim() || null
+        if (parsed.city !== undefined) updates.city = parsed.city?.trim() || null
+        if (parsed.province !== undefined) updates.province = parsed.province?.trim() || null
+        if (parsed.postalCode !== undefined) updates.postalCode = parsed.postalCode?.trim() || null
+        if (parsed.bankName !== undefined) updates.bankName = parsed.bankName?.trim() || null
+        if (parsed.bankAccountNumber !== undefined) updates.bankAccountNumber = parsed.bankAccountNumber?.trim() || null
+        if (parsed.bankAccountName !== undefined) updates.bankAccountName = parsed.bankAccountName?.trim() || null
+        if (parsed.notes !== undefined) updates.notes = parsed.notes?.trim() || null
+        if (parsed.isActive !== undefined) updates.isActive = parsed.isActive
 
         const [updated] = await db
             .update(suppliers)
@@ -351,7 +416,7 @@ suppliersRouter.patch('/:id', authMiddleware, async (c) => {
         })
     } catch (err: any) {
         console.error('[suppliers/update]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -399,7 +464,7 @@ suppliersRouter.delete('/:id', authMiddleware, async (c) => {
         return ok(c, { deleted: true })
     } catch (err: any) {
         console.error('[suppliers/delete]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -426,6 +491,6 @@ suppliersRouter.get('/cities', authMiddleware, async (c) => {
         })
     } catch (err: any) {
         console.error('[suppliers/cities]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })

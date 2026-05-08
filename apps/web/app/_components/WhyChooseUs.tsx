@@ -14,11 +14,11 @@ import { SectionCTA } from "./SectionCTA"
 
 function BeresLogo({ className }: { className?: string }) {
     return (
-        <svg viewBox="0 0 58 80" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M0 12C0 5.37258 5.37258 0 12 0H26V38H0V12Z" fill="#EE4822" />
-            <path d="M0 42H26V80H12C5.37258 80 0 74.6274 0 68V42Z" fill="#EE4822" />
-            <path d="M26 42H42C50.8366 42 58 49.1634 58 58V64C58 72.8366 50.8366 80 42 80H26V42Z" fill="#EE4822" />
-            <path d="M26 0H42C50.8366 0 58 7.16344 58 16V22C58 30.8366 50.8366 38 42 38H26V0Z" fill="#EE4822" />
+        <svg viewBox="0 0 58 80" className={cn("text-brand", className)} fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0 12C0 5.37258 5.37258 0 12 0H26V38H0V12Z" fill="currentColor" />
+            <path d="M0 42H26V80H12C5.37258 80 0 74.6274 0 68V42Z" fill="currentColor" />
+            <path d="M26 42H42C50.8366 42 58 49.1634 58 58V64C58 72.8366 50.8366 80 42 80H26V42Z" fill="currentColor" />
+            <path d="M26 0H42C50.8366 0 58 7.16344 58 16V22C58 30.8366 50.8366 38 42 38H26V0Z" fill="currentColor" />
         </svg>
     )
 }
@@ -28,8 +28,8 @@ function BeresLogo({ className }: { className?: string }) {
 
 function EnterpriseSearchMockup() {
     return (
-        <div className="w-full h-full bg-[#F06A50] flex flex-col items-center justify-start pt-12">
-            <div className="w-[90%] bg-background rounded-t-2xl shadow-2xl p-6 pb-20 relative overflow-hidden flex flex-col gap-6">
+        <div className="h-full w-full bg-brand/90 px-4 pt-12 sm:px-6">
+            <div className="relative flex w-full flex-col gap-6 overflow-hidden rounded-t-2xl bg-background p-6 pb-20 shadow-2xl">
                 {/* Search Badge */}
                 <div className="absolute top-4 right-4 bg-muted/30 text-[9px] font-bold px-3 py-1 rounded-full text-foreground/60 backdrop-blur-sm">
                     top customer requests this quarter
@@ -37,8 +37,8 @@ function EnterpriseSearchMockup() {
 
                 {/* Sub Header */}
                 <div className="flex items-center gap-3 text-muted-foreground/40 mt-6 text-left">
-                    <div className="h-4 w-4 rounded-sm bg-primary/10 flex items-center justify-center p-0.5 shadow-sm">
-                        <TrendingUp className="h-full w-full text-primary" strokeWidth={3} />
+                    <div className="h-4 w-4 rounded-sm bg-brand/10 flex items-center justify-center p-0.5 shadow-sm">
+                        <TrendingUp className="h-full w-full text-brand" strokeWidth={3} />
                     </div>
                     <span className="text-[11px] font-bold text-foreground/40">24 Insight Ditemukan</span>
                     <div className="flex gap-1 items-center">
@@ -46,7 +46,7 @@ function EnterpriseSearchMockup() {
                         <div className="h-4 w-4 rounded-full bg-blue-500/20" />
                         <div className="h-4 w-4 rounded-full bg-amber-500/20" />
                     </div>
-                    <ArrowRight className="h-3 w-3 text-primary/40" />
+                    <ArrowRight className="h-3 w-3 text-brand/40" />
                 </div>
 
                 <div className="space-y-6 text-left">
@@ -103,8 +103,8 @@ function EnterpriseSearchMockup() {
 
 function FinanceMockup() {
     return (
-        <div className="w-full h-full bg-emerald-500 overflow-hidden flex flex-col items-center pt-10">
-            <div className="w-[85%] bg-background rounded-2xl shadow-2xl p-6 space-y-6">
+        <div className="h-full w-full overflow-hidden bg-emerald-500 px-4 pt-10 sm:px-6">
+            <div className="w-full space-y-6 rounded-2xl bg-background p-6 shadow-2xl">
                 <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Arus Kas</span>
                     <div className="h-8 w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
@@ -174,8 +174,8 @@ function InventoryMockup() {
 
 function InvoicesMockup() {
     return (
-        <div className="w-full h-full bg-amber-500 overflow-hidden flex flex-col items-center pt-10">
-            <div className="w-[80%] bg-background rounded-2xl shadow-2xl p-6 flex flex-col gap-4">
+        <div className="h-full w-full overflow-hidden bg-amber-500 px-4 pt-10 sm:px-6">
+            <div className="flex w-full flex-col gap-4 rounded-2xl bg-background p-6 shadow-2xl">
                 <div className="flex justify-between items-start">
                     <div className="space-y-1 text-left">
                         <p className="text-xs font-black text-foreground uppercase tracking-tight">Kwitansi Digital</p>
@@ -289,7 +289,7 @@ export function WhyChooseUs() {
         <Section id="features" className="relative overflow-hidden bg-background">
             {/* Background elements */}
             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-brand/5 rounded-full blur-[100px] pointer-events-none" />
 
             {/* Header */}
             <div className="max-w-3xl mb-[clamp(2rem,5vw,4rem)] text-left relative z-10">
@@ -300,7 +300,7 @@ export function WhyChooseUs() {
                         <span className="text-muted-foreground tracking-tight">Semua Urusan Jadi Beres.</span>
                     </Heading>
                     <Text variant="lead">
-                        Beres.io bukan hanya kasir. Kami adalah ekosistem lengkap untuk pertumbuhan bisnis Anda, dari operasional meja hingga laporan keuangan.
+                        Beres Cloud bukan hanya kasir. Kami adalah ekosistem lengkap untuk pertumbuhan bisnis Anda, dari operasional meja hingga laporan keuangan.
                     </Text>
                 </div>
             </div>
@@ -311,7 +311,7 @@ export function WhyChooseUs() {
                     <div
                         key={card.title}
                         className={cn(
-                            "group bg-card rounded-[40px] border border-border/60 flex flex-col hover:shadow-3xl hover:shadow-primary/5 transition-all duration-500 overflow-hidden",
+                            "group bg-card rounded-[40px] border border-border/60 flex flex-col hover:shadow-3xl hover:shadow-brand/10 transition-all duration-500 overflow-hidden",
                             card.className
                         )}
                     >
@@ -335,12 +335,13 @@ export function WhyChooseUs() {
 
             <SectionCTA
                 title="Siap Tumbuh Lebih Terorganisir?"
-                description="Daftar wishlist sekarang dan amankan slot VIP Anda. Bergabunglah dengan ratusan pengusaha yang siap mengotomatisasi operasional mereka."
-                primaryLabel="Ingatkan Saya Saat Launching"
-                primaryHref="/wishlist"
+                description="Konsultasikan kebutuhan operasional dan rencana aktivasi billing Anda melalui kanal resmi Beres Cloud."
+                primaryLabel="Hubungi Tim Onboarding"
+                primaryHref="/sales"
                 secondaryLabel="Lihat Jadwal Demo"
                 secondaryHref="/demo"
             />
         </Section>
     )
 }
+

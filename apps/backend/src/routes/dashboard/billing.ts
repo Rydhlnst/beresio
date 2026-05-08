@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { z } from 'zod'
 import { authMiddleware } from '../../middleware/auth'
 import { getOrgId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
@@ -11,11 +12,23 @@ type Variables = { db: any; user: any; session: any }
 export const billingRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
 // Plan limits per tier
-const PLAN_LIMITS: Record<string, { branches: number; members: number }> = {
+const PLAN_LIMITS = {
     starter: { branches: 1, members: 3 },
     growth: { branches: 5, members: 15 },
     pro: { branches: 20, members: 50 },
     enterprise: { branches: Infinity, members: Infinity },
+} as const
+
+type PlanName = keyof typeof PLAN_LIMITS
+
+const PLAN_NAMES = Object.keys(PLAN_LIMITS) as unknown as [PlanName, ...PlanName[]]
+
+const upgradePlanBodySchema = z.object({
+    plan: z.enum(PLAN_NAMES),
+})
+
+function getValidationMessage(error: z.ZodError, fallback = 'Invalid payload') {
+    return error.issues[0]?.message ?? fallback
 }
 
 // GET /api/dashboard/billing/status
@@ -76,8 +89,8 @@ billingRouter.get('/status', authMiddleware, async (c) => {
         const org = orgRows[0]
         if (!org) return errors.notFound(c, 'Organization not found')
 
-        const plan = org.subscriptionPlan ?? 'starter'
-        const limits = PLAN_LIMITS[plan] ?? PLAN_LIMITS['starter']
+        const plan = (org.subscriptionPlan ?? 'starter') as PlanName
+        const limits = PLAN_LIMITS[plan] ?? PLAN_LIMITS.starter
 
         return ok(c, {
             plan,
@@ -101,7 +114,7 @@ billingRouter.get('/status', authMiddleware, async (c) => {
         })
     } catch (err: any) {
         console.error('[billing/status]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -117,8 +130,11 @@ billingRouter.post('/upgrade', authMiddleware, async (c) => {
         }
 
         const body = await c.req.json().catch(() => null)
-        const plan = body?.plan
-        if (!plan || !PLAN_LIMITS[plan]) return errors.badRequest(c, 'Invalid plan')
+        const parsedBody = upgradePlanBodySchema.safeParse(body)
+        if (!parsedBody.success) {
+            return errors.badRequest(c, getValidationMessage(parsedBody.error, 'Invalid plan'))
+        }
+        const { plan } = parsedBody.data
 
         const updated = await db
             .update(organization)
@@ -130,11 +146,11 @@ billingRouter.post('/upgrade', authMiddleware, async (c) => {
 
         return ok(c, {
             plan,
-            limits: PLAN_LIMITS[plan],
+            limits: PLAN_LIMITS[plan] ?? PLAN_LIMITS.starter,
         })
     } catch (err: any) {
         console.error('[billing/upgrade]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -173,7 +189,7 @@ billingRouter.get('/invoices', authMiddleware, async (c) => {
         })))
     } catch (err: any) {
         console.error('[billing/invoices]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -214,6 +230,6 @@ billingRouter.get('/invoices/:id/download', authMiddleware, async (c) => {
         })
     } catch (err: any) {
         console.error('[billing/invoices/download]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })

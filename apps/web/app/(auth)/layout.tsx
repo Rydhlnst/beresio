@@ -1,5 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
+
+export const metadata: Metadata = {
+    robots: {
+        index: false,
+        follow: false,
+    },
+};
 
 export default function AuthLayout({
     children,
@@ -7,7 +15,7 @@ export default function AuthLayout({
     children: React.ReactNode;
 }) {
     return (
-        <div className="min-h-screen flex flex-col bg-background font-sans selection:bg-primary/30 relative overflow-hidden">
+        <div className="min-h-screen flex flex-col bg-background font-sans selection:bg-brand/30 relative overflow-hidden">
             <header className="w-full h-16 md:h-20 px-8 flex items-center justify-between">
                 <div className="w-full max-w-[440px] md:max-w-none mx-auto flex items-center justify-between">
                     <Link href="/" className="transition-transform hover:scale-105">

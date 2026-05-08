@@ -3,6 +3,7 @@ export type NormalizedBusinessType = "laundry" | "fnb" | "retail";
 const BUSINESS_TYPE_ALIASES: Record<string, NormalizedBusinessType> = {
   caffe: "fnb",
   food: "fnb",
+  wholesale: "retail",
   service: "retail",
   other: "retail",
 };

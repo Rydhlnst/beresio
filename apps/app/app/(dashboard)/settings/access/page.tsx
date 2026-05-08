@@ -4,7 +4,7 @@ import { Button } from "@repo/ui/button";
 import { SectionCard } from "@/components/dashboard/shared/section-card";
 
 export const metadata: Metadata = {
-    title: "Access Settings | Beres",
+    title: "Access Settings",
     description: "Kelola role dan izin akses",
 };
 

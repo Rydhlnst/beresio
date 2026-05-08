@@ -146,7 +146,7 @@ export function LoginForm() {
                     Belum punya akun?{" "}
                     <Link
                         href="/register"
-                        className="font-medium text-primary hover:underline underline-offset-4"
+                        className="font-medium text-brand hover:underline underline-offset-4"
                     >
                         Daftar
                     </Link>

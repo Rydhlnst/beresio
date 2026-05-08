@@ -1,10 +1,10 @@
 import { Hono } from 'hono'
 import { authMiddleware } from '../../middleware/auth'
-import { getOrgId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
 import { and, eq, gte, lte, sql, inArray } from 'drizzle-orm'
 import { branches, orders, payments } from '@beresio/db'
-import { getAccessibleBranchIds, getBranchAccessContext, hasBranchAccess } from '../../lib/branch-access'
+import { getOrganizationBranchAggregate } from '../../lib/organization-aggregates'
+import { resolveAccessScope } from '../../lib/permissions'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
 type Variables = { db: any; user: any; session: any }
@@ -71,19 +71,25 @@ reportsRouter.get('/catalog', authMiddleware, async (c) => {
 // GET /api/dashboard/reports/summary
 reportsRouter.get('/summary', authMiddleware, async (c) => {
     try {
-        const db = c.get('db')
-        const orgId = await getOrgId(c)
-        const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId)
         const range = c.req.query('range')
         const dateFrom = c.req.query('dateFrom')
         const dateTo = c.req.query('dateTo')
         const branchId = c.req.query('branchId')
+        const scope = await resolveAccessScope(c, {
+            requestedBranchId: branchId ?? null,
+            requireBranchAccess: false,
+            noBranchAccessMessage: 'No branch access',
+        })
+        if (!scope.ok) return scope.response
+        const orgId = scope.value.orgId
+        const branchIds = scope.value.scopedBranchIds
 
         const { from, to } = buildRange(range, dateFrom, dateTo)
         if (!from || !to) return errors.badRequest(c, 'Invalid date range')
-        if (branchIds.length === 0) {
-            if (!isOrgWide) return errors.forbidden(c, 'No branch access')
-            if (branchId) return errors.forbidden(c, 'No access to branch')
+        if (branchIds.length === 0 && !scope.value.isOrgWide) {
+            return errors.forbidden(c, 'No branch access')
+        }
+        if (branchIds.length === 0 && scope.value.isOrgWide) {
             return ok(c, {
                 revenueTotal: 0,
                 completedOrders: 0,
@@ -92,59 +98,19 @@ reportsRouter.get('/summary', authMiddleware, async (c) => {
             })
         }
 
-        const paymentConditions = [
-            eq(payments.organizationId, orgId),
-            eq(payments.status, 'SUCCESS'),
-            gte(payments.createdAt, from),
-            lte(payments.createdAt, to),
-        ]
-        if (branchId) {
-            if (!hasBranchAccess(branchIds, branchId)) {
-                return errors.forbidden(c, 'No access to branch')
-            }
-            paymentConditions.push(eq(payments.branchId, branchId))
-        } else {
-            paymentConditions.push(inArray(payments.branchId, branchIds))
-        }
+        const aggregate = await getOrganizationBranchAggregate(c, orgId, {
+            branchIds,
+            useProvidedBranchIds: true,
+            range: { from, to },
+        })
 
-        const orderConditions = [
-            eq(orders.organizationId, orgId),
-            gte(orders.createdAt, from),
-            lte(orders.createdAt, to),
-        ]
-        if (branchId) {
-            if (!hasBranchAccess(branchIds, branchId)) {
-                return errors.forbidden(c, 'No access to branch')
-            }
-            orderConditions.push(eq(orders.branchId, branchId))
-        } else {
-            orderConditions.push(inArray(orders.branchId, branchIds))
-        }
-
-        const [revenueRows, orderRows] = await Promise.all([
-            db
-                .select({
-                    revenue: sql<number>`COALESCE(SUM(${payments.amount}), 0)`.as('revenue'),
-                })
-                .from(payments)
-                .where(and(...paymentConditions)),
-            db
-                .select({
-                    total: sql<number>`COUNT(*)`.as('total'),
-                    completed: sql<number>`COUNT(*) FILTER (WHERE ${orders.status} = 'completed')`.as('completed'),
-                    cancelled: sql<number>`COUNT(*) FILTER (WHERE ${orders.status} = 'cancelled')`.as('cancelled'),
-                })
-                .from(orders)
-                .where(and(...orderConditions)),
-        ])
-
-        const totalOrders = Number(orderRows[0]?.total ?? 0)
-        const completedOrders = Number(orderRows[0]?.completed ?? 0)
-        const cancelledOrders = Number(orderRows[0]?.cancelled ?? 0)
+        const totalOrders = aggregate.totalOrders
+        const completedOrders = aggregate.completedOrders
+        const cancelledOrders = aggregate.cancelledOrders
         const cancellationRate = totalOrders === 0 ? 0 : Math.round((cancelledOrders / totalOrders) * 1000) / 10
 
         return ok(c, {
-            revenueTotal: Number(revenueRows[0]?.revenue ?? 0),
+            revenueTotal: aggregate.revenueTotal,
             completedOrders,
             cancellationRate,
             range: { from, to },
@@ -159,18 +125,25 @@ reportsRouter.get('/summary', authMiddleware, async (c) => {
 reportsRouter.get('/chart', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
-        const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId)
         const range = c.req.query('range')
         const dateFrom = c.req.query('dateFrom')
         const dateTo = c.req.query('dateTo')
         const branchId = c.req.query('branchId')
+        const scope = await resolveAccessScope(c, {
+            requestedBranchId: branchId ?? null,
+            requireBranchAccess: false,
+            noBranchAccessMessage: 'No branch access',
+        })
+        if (!scope.ok) return scope.response
+        const orgId = scope.value.orgId
+        const scopedBranchIds = scope.value.scopedBranchIds
 
         const { from, to } = buildRange(range, dateFrom, dateTo)
         if (!from || !to) return errors.badRequest(c, 'Invalid date range')
-        if (branchIds.length === 0) {
-            if (!isOrgWide) return errors.forbidden(c, 'No branch access')
-            if (branchId) return errors.forbidden(c, 'No access to branch')
+        if (scopedBranchIds.length === 0 && !scope.value.isOrgWide) {
+            return errors.forbidden(c, 'No branch access')
+        }
+        if (scopedBranchIds.length === 0 && scope.value.isOrgWide) {
             return ok(c, [])
         }
 
@@ -180,28 +153,14 @@ reportsRouter.get('/chart', authMiddleware, async (c) => {
             gte(payments.createdAt, from),
             lte(payments.createdAt, to),
         ]
-        if (branchId) {
-            if (!hasBranchAccess(branchIds, branchId)) {
-                return errors.forbidden(c, 'No access to branch')
-            }
-            paymentConditions.push(eq(payments.branchId, branchId))
-        } else {
-            paymentConditions.push(inArray(payments.branchId, branchIds))
-        }
+        paymentConditions.push(inArray(payments.branchId, scopedBranchIds))
 
         const orderConditions = [
             eq(orders.organizationId, orgId),
             gte(orders.createdAt, from),
             lte(orders.createdAt, to),
         ]
-        if (branchId) {
-            if (!hasBranchAccess(branchIds, branchId)) {
-                return errors.forbidden(c, 'No access to branch')
-            }
-            orderConditions.push(eq(orders.branchId, branchId))
-        } else {
-            orderConditions.push(inArray(orders.branchId, branchIds))
-        }
+        orderConditions.push(inArray(orders.branchId, scopedBranchIds))
 
         const paymentDay = sql<string>`date_trunc('day', ${payments.createdAt})`
         const orderDay = sql<string>`date_trunc('day', ${orders.createdAt})`
@@ -260,16 +219,23 @@ reportsRouter.get('/chart', authMiddleware, async (c) => {
 reportsRouter.get('/table', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
-        const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId)
         const range = c.req.query('range')
         const dateFrom = c.req.query('dateFrom')
         const dateTo = c.req.query('dateTo')
+        const scope = await resolveAccessScope(c, {
+            requireBranchAccess: false,
+            noBranchAccessMessage: 'No branch access',
+        })
+        if (!scope.ok) return scope.response
+        const orgId = scope.value.orgId
+        const branchIds = scope.value.scopedBranchIds
 
         const { from, to } = buildRange(range, dateFrom, dateTo)
         if (!from || !to) return errors.badRequest(c, 'Invalid date range')
-        if (branchIds.length === 0) {
-            if (!isOrgWide) return errors.forbidden(c, 'No branch access')
+        if (branchIds.length === 0 && !scope.value.isOrgWide) {
+            return errors.forbidden(c, 'No branch access')
+        }
+        if (branchIds.length === 0 && scope.value.isOrgWide) {
             return ok(c, [])
         }
 

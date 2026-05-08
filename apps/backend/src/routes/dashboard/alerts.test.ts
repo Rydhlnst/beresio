@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+﻿import { describe, expect, it, vi } from "vitest";
 import { createDbMock, createTestApp } from "./test-utils";
 
 // Mock auth middleware
@@ -31,7 +31,7 @@ describe("alerts routes", () => {
             const app = createAlertsApp(db);
 
             const res = await app.request("/api/dashboard/alerts");
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
@@ -53,7 +53,7 @@ describe("alerts routes", () => {
             const app = createAlertsApp(db);
 
             const res = await app.request("/api/dashboard/alerts");
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
@@ -69,7 +69,7 @@ describe("alerts routes", () => {
             const app = createAlertsApp(db);
 
             const res = await app.request("/api/dashboard/alerts");
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(body.data[0].actionUrl).toBe("/dashboard/orders?status=pending");
             expect(body.data[0].actionLabel).toBe("Lihat Pesanan");
@@ -84,10 +84,13 @@ describe("alerts routes", () => {
             const app = createAlertsApp(db);
 
             const res = await app.request("/api/dashboard/alerts");
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(500);
             expect(body.success).toBe(false);
+            expect(body.error.code).toBe("INTERNAL_ERROR");
+            expect(body.error.message).toBe("Internal server error");
         });
     });
 });
+

@@ -5,7 +5,7 @@ import { createDbNextjs } from "@beresio/db";
 import { RegisterForm } from "./_components/register-form";
 
 export const metadata = {
-    title: "Daftar | Beres",
+    title: "Daftar",
     description: "Buat akun baru untuk mulai menggunakan Beres",
 };
 

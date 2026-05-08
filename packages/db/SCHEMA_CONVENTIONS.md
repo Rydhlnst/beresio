@@ -48,3 +48,10 @@ Use snake_case:
 - Do: `organizationId` -> `organization_id`
 - Do: `createdAt` -> `created_at`
 - Don't: `organization-id` or `organizationId` in the DB column name
+
+## Migration Workflow (Team SOP)
+
+- Baseline policy: gunakan `db:generate` + `db:migrate` untuk semua perubahan schema baru.
+- Dilarang menulis SQL migration manual di luar hasil generate kecuali ada alasan khusus yang terdokumentasi.
+- Untuk database lokal lama yang belum punya metadata migrasi (`__drizzle_migrations`), lakukan bootstrap sekali pakai `db:push` agar schema sinkron dengan source of truth saat ini.
+- Setelah bootstrap selesai, kembali ke alur normal `db:generate` + `db:migrate` (jangan `db:push` rutin).

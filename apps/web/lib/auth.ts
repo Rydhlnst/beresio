@@ -5,7 +5,11 @@ import { nextCookies } from "better-auth/next-js";
 import * as schema from "@beresio/db";
 
 export const auth = (db: any) => betterAuth({
-    baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
+    baseURL:
+        process.env.BETTER_AUTH_URL ||
+        (process.env.NODE_ENV !== "production" ? "http://localhost:3000" : (() => {
+            throw new Error("BETTER_AUTH_URL is required in production");
+        })()),
     database: drizzleAdapter(db, {
         provider: "pg",
         schema: {

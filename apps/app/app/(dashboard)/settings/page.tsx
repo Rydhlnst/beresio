@@ -10,7 +10,7 @@ import { createDbNextjs, member, roles } from "@beresio/db";
 import { and, eq } from "drizzle-orm";
 
 export const metadata: Metadata = {
-    title: "Settings | Beres",
+    title: "Settings",
     description: "Konfigurasi organisasi dan integrasi",
 };
 
@@ -19,6 +19,7 @@ type OrganizationData = {
     name: string;
     slug?: string | null;
     businessType?: string | null;
+    mode?: "single" | "multi" | null;
     subscriptionPlan?: string | null;
     logoUrl?: string | null;
     metadata?: unknown;

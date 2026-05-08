@@ -176,11 +176,6 @@
     @apply shadow-lg shadow-black/5 -translate-y-0.5 border-border/80;
   }
 
-  /* Gradient text */
-  .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary-400;
-  }
-
   /* Glass effect */
   .glass {
     @apply bg-white/80 backdrop-blur-xl border border-white/20;

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
+import { getSafeApiBaseUrl } from "@/lib/safe-api-url";
 
 export type SupplierFilters = {
   search?: string;
@@ -54,7 +55,7 @@ export type Supplier = {
 };
 
 async function getApiUrl() {
-  return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
+  return getSafeApiBaseUrl();
 }
 
 async function getAuthHeaders() {

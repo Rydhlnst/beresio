@@ -9,18 +9,38 @@
   "vars": {
     "DATABASE_URL": "",
     "BETTER_AUTH_SECRET": "",
-    "BETTER_AUTH_URL": ""
+    "BETTER_AUTH_URL": "",
+    "UPLOAD_PROVIDER": "r2",
+    "R2_PUBLIC_BASE_URL": "",
+    "UPSTASH_REDIS_REST_URL": "",
+    "UPSTASH_REDIS_REST_TOKEN": ""
   },
+  "r2_buckets": [
+    {
+      "binding": "R2_UPLOADS",
+      "bucket_name": "beres-cloud"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "LAUNDRY_REALTIME_HUB",
+        "class_name": "LaundryRealtimeHub"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1_laundry_realtime_hub",
+      "new_sqlite_classes": [
+        "LaundryRealtimeHub"
+      ]
+    }
+  ],
   // "kv_namespaces": [
   //   {
   //     "binding": "MY_KV_NAMESPACE",
   //     "id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-  //   }
-  // ],
-  // "r2_buckets": [
-  //   {
-  //     "binding": "MY_BUCKET",
-  //     "bucket_name": "my-bucket"
   //   }
   // ],
   // "d1_databases": [

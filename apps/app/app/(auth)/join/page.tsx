@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { JoinForm } from "./_components/join-form";
 
 export const metadata = {
-    title: "Bergabung | Beres",
+    title: "Bergabung",
     description: "Bergabung ke bisnis menggunakan kode undangan",
 };
 

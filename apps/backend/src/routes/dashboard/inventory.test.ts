@@ -1,5 +1,12 @@
-import { describe, expect, it, vi } from "vitest";
+﻿import { describe, expect, it, vi } from "vitest";
 import { createDbMock, createTestApp } from "./test-utils";
+
+const { adjustStockQuantityMock, recordStockMovementMock, adjustVariantStockQuantityMock, recordVariantStockMovementMock } = vi.hoisted(() => ({
+    adjustStockQuantityMock: vi.fn(async () => undefined),
+    recordStockMovementMock: vi.fn(async () => undefined),
+    adjustVariantStockQuantityMock: vi.fn(async () => undefined),
+    recordVariantStockMovementMock: vi.fn(async () => undefined),
+}));
 
 // Mock auth middleware
 vi.mock("../../middleware/auth", () => ({
@@ -13,6 +20,25 @@ vi.mock("../../middleware/auth", () => ({
 vi.mock("../../lib/auth-context", () => ({
     getOrgId: vi.fn(async () => "org-1"),
     getUserId: vi.fn(async () => "user-1"),
+}));
+
+vi.mock("../../lib/branch-access", () => ({
+    getBranchAccessContext: vi.fn(async () => ({ branchIds: ["br-1", "br-2"], isOrgWide: false })),
+    getAccessibleBranchIds: vi.fn(async () => ["br-1", "br-2"]),
+    hasBranchAccess: vi.fn((branchIds: string[], branchId?: string | null) => !!branchId && branchIds.includes(branchId)),
+}));
+
+vi.mock("../../middleware/branch-context", () => ({
+    requireBranchContext: () => async (_c: any, next: any) => {
+        await next();
+    },
+}));
+
+vi.mock("../../lib/stock", () => ({
+    adjustStockQuantity: adjustStockQuantityMock,
+    recordStockMovement: recordStockMovementMock,
+    adjustVariantStockQuantity: adjustVariantStockQuantityMock,
+    recordVariantStockMovement: recordVariantStockMovementMock,
 }));
 
 import { inventoryRouter } from "./inventory";
@@ -55,7 +81,7 @@ describe("inventory routes", () => {
             const app = createInventoryApp(db);
 
             const res = await app.request("/api/dashboard/inventory/products");
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
@@ -88,7 +114,7 @@ describe("inventory routes", () => {
             const app = createInventoryApp(db);
 
             const res = await app.request("/api/dashboard/inventory/products?search=indomie");
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(200);
             expect(body.data[0].name).toBe("Indomie Goreng");
@@ -124,79 +150,59 @@ describe("inventory routes", () => {
         });
     });
 
-    describe("POST /products", () => {
-        it("creates new inventory product", async () => {
+    describe("DELETE /products/:id", () => {
+        it("deletes product when stock is empty", async () => {
             const db = createDbMock({
                 selectResults: [
-                    [], // No existing SKU
+                    [{ id: "inv-prod-1" }],
+                    [{ quantity: 0 }],
                 ],
-                insertResults: [
-                    [
-                        {
-                            id: "new-prod-1",
-                            name: "New Product",
-                            sku: "NEW-001",
-                            unit: "pcs",
-                            isActive: true,
-                            createdAt: new Date().toISOString(),
-                        },
-                    ],
-                ],
+                deleteResults: [[]],
             });
             const app = createInventoryApp(db);
 
-            const res = await app.request("/api/dashboard/inventory/products", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    name: "New Product",
-                    sku: "NEW-001",
-                    unit: "pcs",
-                }),
+            const res = await app.request("/api/dashboard/inventory/products/inv-prod-1", {
+                method: "DELETE",
             });
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
-            expect(body.data.name).toBe("New Product");
+            expect(body.data.deleted).toBe(true);
         });
 
-        it("rejects duplicate SKU", async () => {
+        it("rejects delete when product still has stock", async () => {
             const db = createDbMock({
                 selectResults: [
-                    [{ id: "existing-prod" }],
+                    [{ id: "inv-prod-1" }],
+                    [{ quantity: 12 }],
                 ],
             });
             const app = createInventoryApp(db);
 
-            const res = await app.request("/api/dashboard/inventory/products", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    name: "Duplicate",
-                    sku: "EXISTING-001",
-                }),
+            const res = await app.request("/api/dashboard/inventory/products/inv-prod-1", {
+                method: "DELETE",
             });
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(400);
-            expect(body.error.message).toContain("SKU already exists");
+            expect(body.success).toBe(false);
+            expect(body.error.message).toContain("existing stock");
         });
 
-        it("rejects missing name", async () => {
-            const db = createDbMock({});
+        it("returns 404 when product is missing", async () => {
+            const db = createDbMock({
+                selectResults: [[]],
+            });
             const app = createInventoryApp(db);
 
-            const res = await app.request("/api/dashboard/inventory/products", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    sku: "NO-NAME",
-                }),
+            const res = await app.request("/api/dashboard/inventory/products/missing", {
+                method: "DELETE",
             });
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
-            expect(res.status).toBe(400);
+            expect(res.status).toBe(404);
+            expect(body.success).toBe(false);
         });
     });
 
@@ -223,7 +229,7 @@ describe("inventory routes", () => {
             const app = createInventoryApp(db);
 
             const res = await app.request("/api/dashboard/inventory/adjustments");
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
@@ -268,13 +274,15 @@ describe("inventory routes", () => {
                     reason: "Restock",
                 }),
             });
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
         });
 
         it("rejects insufficient stock for negative adjustment", async () => {
+            adjustStockQuantityMock.mockRejectedValueOnce(new Error("INSUFFICIENT_STOCK"));
+
             const db = createDbMock({
                 selectResults: [
                     [{ id: "prod-1" }],
@@ -294,7 +302,7 @@ describe("inventory routes", () => {
                     reason: "Damaged",
                 }),
             });
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(400);
             expect(body.error.message).toContain("Stok tidak mencukupi");
@@ -325,7 +333,7 @@ describe("inventory routes", () => {
             const app = createInventoryApp(db);
 
             const res = await app.request("/api/dashboard/inventory/transfers");
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
@@ -369,7 +377,7 @@ describe("inventory routes", () => {
                     note: "Restock cabang",
                 }),
             });
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
@@ -390,7 +398,7 @@ describe("inventory routes", () => {
                     quantity: 50,
                 }),
             });
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(400);
             expect(body.error.message).toContain("must differ");
@@ -430,7 +438,7 @@ describe("inventory routes", () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ status: "approved" }),
             });
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(200);
             expect(body.success).toBe(true);
@@ -446,9 +454,47 @@ describe("inventory routes", () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ status: "invalid-status" }),
             });
-            const body = await res.json();
+            const body = (await res.json()) as any;
 
             expect(res.status).toBe(400);
         });
     });
+
+    describe("phase 2.1 validation + error hygiene", () => {
+        it("rejects invalid adjustment payload with BAD_REQUEST", async () => {
+            const app = createInventoryApp(createDbMock({}));
+
+            const res = await app.request("/api/dashboard/inventory/adjustments", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    productId: "prod-1",
+                    branchId: "br-1",
+                    quantityDelta: 0,
+                }),
+            });
+            const body = (await res.json()) as any;
+
+            expect(res.status).toBe(400);
+            expect(body.success).toBe(false);
+            expect(body.error.code).toBe("BAD_REQUEST");
+        });
+
+        it("hides internal error details on server failures", async () => {
+            const app = createInventoryApp({
+                select: () => {
+                    throw new Error("sensitive-db-error");
+                },
+            });
+
+            const res = await app.request("/api/dashboard/inventory/products");
+            const body = (await res.json()) as any;
+
+            expect(res.status).toBe(500);
+            expect(body.success).toBe(false);
+            expect(body.error.code).toBe("INTERNAL_ERROR");
+            expect(body.error.message).toBe("Internal server error");
+        });
+    });
 });
+

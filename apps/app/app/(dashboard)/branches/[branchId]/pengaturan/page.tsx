@@ -1,44 +1,28 @@
-import Link from "next/link";
-import { Metadata } from "next";
-import { Button } from "@repo/ui/button";
-import { Input } from "@repo/ui/input";
-import { SectionCard } from "@/components/dashboard/shared/section-card";
+import { redirect } from "next/navigation";
+import { resolveCanonicalBranchPathByBranchId, resolveDashboardRoutingTarget } from "@/lib/dashboard-routing.server";
 
-type CabangSettingsPageProps = {
-    params: { branchId: string };
+type BranchLegacySettingsPageProps = {
+    params: Promise<{ branchId: string }>;
 };
 
-export const metadata: Metadata = {
-    title: "Pengaturan Cabang | Beres",
-    description: "Konfigurasi cabang",
-};
+export async function generateMetadata({ params }: BranchLegacySettingsPageProps) {
+    const { branchId } = await params;
+    return {
+        title: `Pengaturan Cabang ${branchId}`,
+        description: "Legacy route redirect ke branch dashboard canonical.",
+    };
+}
 
-export default function CabangSettingsPage({ params }: CabangSettingsPageProps) {
-    return (
-        <div className="space-y-6">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <h1 className="text-2xl font-semibold text-foreground">Pengaturan Cabang</h1>
-                    <p className="text-sm text-muted-foreground mt-2">
-                        ID cabang: {params.branchId}
-                    </p>
-                </div>
-                <Button variant="outline" className="h-9 text-xs font-semibold" asChild>
-                    <Link href={`/cabang/${params.branchId}`}>Kembali</Link>
-                </Button>
-            </div>
+export default async function BranchLegacySettingsPage({ params }: BranchLegacySettingsPageProps) {
+    const { branchId } = await params;
+    const canonicalPath = await resolveCanonicalBranchPathByBranchId(branchId);
+    if (!canonicalPath) {
+        const routing = await resolveDashboardRoutingTarget();
+        if (!routing) {
+            redirect("/login");
+        }
+        redirect(routing.targetPath);
+    }
 
-            <SectionCard title="Info Cabang" description="Perbarui data cabang.">
-                <div className="grid gap-4 sm:grid-cols-2">
-                    <Input placeholder="Nama cabang" />
-                    <Input placeholder="Nomor telepon" />
-                    <Input placeholder="Alamat lengkap" />
-                    <Input placeholder="Kota / Area" />
-                </div>
-                <div className="mt-4">
-                    <Button className="h-9 text-xs font-semibold">Simpan Perubahan</Button>
-                </div>
-            </SectionCard>
-        </div>
-    );
+    redirect(canonicalPath);
 }

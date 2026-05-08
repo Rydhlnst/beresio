@@ -80,7 +80,7 @@ export function ProductStructuredData({
     image,
     offers,
 }: ProductStructuredDataProps) {
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://beres.io";
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://beres.cloud";
     
     const schema: Record<string, unknown> = {
         "@context": "https://schema.org",
@@ -92,7 +92,7 @@ export function ProductStructuredData({
         url: siteUrl,
         publisher: {
             "@type": "Organization",
-            name: "Beres.io",
+            name: "Beres Cloud",
             url: siteUrl,
         },
     };
@@ -133,7 +133,7 @@ export function ArticleStructuredData({
     author,
     url,
 }: ArticleStructuredDataProps) {
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://beres.io";
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://beres.cloud";
     
     const schema = {
         "@context": "https://schema.org",
@@ -145,12 +145,12 @@ export function ArticleStructuredData({
         dateModified: dateModified ?? datePublished,
         author: {
             "@type": "Organization",
-            name: author ?? "Beres.io",
+            name: author ?? "Beres Cloud",
             url: siteUrl,
         },
         publisher: {
             "@type": "Organization",
-            name: "Beres.io",
+            name: "Beres Cloud",
             url: siteUrl,
             logo: {
                 "@type": "ImageObject",
@@ -188,7 +188,7 @@ export function LocalBusinessStructuredData({
     email,
     priceRange = "Rp",
 }: LocalBusinessStructuredDataProps) {
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://beres.io";
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://beres.cloud";
     
     const schema: Record<string, unknown> = {
         "@context": "https://schema.org",
@@ -215,3 +215,4 @@ export function LocalBusinessStructuredData({
 
     return <StructuredData data={schema} />;
 }
+

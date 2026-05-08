@@ -346,8 +346,31 @@ export function ProductsPageClient({
           setIsFormOpen(false);
           setEditingProduct(null);
         }}
-        onSubmit={editingProduct ? handleUpdateProduct : handleCreateProduct}
-        initialData={editingProduct || undefined}
+        onSubmit={async (data) => {
+          if (editingProduct) {
+            await handleUpdateProduct(data as UpdateProductInput);
+            return;
+          }
+          await handleCreateProduct(data as CreateProductInput);
+        }}
+        initialData={
+          editingProduct
+            ? {
+                id: editingProduct.id,
+                name: editingProduct.name,
+                sku: editingProduct.sku ?? undefined,
+                barcode: editingProduct.barcode ?? undefined,
+                categoryId: editingProduct.category?.id ?? undefined,
+                supplierId: editingProduct.supplier?.id ?? undefined,
+                basePrice: editingProduct.pricing.basePrice,
+                salePrice: editingProduct.pricing.salePrice ?? undefined,
+                costPrice: editingProduct.pricing.costPrice ?? undefined,
+                imageUrl: editingProduct.imageUrl ?? undefined,
+                isActive: editingProduct.isActive,
+                isFeatured: editingProduct.isFeatured,
+              }
+            : undefined
+        }
         categories={categories}
         suppliers={suppliers}
         mode={editingProduct ? "edit" : "create"}

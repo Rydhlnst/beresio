@@ -14,8 +14,14 @@ export type BusinessNavResponse = {
     id: string;
     name: string;
     type: BusinessType;
+    mode?: "single" | "multi";
     config: Record<string, unknown>;
   };
+  role?: {
+    id: string;
+    slug: string;
+    name: string;
+  } | null;
   navigationBase?: BusinessNavItem[];
   navigationVertical?: BusinessNavItem[];
   navigation: BusinessNavItem[];

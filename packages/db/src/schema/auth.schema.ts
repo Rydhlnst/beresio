@@ -1,4 +1,6 @@
-import { pgTable, text, timestamp, boolean, uuid, varchar, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, uuid, varchar, index, uniqueIndex, pgEnum } from "drizzle-orm/pg-core";
+
+export const orgModeEnum = pgEnum("org_mode", ["single", "multi"]);
 
 export const user = pgTable("user", {
     id: text("id").primaryKey(),
@@ -23,6 +25,11 @@ export const session = pgTable("session", {
         .notNull()
         .references(() => user.id),
     activeOrganizationId: text("active_organization_id"),
+}, (table) => {
+    return {
+        idxSessionUser: index("idx_session_user").on(table.userId),
+        idxSessionActiveOrg: index("idx_session_active_org").on(table.activeOrganizationId),
+    };
 });
 
 export const account = pgTable("account", {
@@ -61,6 +68,7 @@ export const organization = pgTable("organization", {
     metadata: text("metadata"),
     // Additional fields requested
     businessType: text("business_type").notNull(),
+    mode: orgModeEnum("mode").notNull().default("single"),
     subscriptionPlan: text("subscription_plan").default("starter"),
     logoUrl: text("logo_url")
 });
@@ -110,6 +118,12 @@ export const member = pgTable("member", {
     status: text("status").notNull().default("active"),
     deactivatedAt: timestamp("deactivated_at"),
     createdAt: timestamp("created_at").notNull()
+}, (table) => {
+    return {
+        idxMemberUser: index("idx_member_user").on(table.userId),
+        idxMemberOrgUser: index("idx_member_org_user").on(table.organizationId, table.userId),
+        idxMemberOrgStatus: index("idx_member_org_status").on(table.organizationId, table.status),
+    };
 });
 
 export const team = pgTable("team", {

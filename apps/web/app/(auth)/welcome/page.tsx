@@ -5,7 +5,7 @@ import { createDbNextjs } from "@beresio/db";
 import { WelcomeView } from "./_components/welcome-view";
 
 export const metadata = {
-    title: "Selamat Datang | Beres",
+    title: "Selamat Datang",
     description: "Pilih tujuan kamu menggunakan Beres",
 };
 

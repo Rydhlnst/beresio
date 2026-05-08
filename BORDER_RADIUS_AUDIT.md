@@ -1,0 +1,186 @@
+﻿# Border Radius Audit
+
+Generated: 2026-04-07 19:26:45 +07:00
+
+## Summary
+- Files using Tailwind rounded classes: 137
+- Files using CSS/JS border radius props: 5
+- Files with explicit rounded-none: 2
+
+## Rounded Token Distribution
+- rounded-full: 192
+- rounded-xl: 130
+- rounded-2xl: 85
+- rounded-lg: 80
+- rounded-md: 74
+- rounded: 17
+- rounded-3xl: 15
+- rounded-sm: 14
+- rounded-none: 6
+- rounded-[32px]: 3
+- rounded-[20px]: 2
+- rounded-t-sm: 2
+- rounded-b-2xl: 2
+- rounded-b-none: 1
+- rounded-tl-sm: 1
+- rounded-t-2xl: 1
+- rounded-r-none: 1
+- rounded-[40px]: 1
+- rounded-[inherit]: 1
+- rounded-[2rem]: 1
+- rounded-l-none: 1
+- rounded-[24px]: 1
+
+## Files Using Tailwind Rounded Classes
+- .\apps\app\app\(auth)\_components\GoogleOAuthButton.tsx
+- .\apps\app\app\(auth)\_components\LoginForm.tsx
+- .\apps\app\app\(auth)\_components\SignUpForm.tsx
+- .\apps\app\app\(auth)\forgot-password\_components\forgot-password-form.tsx
+- .\apps\app\app\(auth)\verify-email\_components\verify-email-view.tsx
+- .\apps\app\app\(auth)\welcome\_components\welcome-view.tsx
+- .\apps\app\app\(dashboard)\branches\[branchId]\page.tsx
+- .\apps\app\app\(dashboard)\branches\new\_components\branch-create-wizard-client.tsx
+- .\apps\app\app\(dashboard)\branches\new\_components\branch-form-client.tsx
+- .\apps\app\app\(dashboard)\branches\page.tsx
+- .\apps\app\app\(dashboard)\crm\_components\crm-page-client.tsx
+- .\apps\app\app\(dashboard)\crm\_components\customer-detail-client.tsx
+- .\apps\app\app\(dashboard)\crm\_components\customer-form.tsx
+- .\apps\app\app\(dashboard)\crm\_components\tags-page-client.tsx
+- .\apps\app\app\(dashboard)\dashboard\page.tsx
+- .\apps\app\app\(dashboard)\inventory\_components\inventory-page-client.tsx
+- .\apps\app\app\(dashboard)\laundry\_components\laundry-overview-client.tsx
+- .\apps\app\app\(dashboard)\laundry\customers\page.tsx
+- .\apps\app\app\(dashboard)\laundry\orders\[id]\laundry-order-detail-client.tsx
+- .\apps\app\app\(dashboard)\laundry\orders\[id]\page.tsx
+- .\apps\app\app\(dashboard)\laundry\orders\new\laundry-order-new-form.tsx
+- .\apps\app\app\(dashboard)\laundry\orders\page.tsx
+- .\apps\app\app\(dashboard)\laundry\reports\page.tsx
+- .\apps\app\app\(dashboard)\laundry\services\laundry-services-client.tsx
+- .\apps\app\app\(dashboard)\menus\new\page.tsx
+- .\apps\app\app\(dashboard)\menus\page.tsx
+- .\apps\app\app\(dashboard)\order\_components\order-page-client.tsx
+- .\apps\app\app\(dashboard)\order\_components\retail-pos-page-client.tsx
+- .\apps\app\app\(dashboard)\order\create\page.tsx
+- .\apps\app\app\(dashboard)\pickup\_components\pickup-page-client.tsx
+- .\apps\app\app\(dashboard)\products\[id]\_components\product-detail-client.tsx
+- .\apps\app\app\(dashboard)\products\[id]\not-found.tsx
+- .\apps\app\app\(dashboard)\products\_components\product-card.tsx
+- .\apps\app\app\(dashboard)\products\_components\product-card-v2.tsx
+- .\apps\app\app\(dashboard)\products\_components\product-form-dialog.tsx
+- .\apps\app\app\(dashboard)\products\_components\products-page-client.tsx
+- .\apps\app\app\(dashboard)\products\new\page.tsx
+- .\apps\app\app\(dashboard)\reports\_components\reports-page-client.tsx
+- .\apps\app\app\(dashboard)\settings\_components\settings-page-client.tsx
+- .\apps\app\app\(dashboard)\settings\access\page.tsx
+- .\apps\app\app\(dashboard)\settings\billing\page.tsx
+- .\apps\app\app\(dashboard)\settings\notifications\page.tsx
+- .\apps\app\app\(dashboard)\suppliers\[id]\page.tsx
+- .\apps\app\app\(dashboard)\suppliers\_components\supplier-card.tsx
+- .\apps\app\app\(dashboard)\suppliers\_components\suppliers-page-client.tsx
+- .\apps\app\app\(dashboard)\tables\new\page.tsx
+- .\apps\app\app\(dashboard)\tables\page.tsx
+- .\apps\app\app\(dashboard)\team\_components\team-access-page-client.tsx
+- .\apps\app\app\(dashboard)\team\roles\page.tsx
+- .\apps\app\components\auth\password-strength.tsx
+- .\apps\app\components\dashboard\activity-feed\activity-feed-client.tsx
+- .\apps\app\components\dashboard\activity-feed\activity-item.tsx
+- .\apps\app\components\dashboard\billing\usage-bar.tsx
+- .\apps\app\components\dashboard\kpi-strip\kpi-card.tsx
+- .\apps\app\components\dashboard\kpi-strip\kpi-strip.tsx
+- .\apps\app\components\dashboard\layout\app-sidebar.tsx
+- .\apps\app\components\dashboard\layout\dashboard-header.tsx
+- .\apps\app\components\dashboard\layout\dashboard-shell-loading.tsx
+- .\apps\app\components\dashboard\layout\notification-dropdown.tsx
+- .\apps\app\components\dashboard\layout\org-switcher.tsx
+- .\apps\app\components\dashboard\layout\upgrade-banner.tsx
+- .\apps\app\components\dashboard\operations\alerts-panel.tsx
+- .\apps\app\components\dashboard\operations\operations-status-card.tsx
+- .\apps\app\components\dashboard\operations\recent-orders-panel.tsx
+- .\apps\app\components\dashboard\performance\chart-card-skeleton.tsx
+- .\apps\app\components\dashboard\performance\revenue-branch-client.tsx
+- .\apps\app\components\dashboard\performance\revenue-trend-client.tsx
+- .\apps\app\components\dashboard\rbac-overview\rbac-overview-card.tsx
+- .\apps\app\components\dashboard\rbac-overview\role-chip.tsx
+- .\apps\app\components\dashboard\shared\empty-state.tsx
+- .\apps\app\components\dashboard\shared\error-state.tsx
+- .\apps\app\components\dashboard\shared\page-error-state.tsx
+- .\apps\app\components\dashboard\shared\section-card.tsx
+- .\apps\app\components\dashboard\shared\time-range-selector.tsx
+- .\apps\app\components\shared\image-upload.tsx
+- .\apps\web\app\(auth)\_components\DashboardPreview.tsx
+- .\apps\web\app\(auth)\_components\GoogleOAuthButton.tsx
+- .\apps\web\app\(auth)\_components\LoginForm.tsx
+- .\apps\web\app\(auth)\_components\SignUpForm.tsx
+- .\apps\web\app\(auth)\forgot-password\_components\forgot-password-form.tsx
+- .\apps\web\app\(auth)\verify-email\_components\verify-email-view.tsx
+- .\apps\web\app\(auth)\welcome\_components\welcome-view.tsx
+- .\apps\web\app\_components\BeresCloudLanding.tsx
+- .\apps\web\app\_components\BrowserMockup.tsx
+- .\apps\web\app\_components\DashboardAppMockup.tsx
+- .\apps\web\app\_components\FAQ.tsx
+- .\apps\web\app\_components\Hero.tsx
+- .\apps\web\app\_components\HeroDashboardLazy.tsx
+- .\apps\web\app\_components\IndustrySolutionTemplate.tsx
+- .\apps\web\app\_components\PageHero.tsx
+- .\apps\web\app\_components\Pricing.tsx
+- .\apps\web\app\_components\ProfileDropdown.tsx
+- .\apps\web\app\_components\ValueProposition.tsx
+- .\apps\web\app\_components\WhyChooseUs.tsx
+- .\apps\web\app\about\page.tsx
+- .\apps\web\app\blog\page.tsx
+- .\apps\web\app\careers\page.tsx
+- .\apps\web\app\changelog\page.tsx
+- .\apps\web\app\dashboard\page.tsx
+- .\apps\web\app\demo\page.tsx
+- .\apps\web\app\docs\page.tsx
+- .\apps\web\app\error.tsx
+- .\apps\web\app\fitur\_components\FeatureLandingTemplate.tsx
+- .\apps\web\app\onboarding\org\page.tsx
+- .\apps\web\app\partnership\page.tsx
+- .\apps\web\app\privacy\page.tsx
+- .\apps\web\app\sales\page.tsx
+- .\apps\web\app\support\page.tsx
+- .\apps\web\app\terms\page.tsx
+- .\apps\web\app\tutorial\page.tsx
+- .\apps\web\app\wishlist\page.tsx
+- .\apps\web\components\auth\password-strength.tsx
+- .\packages\ui\src\alert-dialog.tsx
+- .\packages\ui\src\avatar.tsx
+- .\packages\ui\src\badge.tsx
+- .\packages\ui\src\badge-modern.tsx
+- .\packages\ui\src\button.tsx
+- .\packages\ui\src\button-modern.tsx
+- .\packages\ui\src\card.tsx
+- .\packages\ui\src\card-modern.tsx
+- .\packages\ui\src\checkbox.tsx
+- .\packages\ui\src\components\scales-container-demo.tsx
+- .\packages\ui\src\dashboard-section-card.tsx
+- .\packages\ui\src\dialog.tsx
+- .\packages\ui\src\dropdown-menu.tsx
+- .\packages\ui\src\input.tsx
+- .\packages\ui\src\navigation-menu.tsx
+- .\packages\ui\src\not-found.tsx
+- .\packages\ui\src\progress.tsx
+- .\packages\ui\src\scroll-area.tsx
+- .\packages\ui\src\select.tsx
+- .\packages\ui\src\sheet.tsx
+- .\packages\ui\src\sidebar.tsx
+- .\packages\ui\src\skeleton.tsx
+- .\packages\ui\src\tabs.tsx
+- .\packages\ui\src\textarea.tsx
+- .\packages\ui\src\tooltip.tsx
+
+## Files Using CSS border-radius / JS borderRadius
+- .\apps\app\tailwind.config.ts
+- .\apps\docs\app\page.module.css
+- .\apps\mobile\components\EditScreenInfo.tsx
+- .\apps\web\app\page.module.css
+- .\packages\ui\tailwind.config.ts
+
+## Explicit rounded-none Occurrences
+- .\apps\app\app\(dashboard)\products\[id]\_components\product-detail-client.tsx:462:          <TabsList className="w-full justify-start border-b rounded-none h-auto p-0 bg-transparent">
+- .\apps\app\app\(dashboard)\products\[id]\_components\product-detail-client.tsx:465:              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
+- .\apps\app\app\(dashboard)\products\[id]\_components\product-detail-client.tsx:471:              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
+- .\apps\app\app\(dashboard)\products\[id]\_components\product-detail-client.tsx:477:              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
+- .\packages\ui\src\button-modern.tsx:173:        ? "[&>button:first-child]:rounded-r-none [&>button:last-child]:rounded-l-none [&>button:not(:first-child):not(:last-child)]:rounded-none [&>button+button]:-ml-px"
+- .\packages\ui\src\button-modern.tsx:65:          "text-primary underline-offset-4 hover:underline rounded-none",

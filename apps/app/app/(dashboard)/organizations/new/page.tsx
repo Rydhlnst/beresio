@@ -6,7 +6,7 @@ import { CreateOrgForm } from "./_components/create-org-form";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "Tambah Organisasi Baru | Beres",
+    title: "Tambah Organisasi Baru",
     description: "Buat organisasi baru untuk bisnis tambahan kamu",
 };
 

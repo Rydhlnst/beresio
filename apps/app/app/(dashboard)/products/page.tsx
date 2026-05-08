@@ -9,7 +9,7 @@ import { PageErrorState } from "@/components/dashboard/shared/page-error-state";
 import { ErrorRetryAction } from "@/components/dashboard/shared/error-retry-action";
 
 export const metadata: Metadata = {
-    title: "Katalog Produk | Beres",
+    title: "Katalog Produk",
     description: "Kelola katalog produk, harga, dan stok",
 };
 

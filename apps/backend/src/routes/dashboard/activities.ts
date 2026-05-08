@@ -1,12 +1,29 @@
 import { Hono } from 'hono'
+import { z } from 'zod'
 import { authMiddleware } from '../../middleware/auth'
-import { getOrgId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
-import { and, eq, lt, desc } from 'drizzle-orm'
+import { and, desc, eq, lt, sql } from 'drizzle-orm'
 import { activityLogs, user } from '@beresio/db'
+import { resolveAccessScope } from '../../lib/permissions'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
 type Variables = { db: any; user: any; session: any }
+
+const ACTIVITY_TYPES = ['RBAC', 'PAYMENT', 'AUTH', 'SYSTEM', 'BRANCH', 'CUSTOMER'] as const
+
+const listActivitiesQuerySchema = z.object({
+    limit: z.coerce.number().int().min(1).max(50).default(20),
+    cursor: z.string().trim().min(1).optional(),
+    branchId: z.string().trim().min(1).optional(),
+    type: z.preprocess(
+        (value) => (typeof value === 'string' ? value.trim().toUpperCase() : value),
+        z.enum(ACTIVITY_TYPES).optional()
+    ),
+})
+
+function getValidationMessage(error: z.ZodError, fallback = 'Invalid request') {
+    return error.issues[0]?.message ?? fallback
+}
 
 export const activitiesRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
@@ -20,23 +37,39 @@ export const activitiesRouter = new Hono<{ Bindings: Bindings; Variables: Variab
 activitiesRouter.get('/', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        let orgId: string
-        try {
-            orgId = await getOrgId(c)
-        } catch {
-            return errors.unauthorized(c, 'No organization context')
+        const parsedQuery = listActivitiesQuerySchema.safeParse({
+            limit: c.req.query('limit') ?? 20,
+            cursor: c.req.query('cursor') ?? undefined,
+            branchId: c.req.query('branchId') ?? undefined,
+            type: c.req.query('type') ?? undefined,
+        })
+        if (!parsedQuery.success) {
+            return errors.badRequest(c, getValidationMessage(parsedQuery.error))
         }
 
-        const limitParam = Number(c.req.query('limit') ?? 20)
-        const limit = Math.min(Math.max(1, limitParam), 50)
-        const cursor = c.req.query('cursor') // UUID of last item
-        const typeFilter = c.req.query('type')
+        const { limit, cursor, branchId, type: typeFilter } = parsedQuery.data
+
+        const resolvedScope = await resolveAccessScope(c, {
+            requestedBranchId: branchId ?? null,
+            requireBranchAccess: true,
+            noBranchAccessMessage: 'No branch access',
+        })
+        if (!resolvedScope.ok) return resolvedScope.response
+        const orgId = resolvedScope.value.orgId
 
         // Build where conditions
         const conditions = [eq(activityLogs.organizationId, orgId)]
 
         if (typeFilter) {
             conditions.push(eq(activityLogs.type, typeFilter.toUpperCase()))
+        }
+        if (branchId) {
+            conditions.push(
+                sql`(
+                    (${activityLogs.entityType} = 'branch' AND ${activityLogs.entityId} = ${branchId})
+                    OR (${activityLogs.metadata} ILIKE ${`%"branchId":"${branchId}"%`})
+                )`
+            )
         }
 
         // Cursor: get items created before the cursor item's createdAt
@@ -90,6 +123,6 @@ activitiesRouter.get('/', authMiddleware, async (c) => {
         })
     } catch (err: any) {
         console.error('[activities]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })

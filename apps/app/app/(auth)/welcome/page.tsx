@@ -1,12 +1,13 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
-import { createDbNextjs, team } from "@beresio/db";
+import { branches, createDbNextjs, organization } from "@beresio/db";
 import { WelcomeView } from "./_components/welcome-view";
 import { eq, sql } from "drizzle-orm";
+import { resolveDashboardRoutingTarget } from "@/lib/dashboard-routing.server";
 
 export const metadata = {
-    title: "Selamat Datang | Beres",
+    title: "Selamat Datang",
     description: "Pilih tujuan kamu menggunakan Beres",
 };
 
@@ -29,23 +30,52 @@ export default async function WelcomePage() {
     const hasOrg = orgData && orgData.length > 0;
 
     if (hasOrg) {
-        const organizationId =
-            (session as any)?.activeOrganizationId ?? orgData?.[0]?.id;
-
-        const teamCountRows = organizationId
-            ? await db
-                .select({ count: sql<number>`count(*)` })
-                .from(team)
-                .where(eq(team.organizationId, organizationId))
-            : [{ count: 0 }];
-
-        const hasTeam = Number(teamCountRows[0]?.count ?? 0) > 0;
-
-        if (!hasTeam) {
-            redirect("/onboarding/team");
+        const routing = await resolveDashboardRoutingTarget();
+        if (!routing) {
+            redirect("/login");
         }
 
-        redirect("/dashboard");
+        const organizationId =
+            (session as any)?.activeOrganizationId ?? orgData?.[0]?.id;
+        const [orgMeta] = organizationId
+            ? await db
+                .select({ metadata: organization.metadata })
+                .from(organization)
+                .where(eq(organization.id, organizationId))
+                .limit(1)
+            : [{ metadata: null }];
+
+        let metadata: Record<string, unknown> = {};
+        if (orgMeta?.metadata) {
+            try {
+                metadata = JSON.parse(orgMeta.metadata);
+            } catch {
+                metadata = {};
+            }
+        }
+        const onboardingMeta =
+            metadata.onboarding && typeof metadata.onboarding === "object"
+                ? (metadata.onboarding as Record<string, unknown>)
+                : {};
+        const modeSelected = onboardingMeta.modeSelected === true;
+
+        const branchCountRows = organizationId
+            ? await db
+                .select({ count: sql<number>`count(*)` })
+                .from(branches)
+                .where(eq(branches.organizationId, organizationId))
+            : [{ count: 0 }];
+
+        const hasBranch = Number(branchCountRows[0]?.count ?? 0) > 0;
+
+        if (!hasBranch) {
+            if (!modeSelected) {
+                redirect("/onboarding/mode");
+            }
+            redirect("/onboarding/branch");
+        }
+
+        redirect(routing.targetPath);
     }
 
     return (

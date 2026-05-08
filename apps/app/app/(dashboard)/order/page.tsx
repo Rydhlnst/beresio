@@ -10,7 +10,7 @@ import { getActiveOrganizationContext } from "@/lib/organization-context";
 import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
-    title: "Order | Beres",
+    title: "Order",
     description: "Pantau semua order lintas cabang secara real-time",
 };
 
@@ -63,6 +63,24 @@ type OrderDetail = {
 
 type BranchOption = { id: string; name: string };
 type CustomerOption = { id: string; name: string; phone: string | null; email: string | null; address: string | null };
+type IncomingOrderIntake = {
+    id: string;
+    referenceCode: string;
+    status: string;
+    orderType: string;
+    customerName: string;
+    customerPhone: string;
+    customerAddress: string;
+    pickupPreferenceAt: string | null;
+    riskScore: number;
+    riskLevel: "low" | "medium" | "high";
+    riskFlags: string[];
+    branchName: string | null;
+    notes: string | null;
+    createdAt: string;
+    convertedOrderId: string | null;
+    verifiedAt: string | null;
+};
 type RecentTransaction = {
     id: string;
     amount: number;
@@ -78,6 +96,7 @@ type SearchParams = {
     status?: string;
     branchId?: string;
     type?: string;
+    orderType?: string;
     q?: string;
     dateFrom?: string;
     dateTo?: string;
@@ -85,8 +104,9 @@ type SearchParams = {
 
 async function renderLaundryOrderPage(searchParams: SearchParams) {
     const cookie = (await headers()).get("cookie") || "";
+    const rpc = apiClient as any;
 
-    const [ordersRes, branchesRes, customersRes] = await Promise.all([
+    const [ordersRes, branchesRes, customersRes, incomingIntakesRes] = await Promise.all([
         apiClient.api.dashboard.orders.$get(
             {
                 query: {
@@ -102,6 +122,16 @@ async function renderLaundryOrderPage(searchParams: SearchParams) {
         ),
         apiClient.api.dashboard.branches.$get(undefined, { headers: { cookie } }),
         apiClient.api.dashboard.customers.$get(undefined, { headers: { cookie } }),
+        rpc.api.dashboard.laundry["order-intakes"].$get(
+            {
+                query: {
+                    branchId: searchParams.branchId,
+                    status: "pending_verification",
+                    limit: "30",
+                },
+            },
+            { headers: { cookie } }
+        ),
     ]);
 
     if (!ordersRes.ok || !branchesRes.ok || !customersRes.ok) {
@@ -133,9 +163,13 @@ async function renderLaundryOrderPage(searchParams: SearchParams) {
     const ordersBody = await ordersRes.json();
     const branchesBody = await branchesRes.json();
     const customersBody = await customersRes.json();
+    const incomingIntakesBody = incomingIntakesRes.ok
+        ? await incomingIntakesRes.json().catch(() => ({}))
+        : {};
     const orders = ((ordersBody as { data?: OrderSummary[] }).data ?? []);
     const branches = ((branchesBody as { data?: BranchOption[] }).data ?? []);
     const customers = ((customersBody as { data?: CustomerOption[] }).data ?? []);
+    const incomingIntakes = ((incomingIntakesBody as { data?: IncomingOrderIntake[] }).data ?? []);
 
     const selectedOrderId = searchParams.orderId ?? orders[0]?.id ?? null;
 
@@ -158,6 +192,7 @@ async function renderLaundryOrderPage(searchParams: SearchParams) {
             orders={orders}
             branches={branches}
             customers={customers}
+            incomingIntakes={incomingIntakes}
             selectedOrderId={selectedOrderId}
             selectedOrder={selectedOrder}
             filters={{
@@ -235,19 +270,21 @@ async function renderRetailPosPage() {
     );
 }
 
-export default async function OrderPage({ searchParams }: { searchParams: SearchParams }) {
+export default async function OrderPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+    const resolvedSearchParams = await searchParams;
     const activeOrg = await getActiveOrganizationContext();
     if (!activeOrg) {
         redirect("/login");
     }
 
     if (activeOrg.businessType === "laundry") {
-        return renderLaundryOrderPage(searchParams);
+        return renderLaundryOrderPage(resolvedSearchParams);
     }
 
     if (activeOrg.businessType === "retail") {
         return renderRetailPosPage();
     }
 
-    redirect("/dashboard");
+    redirect("/");
 }
+

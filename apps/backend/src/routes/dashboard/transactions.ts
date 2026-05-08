@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
+import { z } from 'zod'
 import { authMiddleware } from '../../middleware/auth'
-import { getOrgId, getUserId } from '../../lib/auth-context'
+import { getUserId } from '../../lib/auth-context'
 import { errors, ok } from '../../lib/errors'
 import { and, desc, eq, gte, inArray, lte } from 'drizzle-orm'
 import {
@@ -12,14 +13,37 @@ import {
     transactionItems,
     transactions,
 } from '@beresio/db'
-import { getAccessibleBranchIds, getBranchAccessContext, hasBranchAccess } from '../../lib/branch-access'
+import { resolveAccessScope } from '../../lib/permissions'
+import { requireBranchContext } from '../../middleware/branch-context'
 
 type Bindings = { DATABASE_URL: string; BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string }
 type Variables = { db: any; user: any; session: any }
 
 const DEFAULT_LIMIT = 50
-const ALLOWED_STATUS = ['pending', 'paid', 'refunded']
-const ALLOWED_TYPE = ['sale', 'dp', 'pelunasan', 'refund']
+const ALLOWED_STATUS = ['pending', 'paid', 'refunded'] as const
+const ALLOWED_TYPE = ['sale', 'dp', 'pelunasan', 'refund'] as const
+
+const transactionItemSchema = z.object({
+    productId: z.string().trim().min(1, 'productId is required'),
+    quantity: z.coerce.number().finite().gt(0, 'quantity must be > 0'),
+    unitPrice: z.coerce.number().finite().min(0, 'unitPrice must be >= 0'),
+})
+
+const createTransactionSchema = z.object({
+    branchId: z.string().trim().min(1, 'branchId is required'),
+    customerId: z.string().trim().min(1).nullable().optional(),
+    status: z.enum(ALLOWED_STATUS).default('paid'),
+    type: z.enum(ALLOWED_TYPE).default('sale'),
+    paymentMethod: z.string().trim().min(1).nullable().optional(),
+    notes: z.string().nullable().optional(),
+    discountAmount: z.coerce.number().finite().min(0, 'discountAmount must be >= 0').default(0),
+    taxAmount: z.coerce.number().finite().min(0, 'taxAmount must be >= 0').default(0),
+    items: z.array(transactionItemSchema).min(1, 'items are required'),
+})
+
+function getValidationMessage(error: z.ZodError, fallback = 'Invalid payload') {
+    return error.issues[0]?.message ?? fallback
+}
 
 async function recordStockMovement(tx: any, input: {
     orgId: string
@@ -47,12 +71,23 @@ async function recordStockMovement(tx: any, input: {
 
 export const transactionsRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
+async function resolveTransactionScope(c: any, branchId?: string | null) {
+    return resolveAccessScope(c, {
+        requestedBranchId: branchId ?? null,
+        requireBranchAccess: false,
+        noBranchAccessMessage: 'No branch access',
+    })
+}
+
 // GET /api/dashboard/transactions
 transactionsRouter.get('/', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
         const branchId = c.req.query('branchId')
+        const scope = await resolveTransactionScope(c, branchId ?? null)
+        if (!scope.ok) return scope.response
+        const orgId = scope.value.orgId
+        const branchIds = scope.value.scopedBranchIds
         const customerId = c.req.query('customerId')
         const status = c.req.query('status')
         const type = c.req.query('type')
@@ -60,22 +95,13 @@ transactionsRouter.get('/', authMiddleware, async (c) => {
         const dateTo = c.req.query('dateTo')
         const limit = Math.min(Number(c.req.query('limit') ?? DEFAULT_LIMIT), 200)
 
-        const { branchIds, isOrgWide } = await getBranchAccessContext(c, orgId)
-        if (branchIds.length === 0 && !isOrgWide) return errors.forbidden(c, 'No branch access')
-        if (branchIds.length === 0 && isOrgWide) {
-            if (branchId) return errors.forbidden(c, 'No access to branch')
+        if (branchIds.length === 0 && !scope.value.isOrgWide) return errors.forbidden(c, 'No branch access')
+        if (branchIds.length === 0 && scope.value.isOrgWide) {
             return ok(c, [])
         }
 
         const conditions = [eq(transactions.organizationId, orgId)]
-        if (branchId) {
-            if (!hasBranchAccess(branchIds, branchId)) {
-                return errors.forbidden(c, 'No access to branch')
-            }
-            conditions.push(eq(transactions.branchId, branchId))
-        } else {
-            conditions.push(inArray(transactions.branchId, branchIds))
-        }
+        conditions.push(inArray(transactions.branchId, branchIds))
         if (customerId) conditions.push(eq(transactions.customerId, customerId))
         if (status) conditions.push(eq(transactions.status, status))
         if (type) conditions.push(eq(transactions.type, type))
@@ -126,7 +152,7 @@ transactionsRouter.get('/', authMiddleware, async (c) => {
         })))
     } catch (err: any) {
         console.error('[transactions/list]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
@@ -134,8 +160,10 @@ transactionsRouter.get('/', authMiddleware, async (c) => {
 transactionsRouter.get('/:id', authMiddleware, async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
-        const branchIds = await getAccessibleBranchIds(c, orgId)
+        const scope = await resolveTransactionScope(c)
+        if (!scope.ok) return scope.response
+        const orgId = scope.value.orgId
+        const branchIds = scope.value.scopedBranchIds
         if (branchIds.length === 0) return errors.forbidden(c, 'No branch access')
         const transactionId = c.req.param('id')
 
@@ -163,7 +191,7 @@ transactionsRouter.get('/:id', authMiddleware, async (c) => {
             .limit(1)
 
         if (!row) return errors.notFound(c, 'Transaction not found')
-        if (!hasBranchAccess(branchIds, row.branchId)) {
+        if (!branchIds.includes(row.branchId)) {
             return errors.forbidden(c, 'No access to branch')
         }
 
@@ -203,16 +231,20 @@ transactionsRouter.get('/:id', authMiddleware, async (c) => {
         })
     } catch (err: any) {
         console.error('[transactions/detail]', err)
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })
 
 // POST /api/dashboard/transactions
-transactionsRouter.post('/', authMiddleware, async (c) => {
+transactionsRouter.post('/', authMiddleware, requireBranchContext(), async (c) => {
     try {
         const db = c.get('db')
-        const orgId = await getOrgId(c)
-        const branchIds = await getAccessibleBranchIds(c, orgId)
+        const body = await c.req.json().catch(() => null)
+        const requestedBranchId = typeof body?.branchId === 'string' ? body.branchId : null
+        const scope = await resolveTransactionScope(c, requestedBranchId)
+        if (!scope.ok) return scope.response
+        const orgId = scope.value.orgId
+        const branchIds = scope.value.scopedBranchIds
         if (branchIds.length === 0) return errors.forbidden(c, 'No branch access')
         const actorId = (() => {
             try {
@@ -221,23 +253,24 @@ transactionsRouter.post('/', authMiddleware, async (c) => {
                 return null
             }
         })()
-        const body = await c.req.json().catch(() => null)
+        const parsedBody = createTransactionSchema.safeParse(body)
+        if (!parsedBody.success) {
+            return errors.badRequest(c, getValidationMessage(parsedBody.error))
+        }
 
-        const branchId = body?.branchId
-        const customerId = body?.customerId ?? null
-        const status = body?.status ?? 'paid'
-        const type = body?.type ?? 'sale'
-        const paymentMethod = body?.paymentMethod ?? null
-        const notes = body?.notes ?? null
-        const discountAmount = Number(body?.discountAmount ?? 0)
-        const taxAmount = Number(body?.taxAmount ?? 0)
-        const items = Array.isArray(body?.items) ? body.items : []
+        const {
+            branchId,
+            customerId,
+            status,
+            type,
+            paymentMethod,
+            notes,
+            discountAmount,
+            taxAmount,
+            items,
+        } = parsedBody.data
 
-        if (!branchId) return errors.badRequest(c, 'branchId is required')
-        if (!hasBranchAccess(branchIds, branchId)) return errors.forbidden(c, 'No access to branch')
-        if (items.length === 0) return errors.badRequest(c, 'items are required')
-        if (!ALLOWED_STATUS.includes(status)) return errors.badRequest(c, 'Invalid status')
-        if (!ALLOWED_TYPE.includes(type)) return errors.badRequest(c, 'Invalid type')
+        if (!branchIds.includes(branchId)) return errors.forbidden(c, 'No access to branch')
 
         const [branchRow] = await db
             .select({ id: branches.id })
@@ -255,18 +288,10 @@ transactionsRouter.post('/', authMiddleware, async (c) => {
             if (!customerRow) return errors.badRequest(c, 'Customer not found')
         }
 
-        const normalizedItems = items.map((item: any) => ({
-            productId: String(item?.productId ?? ''),
-            quantity: Number(item?.quantity ?? 0),
-            unitPrice: Number(item?.unitPrice ?? 0),
-        }))
-
-        if (normalizedItems.some((item: any) => !item.productId || item.quantity <= 0 || item.unitPrice < 0)) {
-            return errors.badRequest(c, 'Invalid item payload')
-        }
+        const normalizedItems = items
 
         const productIds = normalizedItems.map((item: any) => item.productId)
-        const productRows = await db
+        const productRows = (await db
             .select({
                 id: products.id,
                 name: products.name,
@@ -276,7 +301,7 @@ transactionsRouter.post('/', authMiddleware, async (c) => {
             .where(and(
                 eq(products.organizationId, orgId),
                 inArray(products.id, productIds),
-            ))
+            ))) as Array<{ id: string; name: string; inventoryProductId: string | null }>
 
         if (productRows.length !== productIds.length) {
             return errors.badRequest(c, 'Product not found')
@@ -318,13 +343,6 @@ transactionsRouter.post('/', authMiddleware, async (c) => {
             const nextQty = available + stockDelta * item.quantity
             if (nextQty < 0) return errors.badRequest(c, 'Insufficient stock')
             stockMap.set(productInfo.inventoryProductId, nextQty)
-        }
-
-        if (!Number.isFinite(discountAmount) || discountAmount < 0) {
-            return errors.badRequest(c, 'Invalid discountAmount')
-        }
-        if (!Number.isFinite(taxAmount) || taxAmount < 0) {
-            return errors.badRequest(c, 'Invalid taxAmount')
         }
 
         const subtotal = normalizedItems.reduce(
@@ -435,6 +453,6 @@ transactionsRouter.post('/', authMiddleware, async (c) => {
         if (err?.message === 'INSUFFICIENT_STOCK') {
             return errors.badRequest(c, 'Insufficient stock')
         }
-        return errors.internal(c, err.message)
+        return errors.internal(c)
     }
 })

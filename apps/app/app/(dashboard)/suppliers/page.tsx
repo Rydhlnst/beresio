@@ -9,7 +9,7 @@ import { ErrorRetryAction } from "@/components/dashboard/shared/error-retry-acti
 import { getSuppliersAction, getCitiesAction } from "./_actions/suppliers";
 
 export const metadata: Metadata = {
-  title: "Pemasok | Beres",
+  title: "Pemasok",
   description: "Kelola daftar pemasok dan riwayat pembelian",
 };
 

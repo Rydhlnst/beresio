@@ -1,7 +1,7 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { apiClient } from "@/lib/api-client";
+import { buildBranchScopedHeaders, persistActiveBranchId } from "@/lib/branch-context.server";
 
 type TransactionItemInput = {
     productId: string;
@@ -22,10 +22,11 @@ export type CreateTransactionInput = {
 };
 
 export async function createTransactionAction(input: CreateTransactionInput) {
-    const cookie = (await cookies()).toString();
+    await persistActiveBranchId(input.branchId);
+    const headers = await buildBranchScopedHeaders({ branchId: input.branchId });
     const res = await (apiClient as any).api.dashboard.transactions.$post(
         { json: input },
-        { headers: { cookie } }
+        { headers }
     );
 
     if (!res.ok) {

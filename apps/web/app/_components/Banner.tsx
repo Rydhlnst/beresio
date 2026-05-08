@@ -1,18 +1,20 @@
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { Button } from "@repo/ui/button"
+import { cn } from "@repo/ui/lib/utils"
+import { APP_CONTENT_WIDTH } from "./layout-width"
 
 export function Banner() {
     return (
-        <div className="relative z-[60] flex h-10 w-full items-center justify-center bg-primary text-white hover:bg-primary/95 transition-colors">
-            <div className="mx-auto flex w-full max-w-[1400px] items-center justify-center px-4 sm:px-8">
+        <div className="relative z-[60] flex h-10 w-full items-center justify-center bg-brand text-white hover:bg-brand/95 transition-colors">
+            <div className={cn(APP_CONTENT_WIDTH, "flex items-center justify-center")}>
                 <Link
-                    href="/wishlist"
+                    href="/sales"
                     className="flex items-center gap-2 text-[10px] sm:text-[11px] font-medium tracking-wide text-center"
                 >
-                    <span className="truncate sm:whitespace-normal">Beres.io segera hadir! <span className="hidden sm:inline">Jadilah yang pertama tahu & dapatkan akses VIP.</span></span>
+                    <span className="truncate sm:whitespace-normal">Perlu aktivasi billing/payment? <span className="hidden sm:inline">Konsultasi langsung dengan tim onboarding Beres Cloud.</span></span>
                     <Button variant={"link"} className="text-background text-xs">
-                        <span>Gabung Wishlist</span>
+                        <span>Hubungi Tim</span>
                         <ArrowRight className="h-3 w-3" />
                     </Button>
                 </Link>
@@ -20,3 +22,4 @@ export function Banner() {
         </div>
     )
 }
+

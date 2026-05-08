@@ -30,7 +30,7 @@ export function VerifyEmailView({ email }: VerifyEmailViewProps) {
         if (!email || cooldown > 0) return;
         setIsLoading(true);
         try {
-            await authClient.sendVerificationEmail({ email, callbackURL: "/welcome" });
+            await authClient.sendVerificationEmail({ email, callbackURL: "/onboarding" });
             toast.success("Email verifikasi telah dikirim ulang!");
             setCooldown(COOLDOWN_SECONDS);
         } catch {

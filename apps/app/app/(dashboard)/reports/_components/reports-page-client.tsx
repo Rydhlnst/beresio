@@ -66,7 +66,7 @@ export function ReportsPageClient({
     const normalizedBranches = Array.isArray(branches)
         ? branches
         : (branches as unknown as { data?: Branch[] })?.data ?? [];
-    const [activeSection, setActiveSection] = useState(SECTIONS[0]);
+    const [activeSection, setActiveSection] = useState(SECTIONS[0] ?? "Overview");
     const [range, setRange] = useState<ReportRange>("today");
     const [branchId, setBranchId] = useState<string>("all");
     const [summary, setSummary] = useState<SummaryData>(initialSummary);

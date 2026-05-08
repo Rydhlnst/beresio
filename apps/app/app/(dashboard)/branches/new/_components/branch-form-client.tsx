@@ -79,7 +79,16 @@ export type BranchFormProps = {
   defaultValues?: Partial<BranchFormValues>;
   isSubmitting?: boolean;
   submitLabel?: string;
+  layoutMode?: "default" | "step";
+  fixedBranchName?: string;
 };
+
+const STEP_LABELS = [
+  "Identitas Cabang",
+  "Lokasi Utama",
+  "Detail Wilayah",
+  "Kontak Operasional",
+] as const;
 
 function useDebouncedValue<T>(value: T, delayMs: number) {
   const [debounced, setDebounced] = useState(value);
@@ -107,7 +116,7 @@ function highlightMatch(text: string, query: string) {
   );
 }
 
-export function BranchFormClient({ onSubmit, defaultValues, isSubmitting, submitLabel }: BranchFormProps) {
+export function BranchFormClient({ onSubmit, defaultValues, isSubmitting, submitLabel, layoutMode = "default", fixedBranchName }: BranchFormProps) {
   const [formError, setFormError] = useState<string | null>(null);
   const [cityQuery, setCityQuery] = useState("");
   const [addressQuery, setAddressQuery] = useState("");
@@ -116,6 +125,7 @@ export function BranchFormClient({ onSubmit, defaultValues, isSubmitting, submit
   const [cityLocked, setCityLocked] = useState(false);
   const [loadingCity, setLoadingCity] = useState(false);
   const [loadingAddress, setLoadingAddress] = useState(false);
+  const [activeStep, setActiveStep] = useState(1);
 
   const {
     manualMode,
@@ -135,7 +145,6 @@ export function BranchFormClient({ onSubmit, defaultValues, isSubmitting, submit
 
   const form = useForm<BranchFormValues, any, any, any, any, any, any, any, any, any, any, any>({
     defaultValues: {
-      namaCabang: "",
       provinsi: "",
       kota: "",
       alamatLengkap: "",
@@ -148,6 +157,7 @@ export function BranchFormClient({ onSubmit, defaultValues, isSubmitting, submit
       longitude: null,
       inputMethod: "autocomplete",
       ...defaultValues,
+      namaCabang: fixedBranchName ?? defaultValues?.namaCabang ?? "",
     },
     onSubmit: async ({ value }: any) => {
       const parsed = branchSchema.safeParse(value);
@@ -182,6 +192,8 @@ export function BranchFormClient({ onSubmit, defaultValues, isSubmitting, submit
 
   const selectedProvince = form.state.values.provinsi;
   const selectedCity = form.state.values.kota;
+  const isStepLayout = layoutMode === "step";
+  const totalSteps = STEP_LABELS.length;
 
   const manualProvince = useMemo(
     () => regions.provinces.find((province) => province.name === selectedProvince),
@@ -333,49 +345,110 @@ export function BranchFormClient({ onSubmit, defaultValues, isSubmitting, submit
     form.setFieldValue("longitude", null);
   };
 
+  const showIdentityStep = !isStepLayout || activeStep === 1;
+  const showLocationStep = !isStepLayout || activeStep === 2;
+  const showAreaStep = !isStepLayout || activeStep === 3;
+  const showContactStep = !isStepLayout || activeStep === 4;
+  const isLastStep = activeStep === totalSteps;
+
+  const getStepError = (step: number) => {
+    const values = form.state.values;
+
+    if (step === 1) {
+      if (!fixedBranchName && !values.namaCabang.trim()) return "Nama cabang wajib diisi.";
+      if (!values.provinsi.trim()) return "Provinsi wajib dipilih.";
+    }
+
+    if (step === 2) {
+      if (!values.kota.trim()) return "Kota/area wajib diisi.";
+      if (values.alamatLengkap.trim().length < 8) return "Alamat lengkap minimal 8 karakter.";
+    }
+
+    if (step === 4) {
+      if (values.nomorTelepon.trim().length < 6) return "Nomor telepon wajib diisi.";
+    }
+
+    return null;
+  };
+
+  const goToNextStep = () => {
+    const stepError = getStepError(activeStep);
+    if (stepError) {
+      setFormError(stepError);
+      return;
+    }
+
+    setFormError(null);
+    setActiveStep((prev) => Math.min(totalSteps, prev + 1));
+  };
+
+  const goToPrevStep = () => {
+    setFormError(null);
+    setActiveStep((prev) => Math.max(1, prev - 1));
+  };
+
   return (
     <form
-      className="space-y-5"
+      className="space-y-4"
       onSubmit={(event) => {
         event.preventDefault();
         form.handleSubmit();
       }}
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="text-xs font-semibold text-muted-foreground uppercase">Mode Input</p>
-          <Badge variant={manualMode ? "warning" : "success"}>
-            {manualMode ? "Mode Manual" : "Mode Otomatis"}
-          </Badge>
-          <span className="text-xs text-muted-foreground">API calls: {apiCallCount}/50</span>
+      {isStepLayout ? (
+        <div className="rounded-xl border border-border bg-muted/40 px-3 py-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">
+              Step {activeStep} / {totalSteps}
+            </p>
+            <p className="text-xs text-muted-foreground">{STEP_LABELS[activeStep - 1]}</p>
+          </div>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-300"
+              style={{ width: `${(activeStep / totalSteps) * 100}%` }}
+            />
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant={manualMode ? "default" : "outline"}
-            size="sm"
-            className="h-8"
-            onClick={() => {
-              clearError();
-              setManualMode(true);
-            }}
-          >
-            Manual
-          </Button>
-          <Button
-            type="button"
-            variant={!manualMode ? "default" : "outline"}
-            size="sm"
-            className="h-8"
-            onClick={() => {
-              clearError();
-              setManualMode(false);
-            }}
-          >
-            Otomatis
-          </Button>
+      ) : null}
+
+      {!isStepLayout || showLocationStep ? (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase">Mode Input</p>
+            <Badge variant={manualMode ? "warning" : "success"}>
+              {manualMode ? "Mode Manual" : "Mode Otomatis"}
+            </Badge>
+            <span className="text-xs text-muted-foreground">API calls: {apiCallCount}/50</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant={manualMode ? "default" : "outline"}
+              size="sm"
+              className="h-8"
+              onClick={() => {
+                clearError();
+                setManualMode(true);
+              }}
+            >
+              Manual
+            </Button>
+            <Button
+              type="button"
+              variant={!manualMode ? "default" : "outline"}
+              size="sm"
+              className="h-8"
+              onClick={() => {
+                clearError();
+                setManualMode(false);
+              }}
+            >
+              Otomatis
+            </Button>
+          </div>
         </div>
-      </div>
+      ) : null}
 
       {placesError ? (
         <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
@@ -383,332 +456,377 @@ export function BranchFormClient({ onSubmit, defaultValues, isSubmitting, submit
         </div>
       ) : null}
 
-      <form.Field name="namaCabang">
-        {(field) => (
-          <div className="space-y-1">
-            <p className="text-xs font-semibold text-muted-foreground uppercase">Nama Cabang</p>
-            <Input
-              value={field.state.value}
-              onChange={(event) => field.handleChange(event.target.value)}
-              placeholder="Nama cabang"
-            />
-          </div>
-        )}
-      </form.Field>
-
-      <form.Field name="provinsi">
-        {(field) => (
-          <div className="space-y-1">
-            <p className="text-xs font-semibold text-muted-foreground uppercase">Provinsi</p>
-            <Select
-              value={field.state.value}
-              onValueChange={(value) => {
-                field.handleChange(value);
-                resetCity();
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Pilih provinsi" />
-              </SelectTrigger>
-              <SelectContent>
-                {provinces.map((province) => (
-                  <SelectItem key={province} value={province}>
-                    {province}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-      </form.Field>
-
-      {manualMode ? (
+      {showIdentityStep ? (
         <>
-          <form.Field name="kota">
-            {(field) => (
-              <div className="space-y-1">
-                <p className="text-xs font-semibold text-muted-foreground uppercase">Kota / Area</p>
-                {manualCities.length > 0 ? (
-                  <Select value={field.state.value} onValueChange={field.handleChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih kota" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {manualCities.map((city) => (
-                        <SelectItem key={city.name} value={city.name}>
-                          {city.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
+          {fixedBranchName ? (
+            <div className="space-y-1">
+              <p className="text-xs font-semibold text-muted-foreground uppercase">Nama Cabang</p>
+              <Input value={fixedBranchName} readOnly className="bg-muted/40" />
+            </div>
+          ) : (
+            <form.Field name="namaCabang">
+              {(field) => (
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase">Nama Cabang</p>
                   <Input
                     value={field.state.value}
                     onChange={(event) => field.handleChange(event.target.value)}
-                    placeholder="Ketik kota"
+                    placeholder="Nama cabang"
                   />
-                )}
-              </div>
-            )}
-          </form.Field>
+                </div>
+              )}
+            </form.Field>
+          )}
 
-          <form.Field name="alamatLengkap">
+          <form.Field name="provinsi">
             {(field) => (
               <div className="space-y-1">
-                <p className="text-xs font-semibold text-muted-foreground uppercase">Alamat Lengkap</p>
-                <textarea
+                <p className="text-xs font-semibold text-muted-foreground uppercase">Provinsi</p>
+                <Select
                   value={field.state.value}
-                  onChange={(event) => field.handleChange(event.target.value)}
-                  placeholder="Alamat lengkap"
-                  className={cn(
-                    "min-h-[96px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm",
-                    "placeholder:text-muted-foreground",
-                    "focus-visible:outline-none focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary/20"
-                  )}
-                />
+                  onValueChange={(value) => {
+                    field.handleChange(value);
+                    resetCity();
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih provinsi" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {provinces.map((province) => (
+                      <SelectItem key={province} value={province}>
+                        {province}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
           </form.Field>
+        </>
+      ) : null}
 
-          <form.Field name="kecamatan">
-            {(field) => (
-              <div className="space-y-1">
-                <p className="text-xs font-semibold text-muted-foreground uppercase">Kecamatan</p>
-                {manualDistricts.length > 0 ? (
-                  <Select value={field.state.value ?? ""} onValueChange={field.handleChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih kecamatan" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {manualDistricts.map((district) => (
-                        <SelectItem key={district.name} value={district.name}>
-                          {district.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Input
-                    value={field.state.value ?? ""}
-                    onChange={(event) => field.handleChange(event.target.value)}
-                    placeholder="Kecamatan"
-                  />
+      {manualMode ? (
+        <>
+          {showLocationStep ? (
+            <>
+              <form.Field name="kota">
+                {(field) => (
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase">Kota / Area</p>
+                    {manualCities.length > 0 ? (
+                      <Select value={field.state.value} onValueChange={field.handleChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih kota" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {manualCities.map((city) => (
+                            <SelectItem key={city.name} value={city.name}>
+                              {city.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        value={field.state.value}
+                        onChange={(event) => field.handleChange(event.target.value)}
+                        placeholder="Ketik kota"
+                      />
+                    )}
+                  </div>
                 )}
-              </div>
-            )}
-          </form.Field>
+              </form.Field>
 
-          <form.Field name="kelurahan">
-            {(field) => (
-              <div className="space-y-1">
-                <p className="text-xs font-semibold text-muted-foreground uppercase">Kelurahan</p>
-                {manualVillages.length > 0 ? (
-                  <Select value={field.state.value ?? ""} onValueChange={field.handleChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih kelurahan" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {manualVillages.map((village) => (
-                        <SelectItem key={village} value={village}>
-                          {village}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Input
-                    value={field.state.value ?? ""}
-                    onChange={(event) => field.handleChange(event.target.value)}
-                    placeholder="Kelurahan"
-                  />
+              <form.Field name="alamatLengkap">
+                {(field) => (
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase">Alamat Lengkap</p>
+                    <textarea
+                      value={field.state.value}
+                      onChange={(event) => field.handleChange(event.target.value)}
+                      placeholder="Alamat lengkap"
+                      className={cn(
+                        "min-h-[96px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm",
+                        "placeholder:text-muted-foreground",
+                        "focus-visible:outline-none focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary/20"
+                      )}
+                    />
+                  </div>
                 )}
-              </div>
-            )}
-          </form.Field>
+              </form.Field>
+            </>
+          ) : null}
 
-          <form.Field name="kodePos">
-            {(field) => (
-              <div className="space-y-1">
-                <p className="text-xs font-semibold text-muted-foreground uppercase">Kode Pos</p>
-                <Input
-                  value={field.state.value ?? ""}
-                  onChange={(event) => field.handleChange(event.target.value)}
-                  placeholder="Kode pos"
-                />
-              </div>
-            )}
-          </form.Field>
+          {showAreaStep ? (
+            <>
+              <form.Field name="kecamatan">
+                {(field) => (
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase">Kecamatan</p>
+                    {manualDistricts.length > 0 ? (
+                      <Select value={field.state.value ?? ""} onValueChange={field.handleChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih kecamatan" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {manualDistricts.map((district) => (
+                            <SelectItem key={district.name} value={district.name}>
+                              {district.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        value={field.state.value ?? ""}
+                        onChange={(event) => field.handleChange(event.target.value)}
+                        placeholder="Kecamatan"
+                      />
+                    )}
+                  </div>
+                )}
+              </form.Field>
+
+              <form.Field name="kelurahan">
+                {(field) => (
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase">Kelurahan</p>
+                    {manualVillages.length > 0 ? (
+                      <Select value={field.state.value ?? ""} onValueChange={field.handleChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih kelurahan" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {manualVillages.map((village) => (
+                            <SelectItem key={village} value={village}>
+                              {village}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        value={field.state.value ?? ""}
+                        onChange={(event) => field.handleChange(event.target.value)}
+                        placeholder="Kelurahan"
+                      />
+                    )}
+                  </div>
+                )}
+              </form.Field>
+
+              <form.Field name="kodePos">
+                {(field) => (
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase">Kode Pos</p>
+                    <Input
+                      value={field.state.value ?? ""}
+                      onChange={(event) => field.handleChange(event.target.value)}
+                      placeholder="Kode pos"
+                    />
+                  </div>
+                )}
+              </form.Field>
+            </>
+          ) : null}
         </>
       ) : (
         <>
-          <form.Field name="kota">
-            {(field) => (
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase">Kota / Area</p>
-                  {cityLocked ? (
-                    <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={resetCity}>
-                      Ubah kota
-                    </Button>
-                  ) : null}
-                </div>
-                <div className="relative">
-                  <Input
-                    value={cityLocked ? field.state.value : cityQuery}
-                    onChange={(event) => {
-                      setCityQuery(event.target.value);
-                      if (!cityLocked) field.handleChange(event.target.value);
-                    }}
-                    placeholder="Ketik kota (min 4 karakter)"
-                    disabled={cityLocked}
-                  />
-                  <div className="absolute inset-y-0 right-3 flex items-center gap-2">
-                    {loadingCity ? (
-                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground/40 border-t-transparent" />
-                    ) : null}
-                    {cityQuery && !cityLocked ? (
-                      <button
-                        type="button"
-                        className="text-muted-foreground hover:text-foreground"
-                        onClick={() => {
-                          setCityQuery("");
-                          field.handleChange("");
-                          setCitySuggestions([]);
+          {showLocationStep ? (
+            <>
+              <form.Field name="kota">
+                {(field) => (
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase">Kota / Area</p>
+                      {cityLocked ? (
+                        <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={resetCity}>
+                          Ubah kota
+                        </Button>
+                      ) : null}
+                    </div>
+                    <div className="relative">
+                      <Input
+                        value={cityLocked ? field.state.value : cityQuery}
+                        onChange={(event) => {
+                          setCityQuery(event.target.value);
+                          if (!cityLocked) field.handleChange(event.target.value);
                         }}
-                        aria-label="Clear city"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
+                        placeholder="Ketik kota (min 4 karakter)"
+                        disabled={cityLocked}
+                      />
+                      <div className="absolute inset-y-0 right-3 flex items-center gap-2">
+                        {loadingCity ? (
+                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground/40 border-t-transparent" />
+                        ) : null}
+                        {cityQuery && !cityLocked ? (
+                          <button
+                            type="button"
+                            className="text-muted-foreground hover:text-foreground"
+                            onClick={() => {
+                              setCityQuery("");
+                              field.handleChange("");
+                              setCitySuggestions([]);
+                            }}
+                            aria-label="Clear city"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+                    {citySuggestions.length > 0 ? (
+                      <div className="mt-2 rounded-md border border-border bg-background shadow-sm">
+                        {citySuggestions.map((suggestion) => (
+                          <button
+                            key={suggestion.place_id}
+                            type="button"
+                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted/40"
+                            onClick={() => handleSelectCity(suggestion)}
+                          >
+                            <Search className="h-4 w-4 text-muted-foreground" />
+                            <span>{highlightMatch(suggestion.description, debouncedCityQuery)}</span>
+                          </button>
+                        ))}
+                      </div>
                     ) : null}
                   </div>
-                </div>
-                {citySuggestions.length > 0 ? (
-                  <div className="mt-2 rounded-md border border-border bg-background shadow-sm">
-                    {citySuggestions.map((suggestion) => (
-                      <button
-                        key={suggestion.place_id}
-                        type="button"
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted/40"
-                        onClick={() => handleSelectCity(suggestion)}
-                      >
-                        <Search className="h-4 w-4 text-muted-foreground" />
-                        <span>{highlightMatch(suggestion.description, debouncedCityQuery)}</span>
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            )}
-          </form.Field>
+                )}
+              </form.Field>
 
-          <form.Field name="alamatLengkap">
-            {(field) => (
-              <div className="space-y-1">
-                <p className="text-xs font-semibold text-muted-foreground uppercase">Alamat Lengkap</p>
-                <div className="relative">
-                  <Input
-                    value={addressQuery || field.state.value}
-                    onChange={(event) => {
-                      setAddressQuery(event.target.value);
-                      field.handleChange(event.target.value);
-                    }}
-                    placeholder="Ketik alamat (min 8 karakter)"
-                    disabled={!selectedCity}
-                  />
-                  <div className="absolute inset-y-0 right-3 flex items-center gap-2">
-                    {loadingAddress ? (
-                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground/40 border-t-transparent" />
-                    ) : null}
-                    {addressQuery ? (
-                      <button
-                        type="button"
-                        className="text-muted-foreground hover:text-foreground"
-                        onClick={resetAddress}
-                        aria-label="Clear address"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
+              <form.Field name="alamatLengkap">
+                {(field) => (
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase">Alamat Lengkap</p>
+                    <div className="relative">
+                      <Input
+                        value={addressQuery || field.state.value}
+                        onChange={(event) => {
+                          setAddressQuery(event.target.value);
+                          field.handleChange(event.target.value);
+                        }}
+                        placeholder="Ketik alamat (min 8 karakter)"
+                        disabled={!selectedCity}
+                      />
+                      <div className="absolute inset-y-0 right-3 flex items-center gap-2">
+                        {loadingAddress ? (
+                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground/40 border-t-transparent" />
+                        ) : null}
+                        {addressQuery ? (
+                          <button
+                            type="button"
+                            className="text-muted-foreground hover:text-foreground"
+                            onClick={resetAddress}
+                            aria-label="Clear address"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+                    {addressSuggestions.length > 0 ? (
+                      <div className="mt-2 rounded-md border border-border bg-background shadow-sm">
+                        {addressSuggestions.map((suggestion) => (
+                          <button
+                            key={suggestion.place_id}
+                            type="button"
+                            className="flex w-full items-start gap-2 px-3 py-2 text-left text-sm hover:bg-muted/40"
+                            onClick={() => handleSelectAddress(suggestion)}
+                          >
+                            <Search className="h-4 w-4 text-muted-foreground mt-0.5" />
+                            <span>{highlightMatch(suggestion.description, debouncedAddressQuery)}</span>
+                          </button>
+                        ))}
+                      </div>
                     ) : null}
                   </div>
-                </div>
-                {addressSuggestions.length > 0 ? (
-                  <div className="mt-2 rounded-md border border-border bg-background shadow-sm">
-                    {addressSuggestions.map((suggestion) => (
-                      <button
-                        key={suggestion.place_id}
-                        type="button"
-                        className="flex w-full items-start gap-2 px-3 py-2 text-left text-sm hover:bg-muted/40"
-                        onClick={() => handleSelectAddress(suggestion)}
-                      >
-                        <Search className="h-4 w-4 text-muted-foreground mt-0.5" />
-                        <span>{highlightMatch(suggestion.description, debouncedAddressQuery)}</span>
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            )}
-          </form.Field>
+                )}
+              </form.Field>
+            </>
+          ) : null}
 
-          <div className="grid gap-4 sm:grid-cols-3">
-            <form.Field name="kecamatan">
-              {(field) => (
-                <div className="space-y-1">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase">Kecamatan</p>
-                  <Input
-                    value={field.state.value ?? ""}
-                    onChange={(event) => field.handleChange(event.target.value)}
-                    placeholder="Kecamatan"
-                  />
-                </div>
-              )}
-            </form.Field>
-            <form.Field name="kelurahan">
-              {(field) => (
-                <div className="space-y-1">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase">Kelurahan</p>
-                  <Input
-                    value={field.state.value ?? ""}
-                    onChange={(event) => field.handleChange(event.target.value)}
-                    placeholder="Kelurahan"
-                  />
-                </div>
-              )}
-            </form.Field>
-            <form.Field name="kodePos">
-              {(field) => (
-                <div className="space-y-1">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase">Kode Pos</p>
-                  <Input
-                    value={field.state.value ?? ""}
-                    onChange={(event) => field.handleChange(event.target.value)}
-                    placeholder="Kode pos"
-                  />
-                </div>
-              )}
-            </form.Field>
-          </div>
+          {showAreaStep ? (
+            <div className="grid gap-4 sm:grid-cols-3">
+              <form.Field name="kecamatan">
+                {(field) => (
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase">Kecamatan</p>
+                    <Input
+                      value={field.state.value ?? ""}
+                      onChange={(event) => field.handleChange(event.target.value)}
+                      placeholder="Kecamatan"
+                    />
+                  </div>
+                )}
+              </form.Field>
+              <form.Field name="kelurahan">
+                {(field) => (
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase">Kelurahan</p>
+                    <Input
+                      value={field.state.value ?? ""}
+                      onChange={(event) => field.handleChange(event.target.value)}
+                      placeholder="Kelurahan"
+                    />
+                  </div>
+                )}
+              </form.Field>
+              <form.Field name="kodePos">
+                {(field) => (
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase">Kode Pos</p>
+                    <Input
+                      value={field.state.value ?? ""}
+                      onChange={(event) => field.handleChange(event.target.value)}
+                      placeholder="Kode pos"
+                    />
+                  </div>
+                )}
+              </form.Field>
+            </div>
+          ) : null}
         </>
       )}
 
-      <form.Field name="nomorTelepon">
-        {(field) => (
-          <div className="space-y-1">
-            <p className="text-xs font-semibold text-muted-foreground uppercase">Nomor Telepon</p>
-            <Input
-              value={field.state.value}
-              onChange={(event) => field.handleChange(event.target.value)}
-              placeholder="Nomor telepon"
-            />
-          </div>
-        )}
-      </form.Field>
+      {showContactStep ? (
+        <form.Field name="nomorTelepon">
+          {(field) => (
+            <div className="space-y-1">
+              <p className="text-xs font-semibold text-muted-foreground uppercase">Nomor Telepon</p>
+              <Input
+                value={field.state.value}
+                onChange={(event) => field.handleChange(event.target.value)}
+                placeholder="Nomor telepon"
+              />
+            </div>
+          )}
+        </form.Field>
+      ) : null}
 
       {formError ? <p className="text-xs text-rose-600 font-semibold">{formError}</p> : null}
 
-      <Button className="h-9 text-xs font-semibold" type="submit" disabled={isSubmitting}>
-        {isSubmitting ? "Menyimpan..." : submitLabel ?? "Simpan Cabang"}
-      </Button>
+      {isStepLayout ? (
+        <div className="flex items-center justify-between gap-3 pt-1">
+          <Button type="button" variant="outline" className="h-9 text-xs font-semibold" onClick={goToPrevStep} disabled={activeStep === 1}>
+            Kembali
+          </Button>
+
+          {isLastStep ? (
+            <Button className="h-9 text-xs font-semibold" type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Menyimpan..." : submitLabel ?? "Simpan Cabang"}
+            </Button>
+          ) : (
+            <Button type="button" className="h-9 text-xs font-semibold" onClick={goToNextStep}>
+              Lanjut
+            </Button>
+          )}
+        </div>
+      ) : (
+        <Button className="h-9 text-xs font-semibold" type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "Menyimpan..." : submitLabel ?? "Simpan Cabang"}
+        </Button>
+      )}
     </form>
   );
 }

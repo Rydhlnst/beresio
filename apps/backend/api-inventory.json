@@ -1,0 +1,947 @@
+{
+  "generatedAt": "2026-04-17T09:34:55.030Z",
+  "service": "@beresio/backend",
+  "count": 188,
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\index.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/businesses/:id/navigation",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\businesses.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/activities/",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\activities.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/alerts/",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\alerts.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/billing/invoices",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\billing.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/billing/invoices/:id/download",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\billing.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/billing/status",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\billing.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/billing/upgrade",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\billing.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/branches/",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\branches.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/branches/",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\branches.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/branches/:id",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\branches.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/dashboard/branches/:id",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\branches.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/branches/:id/metrics",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\branches.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/dashboard/branches/:id/status",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\branches.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/branches/mine",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\branches.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/crm/analytics/customer/:id",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\crm.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/crm/analytics/overview",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\crm.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/crm/customers",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\crm.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/crm/customers",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\crm.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/dashboard/crm/customers/:id",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\crm.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/crm/customers/:id",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\crm.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/dashboard/crm/customers/:id",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\crm.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/crm/customers/:id/interactions",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\crm.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/crm/customers/:id/interactions",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\crm.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/crm/customers/:id/notes",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\crm.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/crm/customers/:id/notes",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\crm.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/dashboard/crm/notes/:noteId",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\crm.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/crm/tags",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\crm.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/crm/tags",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\crm.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/dashboard/crm/tags/:id",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\crm.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/dashboard/crm/tags/:id",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\crm.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/customers/",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\customers.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/customers/",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\customers.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/customers/:id",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\customers.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/dashboard/customers/:id",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\customers.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/fnb/orders/:id/complete",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\fnb-commands.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/fnb/orders/:id/confirm",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\fnb-commands.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/fnb/orders/:id/payment/settle-manual",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\fnb-commands.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/fnb/orders/:id/preparing",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\fnb-commands.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/fnb/orders/:id/ready",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\fnb-commands.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/fnb/projectors/replay",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\fnb-commands.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/fnb/streams/kds",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\fnb-commands.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/fnb/streams/orders",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\fnb-commands.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/fnb/streams/tables",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\fnb-commands.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/fnb/table-sessions",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\fnb.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/dashboard/fnb/table-sessions",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\fnb.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/fnb/table-sessions",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\fnb.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/fnb/tables",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\fnb.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/dashboard/fnb/tables",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\fnb.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/fnb/tables",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\fnb.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/fnb/ws/kds",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\fnb-commands.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/fnb/ws/orders",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\fnb-commands.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/fnb/ws/tables",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\fnb-commands.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/highlights/",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\highlights.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/highlights/",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\highlights.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/dashboard/highlights/:id",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\highlights.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/highlights/:id",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\highlights.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/dashboard/highlights/:id",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\highlights.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/dashboard/highlights/order",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\highlights.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/inventory/adjustments",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\inventory.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/inventory/adjustments",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\inventory.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/inventory/movements",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\inventory.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/inventory/products",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\inventory.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/dashboard/inventory/products/:id",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\inventory.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/dashboard/inventory/stocks/threshold",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\inventory.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/inventory/transfers",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\inventory.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/inventory/transfers",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\inventory.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/dashboard/inventory/transfers/:id",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\inventory.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/inventory/variant-stocks",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\inventory.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/inventory/variant-stocks/adjust",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\inventory.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/dashboard/inventory/variant-stocks/threshold",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\inventory.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/kpis/",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\kpis.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/kpis/stream",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\kpis.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/laundry/drivers",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\laundry.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/laundry/machines",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\laundry.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/dashboard/laundry/machines",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\laundry.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/laundry/machines",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\laundry.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/laundry/order-intakes",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\laundry.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/laundry/order-intakes/:id/accept",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\laundry.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/laundry/order-intakes/:id/reject",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\laundry.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/laundry/orders",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\laundry.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/laundry/orders",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\laundry.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/laundry/orders/:id",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\laundry.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/dashboard/laundry/orders/:id/driver",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\laundry.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/dashboard/laundry/orders/:id/machine",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\laundry.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/laundry/orders/:id/payments",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\laundry.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/laundry/orders/:id/payments",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\laundry.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/laundry/orders/:id/receipt",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\laundry.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/dashboard/laundry/orders/:id/status",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\laundry.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/dashboard/laundry/orders/:id/status-correction",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\laundry.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/laundry/payments/reconcile",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\laundry.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/laundry/payments/webhooks/:provider",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\laundry.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/laundry/reports/metrics",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\laundry.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/laundry/reports/orders-by-status",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\laundry.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/laundry/reports/outstanding-payments",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\laundry.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/laundry/reports/summary",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\laundry.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/laundry/reports/workload",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\laundry.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/laundry/services",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\laundry.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/dashboard/laundry/services",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\laundry.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/laundry/services",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\laundry.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/laundry/settings/wa-template",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\laundry.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/dashboard/laundry/settings/wa-template",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\laundry.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/laundry/stream/orders",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\laundry.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/laundry/ws",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\laundry.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/orders/",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\orders.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/orders/",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\orders.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/orders/:id",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\orders.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/dashboard/orders/:id",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\orders.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/dashboard/orders/:id/hold",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\orders.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/dashboard/orders/:id/items",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\orders.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/orders/:id/split",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\orders.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/orders/merge",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\orders.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/organization/",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\organization.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/dashboard/organization/",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\organization.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/performance/branch-overview",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\performance.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/performance/branches",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\performance.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/performance/hourly-sales",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\performance.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/performance/orders-by-type",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\performance.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/performance/top-products",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\performance.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/performance/trend",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\performance.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/performance/trend-by-branch",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\performance.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/pickup/",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\pickup.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/pickup/:id",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\pickup.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/dashboard/pickup/:id/assign-driver",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\pickup.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/dashboard/pickup/:id/status",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\pickup.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/products/",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\products.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/products/",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\products.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/dashboard/products/:id",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\products.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/products/:id",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\products.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/dashboard/products/:id",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\products.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/products/:id/variants",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\products.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/products/:id/variants",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\products.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/products/categories",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\products.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/products/categories",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\products.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/products/suppliers",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\products.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/products/suppliers",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\products.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/dashboard/products/variants/:variantId",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\products.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/dashboard/products/variants/:variantId",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\products.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/rbac/bootstrap",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\rbac.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/rbac/summary",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\rbac.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/reports/catalog",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\reports.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/reports/chart",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\reports.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/reports/export",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\reports.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/reports/summary",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\reports.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/reports/table",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\reports.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/dashboard/settings/integrations/:provider",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\settings.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/dashboard/settings/notifications",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\settings.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/dashboard/settings/profile",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\settings.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/dashboard/settings/security",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\settings.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/suppliers/",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\suppliers.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/suppliers/",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\suppliers.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/dashboard/suppliers/:id",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\suppliers.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/suppliers/:id",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\suppliers.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/dashboard/suppliers/:id",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\suppliers.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/suppliers/cities",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\suppliers.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/team/invitations",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\team.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/team/invitations",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\team.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/team/invitations/:id/cancel",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\team.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/team/invitations/:id/resend",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\team.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/team/members",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\team.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/team/members/:id/branches",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\team.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/dashboard/team/members/:id/role",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\team.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/dashboard/team/members/:id/status",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\team.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/team/roles",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\team.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/team/roles",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\team.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/team/roles/:id",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\team.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/team/roles/:id/permissions",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\team.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/dashboard/team/roles/:id/permissions",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\team.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/transactions/",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\transactions.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/transactions/",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\transactions.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/transactions/:id",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\transactions.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/dashboard/upload/image",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\upload.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/upload/image",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\upload.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dashboard/upload/multiple",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\dashboard\\upload.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/internal/fnb/projectors/catch-up",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\internal\\fnb-workers.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/internal/fnb/projectors/catch-up",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\internal\\fnb-workers.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/internal/laundry/notifications/dispatch",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\internal\\laundry-workers.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/internal/laundry/notifications/dispatch",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\internal\\laundry-workers.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/public/fnb/menu",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\public\\fnb.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/public/fnb/orders",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\public\\fnb.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/public/fnb/tables/:tableId/session/join",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\public\\fnb.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/public/laundry/funnel-events",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\public\\laundry.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/public/laundry/order-intakes",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\public\\laundry.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/public/laundry/order-intakes/:referenceCode",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\public\\laundry.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/public/laundry/tenants/:tenantSlug",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\public\\laundry.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/public/laundry/tenants/:tenantSlug/branches",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\public\\laundry.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/public/laundry/tenants/:tenantSlug/branches/:branchSlug/services",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\routes\\public\\laundry.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/me",
+      "sourceFile": "D:\\Projects\\beresio\\apps\\backend\\src\\index.ts"
+    }
+  ]
+}

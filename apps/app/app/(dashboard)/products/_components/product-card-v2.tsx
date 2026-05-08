@@ -117,7 +117,7 @@ export function ProductCardV2({
 
       {/* Image Container */}
       <div 
-        className="relative aspect-[4/3] bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden cursor-pointer"
+        className="relative aspect-[4/3] bg-muted/40 overflow-hidden cursor-pointer"
         onClick={() => router.push(`/products/${product.id}`)}
       >
         {product.imageUrl && !imageError ? (

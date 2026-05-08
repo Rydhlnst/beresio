@@ -1,7 +1,7 @@
 import { VerifyEmailView } from "./_components/verify-email-view";
 
 export const metadata = {
-    title: "Verifikasi Email | Beres",
+    title: "Verifikasi Email",
     description: "Cek email kamu untuk link verifikasi",
 };
 

@@ -4,7 +4,7 @@ import { Button } from "@repo/ui/button";
 import { ProfileFormClient } from "./_components/profile-form-client";
 
 export const metadata: Metadata = {
-    title: "Profile Settings | Beres",
+    title: "Profile Settings",
     description: "Kelola profil pengguna",
 };
 

@@ -5,7 +5,7 @@ import { createDbNextjs } from "@beresio/db";
 import { SignUpForm } from "../_components/SignUpForm";
 
 export const metadata = {
-    title: "Daftar | Beres",
+    title: "Daftar",
     description: "Buat akun baru untuk mulai menggunakan Beres",
 };
 
@@ -14,7 +14,7 @@ export default async function RegisterPage() {
     const session = await auth(db).api.getSession({ headers: await headers() });
 
     if (session) {
-        redirect("/dashboard");
+        redirect("/");
     }
 
     return (
