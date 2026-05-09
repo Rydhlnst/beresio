@@ -1,7 +1,11 @@
 import type { Config } from "tailwindcss";
 import animate from "tailwindcss-animate";
 
-const config: Config = {
+const plugins = [animate].filter((plugin): plugin is NonNullable<typeof plugin> =>
+    Boolean(plugin)
+);
+
+export default {
     darkMode: ["class"],
     content: [
         "./src/**/*.{ts,tsx}",
@@ -111,7 +115,5 @@ const config: Config = {
     		}
     	}
     },
-    plugins: [animate],
-};
-
-export default config;
+    plugins,
+} satisfies Config;

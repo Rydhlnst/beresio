@@ -1,7 +1,7 @@
 import type { Config } from "tailwindcss";
-import sharedConfig from "../../packages/ui/tailwind.config";
+import sharedConfig from "../../packages/ui/tailwind.preset.mjs";
 
-const config: Pick<Config, "content" | "presets"> = {
+export default {
     content: [
         "./app/**/*.{js,ts,jsx,tsx,mdx}",
         "./pages/**/*.{js,ts,jsx,tsx,mdx}",
@@ -9,6 +9,4 @@ const config: Pick<Config, "content" | "presets"> = {
         "../../packages/ui/src/**/*.{js,ts,jsx,tsx,mdx}",
     ],
     presets: [sharedConfig],
-};
-
-export default config;
+} satisfies Config;
