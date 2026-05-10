@@ -12,6 +12,7 @@ export const metadata: Metadata = {
     title: "Katalog Produk | Beres",
     description: "Kelola katalog produk, harga, dan stok",
 };
+export const dynamic = "force-dynamic";
 
 export default async function ProductsPage() {
     try {

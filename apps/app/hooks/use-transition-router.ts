@@ -1,11 +1,12 @@
 "use client"
 
 import { useCallback } from "react"
-import { useRouter, type AppRouterInstance } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { usePageProgress } from "@/components/shared/page-progress"
 
-type Href = Parameters<AppRouterInstance["push"]>[0]
-type NavigateOptions = Parameters<AppRouterInstance["push"]>[1]
+type RouterInstance = ReturnType<typeof useRouter>
+type Href = Parameters<RouterInstance["push"]>[0]
+type NavigateOptions = Parameters<RouterInstance["push"]>[1]
 
 export function useTransitionRouter() {
   const router = useRouter()

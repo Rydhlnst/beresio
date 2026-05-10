@@ -22,7 +22,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/tabs";
 import { Checkbox } from "@repo/ui/checkbox";
 import { useForm } from "@tanstack/react-form";
-import { zodValidator } from "@tanstack/zod-form-adapter";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Loader2, Package, ImageIcon } from "lucide-react";
@@ -31,19 +30,19 @@ import { ImageUpload } from "@/components/shared/image-upload";
 
 const productSchema = z.object({
   name: z.string().min(1, "Nama produk wajib diisi").max(150),
-  sku: z.string().max(60).optional(),
-  barcode: z.string().max(50).optional(),
-  categoryId: z.string().optional(),
-  supplierId: z.string().optional(),
+  sku: z.string().max(60),
+  barcode: z.string().max(50),
+  categoryId: z.string(),
+  supplierId: z.string(),
   basePrice: z.number().min(0, "Harga tidak boleh negatif"),
-  salePrice: z.number().min(0).optional(),
-  costPrice: z.number().min(0).optional(),
-  description: z.string().max(2000).optional(),
-  shortDescription: z.string().max(255).optional(),
-  weight: z.number().min(0).optional(),
-  imageUrl: z.string().optional(),
-  isActive: z.boolean().default(true),
-  isFeatured: z.boolean().default(false),
+  salePrice: z.union([z.number().min(0), z.undefined()]),
+  costPrice: z.union([z.number().min(0), z.undefined()]),
+  description: z.string().max(2000),
+  shortDescription: z.string().max(255),
+  weight: z.union([z.number().min(0), z.undefined()]),
+  imageUrl: z.string(),
+  isActive: z.boolean(),
+  isFeatured: z.boolean(),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -86,9 +85,8 @@ export function ProductFormDialog({
       isActive: initialData?.isActive !== false,
       isFeatured: initialData?.isFeatured === true,
     },
-    validatorAdapter: zodValidator(),
     validators: {
-      onChange: productSchema,
+      onChange: productSchema as any,
     },
     onSubmit: async ({ value }) => {
       try {

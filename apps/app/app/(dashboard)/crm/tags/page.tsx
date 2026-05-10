@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   title: "Tags Pelanggan | Beres",
   description: "Kelola tags pelanggan",
 };
+export const dynamic = "force-dynamic";
 
 export default async function TagsPage() {
   try {

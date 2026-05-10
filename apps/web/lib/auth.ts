@@ -4,6 +4,22 @@ import { organization } from "better-auth/plugins";
 import { nextCookies } from "better-auth/next-js";
 import * as schema from "@beresio/db";
 
+const socialProviders: Record<string, { clientId: string; clientSecret: string }> = {};
+
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    socialProviders.google = {
+        clientId: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    };
+}
+
+if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
+    socialProviders.github = {
+        clientId: process.env.GITHUB_CLIENT_ID,
+        clientSecret: process.env.GITHUB_CLIENT_SECRET,
+    };
+}
+
 export const auth = (db: any) => betterAuth({
     baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
     database: drizzleAdapter(db, {
@@ -29,16 +45,7 @@ export const auth = (db: any) => betterAuth({
     emailAndPassword: {
         enabled: true
     },
-    socialProviders: {
-        google: {
-            clientId: process.env.GOOGLE_CLIENT_ID!,
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-        },
-        github: {
-            clientId: process.env.GITHUB_CLIENT_ID!,
-            clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-        },
-    },
+    socialProviders,
     plugins: [
         organization({
             schema: {

@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   title: "Tambah Pelanggan | Beres",
   description: "Tambah pelanggan baru",
 };
+export const dynamic = "force-dynamic";
 
 export default async function CreateCustomerPage() {
   try {

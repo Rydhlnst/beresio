@@ -954,7 +954,10 @@ export function OrderPageClient({
                         {(field) => (
                         <div className="space-y-1">
                             <p className="text-xs font-semibold text-muted-foreground uppercase">Cabang</p>
-                            <Select value={field.state.value} onValueChange={field.handleChange}>
+                            <Select
+                                value={field.state.value}
+                                onValueChange={(value) => field.handleChange(value as LaundryOrderType)}
+                            >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Pilih cabang" />
                                 </SelectTrigger>
@@ -976,7 +979,7 @@ export function OrderPageClient({
                             <p className="text-xs font-semibold text-muted-foreground uppercase">Customer</p>
                             <Select
                                 value={field.state.value ?? "none"}
-                                onValueChange={(value) => field.handleChange(value === "none" ? null : value)}
+                                onValueChange={(value) => field.handleChange(value === "none" ? "" : value)}
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Pilih customer (opsional)" />
@@ -998,7 +1001,10 @@ export function OrderPageClient({
                         {(field) => (
                         <div className="space-y-1">
                             <p className="text-xs font-semibold text-muted-foreground uppercase">Tipe Order</p>
-                            <Select value={field.state.value} onValueChange={field.handleChange}>
+                            <Select
+                                value={field.state.value}
+                                onValueChange={(value) => field.handleChange(value as LaundryOrderType)}
+                            >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Pilih tipe" />
                                 </SelectTrigger>
@@ -1018,7 +1024,7 @@ export function OrderPageClient({
                         {(field) => (
                         <div className="space-y-1">
                             <p className="text-xs font-semibold text-muted-foreground uppercase">Status Pembayaran</p>
-                            <Select value={field.state.value} onValueChange={field.handleChange}>
+                            <Select value={field.state.value} onValueChange={(value) => field.handleChange(value)}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Status pembayaran" />
                                 </SelectTrigger>
@@ -1072,7 +1078,7 @@ export function OrderPageClient({
                                     onClick={() => {
                                         field.handleChange([
                                             ...field.state.value,
-                                            { name: "", quantity: 1, unitPrice: 0 },
+                                            { name: "", sku: "", quantity: 1, unitPrice: 0 },
                                         ]);
                                     }}
                                 >
@@ -1087,7 +1093,13 @@ export function OrderPageClient({
                                             value={item.name}
                                             onChange={(event) => {
                                                 const next = [...field.state.value];
-                                                next[idx] = { ...next[idx], name: event.target.value };
+                                                const current = next[idx] ?? { name: "", sku: "", quantity: 1, unitPrice: 0 };
+                                                next[idx] = {
+                                                    name: event.target.value,
+                                                    sku: current.sku ?? "",
+                                                    quantity: current.quantity ?? 1,
+                                                    unitPrice: current.unitPrice ?? 0,
+                                                };
                                                 field.handleChange(next);
                                             }}
                                         />
@@ -1096,7 +1108,13 @@ export function OrderPageClient({
                                             value={item.sku ?? ""}
                                             onChange={(event) => {
                                                 const next = [...field.state.value];
-                                                next[idx] = { ...next[idx], sku: event.target.value };
+                                                const current = next[idx] ?? { name: "", sku: "", quantity: 1, unitPrice: 0 };
+                                                next[idx] = {
+                                                    name: current.name,
+                                                    sku: event.target.value,
+                                                    quantity: current.quantity ?? 1,
+                                                    unitPrice: current.unitPrice ?? 0,
+                                                };
                                                 field.handleChange(next);
                                             }}
                                         />
@@ -1108,7 +1126,13 @@ export function OrderPageClient({
                                                 value={item.quantity}
                                                 onChange={(event) => {
                                                     const next = [...field.state.value];
-                                                    next[idx] = { ...next[idx], quantity: Number(event.target.value) };
+                                                    const current = next[idx] ?? { name: "", sku: "", quantity: 1, unitPrice: 0 };
+                                                    next[idx] = {
+                                                        name: current.name,
+                                                        sku: current.sku ?? "",
+                                                        quantity: Number(event.target.value),
+                                                        unitPrice: current.unitPrice ?? 0,
+                                                    };
                                                     field.handleChange(next);
                                                 }}
                                             />
@@ -1119,7 +1143,13 @@ export function OrderPageClient({
                                                 value={item.unitPrice}
                                                 onChange={(event) => {
                                                     const next = [...field.state.value];
-                                                    next[idx] = { ...next[idx], unitPrice: Number(event.target.value) };
+                                                    const current = next[idx] ?? { name: "", sku: "", quantity: 1, unitPrice: 0 };
+                                                    next[idx] = {
+                                                        name: current.name,
+                                                        sku: current.sku ?? "",
+                                                        quantity: current.quantity ?? 1,
+                                                        unitPrice: Number(event.target.value),
+                                                    };
                                                     field.handleChange(next);
                                                 }}
                                             />
@@ -1178,7 +1208,13 @@ export function OrderPageClient({
                                 value={item.name}
                                 onChange={(event) => {
                                     const next = [...editItems];
-                                    next[idx] = { ...next[idx], name: event.target.value };
+                                    const current = next[idx] ?? { name: "", sku: "", quantity: 1, unitPrice: 0 };
+                                    next[idx] = {
+                                        name: event.target.value,
+                                        sku: current.sku ?? "",
+                                        quantity: current.quantity ?? 1,
+                                        unitPrice: current.unitPrice ?? 0,
+                                    };
                                     setEditItems(next);
                                 }}
                             />
@@ -1187,7 +1223,13 @@ export function OrderPageClient({
                                 value={item.sku ?? ""}
                                 onChange={(event) => {
                                     const next = [...editItems];
-                                    next[idx] = { ...next[idx], sku: event.target.value };
+                                    const current = next[idx] ?? { name: "", sku: "", quantity: 1, unitPrice: 0 };
+                                    next[idx] = {
+                                        name: current.name,
+                                        sku: event.target.value,
+                                        quantity: current.quantity ?? 1,
+                                        unitPrice: current.unitPrice ?? 0,
+                                    };
                                     setEditItems(next);
                                 }}
                             />
@@ -1199,7 +1241,13 @@ export function OrderPageClient({
                                     value={item.quantity}
                                     onChange={(event) => {
                                         const next = [...editItems];
-                                        next[idx] = { ...next[idx], quantity: Number(event.target.value) };
+                                        const current = next[idx] ?? { name: "", sku: "", quantity: 1, unitPrice: 0 };
+                                        next[idx] = {
+                                            name: current.name,
+                                            sku: current.sku ?? "",
+                                            quantity: Number(event.target.value),
+                                            unitPrice: current.unitPrice ?? 0,
+                                        };
                                         setEditItems(next);
                                     }}
                                 />
@@ -1210,7 +1258,13 @@ export function OrderPageClient({
                                     value={item.unitPrice}
                                     onChange={(event) => {
                                         const next = [...editItems];
-                                        next[idx] = { ...next[idx], unitPrice: Number(event.target.value) };
+                                        const current = next[idx] ?? { name: "", sku: "", quantity: 1, unitPrice: 0 };
+                                        next[idx] = {
+                                            name: current.name,
+                                            sku: current.sku ?? "",
+                                            quantity: current.quantity ?? 1,
+                                            unitPrice: Number(event.target.value),
+                                        };
                                         setEditItems(next);
                                     }}
                                 />
@@ -1234,7 +1288,7 @@ export function OrderPageClient({
                         type="button"
                         variant="outline"
                         className="h-8 text-xs font-semibold w-full"
-                        onClick={() => setEditItems([...editItems, { name: "", quantity: 1, unitPrice: 0 }])}
+                        onClick={() => setEditItems([...editItems, { name: "", sku: "", quantity: 1, unitPrice: 0 }])}
                     >
                         Tambah Item
                     </Button>

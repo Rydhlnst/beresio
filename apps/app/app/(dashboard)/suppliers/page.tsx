@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   title: "Pemasok | Beres",
   description: "Kelola daftar pemasok dan riwayat pembelian",
 };
+export const dynamic = "force-dynamic";
 
 export default async function SuppliersPage() {
   try {

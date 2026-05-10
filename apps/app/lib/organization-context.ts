@@ -31,6 +31,7 @@ export async function getActiveOrganizationContext(): Promise<ActiveOrganization
         (session as any)?.activeOrganizationId ?? organizations[0]?.id;
     const activeOrganization =
         organizations.find((org) => org.id === activeOrganizationId) ?? organizations[0];
+    if (!activeOrganization) return null;
 
     return {
         id: activeOrganization.id,

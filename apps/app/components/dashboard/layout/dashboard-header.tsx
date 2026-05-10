@@ -40,7 +40,7 @@ type DashboardHeaderProps = {
   }
 }
 
-function HeaderUserMenu({ user }: DashboardHeaderProps["user"]) {
+function HeaderUserMenu({ user }: { user: DashboardHeaderProps["user"] }) {
   const { push } = useTransitionRouter()
   const { theme, resolvedTheme, setTheme } = useTheme()
   const isDark = theme === "dark" || (theme === "system" && resolvedTheme === "dark")

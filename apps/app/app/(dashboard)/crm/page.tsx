@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   title: "Pelanggan | Beres",
   description: "Kelola data pelanggan, tags, dan interaksi",
 };
+export const dynamic = "force-dynamic";
 
 export default async function CRMPage({
   searchParams,

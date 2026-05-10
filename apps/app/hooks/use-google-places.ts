@@ -255,7 +255,9 @@ export function useGooglePlaces({ apiKey, country = "id", onManualMode }: UseGoo
                 componentRestrictions: { country },
                 sessionToken: sessionToken ?? undefined,
                 location: locationBias
-                  ? new window.google.maps.LatLng(locationBias.lat, locationBias.lng)
+                  ? window.google?.maps
+                    ? new window.google.maps.LatLng(locationBias.lat, locationBias.lng)
+                    : undefined
                   : undefined,
                 radius: locationBias ? radius : undefined,
               },

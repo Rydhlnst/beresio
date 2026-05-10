@@ -57,7 +57,7 @@ export function OrgSwitcher({
   const handleSelect = async (org: OrgSwitcherItem) => {
     if (activeOrg?.id === org.id) return
     setActiveOrg(org)
-    const { error } = await authClient.organization.setActiveOrganization({
+    const { error } = await (authClient.organization as any).setActiveOrganization({
       organizationId: org.id,
     })
 

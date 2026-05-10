@@ -18,7 +18,7 @@ export async function createHighlightAction(formData: FormData) {
     const category = String(formData.get("category") ?? "").trim();
 
     if (!title) {
-        return { ok: false as const, error: "Judul highlight wajib diisi." };
+        throw new Error("Judul highlight wajib diisi.");
     }
 
     const cookie = cookies().toString();
@@ -29,13 +29,13 @@ export async function createHighlightAction(formData: FormData) {
 
     if (!res.ok) {
         const message = await res.text();
-        return { ok: false as const, error: message };
+        throw new Error(message || "Gagal membuat highlight.");
     }
 
     redirect("/dashboard/highlights");
 }
 
-export async function archiveHighlightAction(highlightId: string) {
+export async function archiveHighlightAction(highlightId: string, _formData: FormData) {
     const cookie = cookies().toString();
     const res = await apiClient.api.dashboard.highlights[":id"].$delete(
         { param: { id: highlightId } },
@@ -44,7 +44,7 @@ export async function archiveHighlightAction(highlightId: string) {
 
     if (!res.ok) {
         const message = await res.text();
-        return { ok: false as const, error: message };
+        throw new Error(message || "Gagal mengarsipkan highlight.");
     }
 
     redirect("/dashboard/highlights");

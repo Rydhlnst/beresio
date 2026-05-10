@@ -46,7 +46,7 @@ const SECTIONS = [
     "Order",
     "Inventory",
     "Pickup & Delivery",
-];
+] as const;
 
 function formatCurrency(value: number) {
     if (value >= 1000000000) {
@@ -66,7 +66,7 @@ export function ReportsPageClient({
     const normalizedBranches = Array.isArray(branches)
         ? branches
         : (branches as unknown as { data?: Branch[] })?.data ?? [];
-    const [activeSection, setActiveSection] = useState(SECTIONS[0]);
+    const [activeSection, setActiveSection] = useState<(typeof SECTIONS)[number]>(SECTIONS[0]);
     const [range, setRange] = useState<ReportRange>("today");
     const [branchId, setBranchId] = useState<string>("all");
     const [summary, setSummary] = useState<SummaryData>(initialSummary);

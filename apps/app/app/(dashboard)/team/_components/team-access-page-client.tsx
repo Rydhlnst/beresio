@@ -250,8 +250,10 @@ export function TeamAccessPageClient({
                 return;
             }
 
+            const inviteUpdate =
+                result.data && typeof result.data === "object" ? result.data : {};
             setInvitesState((prev) =>
-                prev.map((row) => (row.id === invite.id ? { ...row, ...result.data } : row))
+                prev.map((row) => (row.id === invite.id ? { ...row, ...inviteUpdate } : row))
             );
 
             setInviteMutationId(null);
@@ -270,8 +272,10 @@ export function TeamAccessPageClient({
                 return;
             }
 
+            const inviteUpdate =
+                result.data && typeof result.data === "object" ? result.data : {};
             setInvitesState((prev) =>
-                prev.map((row) => (row.id === invite.id ? { ...row, ...result.data } : row))
+                prev.map((row) => (row.id === invite.id ? { ...row, ...inviteUpdate } : row))
             );
 
             setInviteMutationId(null);
@@ -301,7 +305,9 @@ export function TeamAccessPageClient({
                 return;
             }
 
-            setInvitesState((prev) => [result.data, ...prev]);
+            if (result.data && typeof result.data === "object") {
+                setInvitesState((prev) => [result.data as InviteRecord, ...prev]);
+            }
             setInviteEmail("");
             setInviteRoleId(undefined);
             setInviteBranchId(undefined);

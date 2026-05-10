@@ -899,12 +899,9 @@ export function InventoryPageClient({
                                 <div className="space-y-4">
                                     <label className="text-sm font-medium">Foto Produk</label>
                                     <ImageUpload
-                                        value={field.state.value}
+                                        value={field.state.value ?? undefined}
                                         onChange={field.handleChange}
-                                        onRemove={() => field.handleChange(null)}
-                                        width={240}
-                                        height={240}
-                                        className="mx-auto"
+                                        onClear={() => field.handleChange(null)}
                                     />
                                 </div>
                             )}

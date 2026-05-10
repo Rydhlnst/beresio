@@ -10,6 +10,7 @@
 
 @layer base {
   :root {
+    --font-jakarta: "Plus Jakarta Sans";
     /* ========================================
        1. COLORS - Notion Style + Current Primary
        ======================================== */

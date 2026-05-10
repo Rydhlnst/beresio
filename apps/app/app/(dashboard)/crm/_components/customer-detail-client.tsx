@@ -353,7 +353,10 @@ function NoteItem({ note }: { note: CustomerNote }) {
 }
 
 function InteractionItem({ interaction }: { interaction: CustomerInteraction }) {
-  const config = interactionTypeConfig[interaction.type];
+  const config = interactionTypeConfig[interaction.type] ?? {
+    label: "Lainnya",
+    color: "bg-gray-500",
+  };
   return (
     <div className="flex gap-3 p-3 bg-muted/50 rounded-lg">
       <div className={`w-2 h-2 rounded-full mt-2 ${config.color}`} />

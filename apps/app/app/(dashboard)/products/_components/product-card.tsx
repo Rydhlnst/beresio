@@ -74,7 +74,11 @@ function StockBadge({ status, quantity }: { status: string; quantity: number | n
     },
   };
 
-  const config = variants[status] || variants.unknown;
+  const config = variants[status] ?? {
+    variant: "outline" as const,
+    label: "Stok: -",
+    className: "bg-muted/50 text-muted-foreground",
+  };
 
   return (
     <Badge variant={config.variant} className={cn("text-[10px] font-semibold px-1.5 py-0 h-5", config.className)}>

@@ -149,7 +149,7 @@ export const pageKeywords = {
 interface MetadataOptions {
     title: string;
     description: string;
-    keywords?: string[];
+    keywords?: readonly string[];
     image?: string;
     canonical?: string;
     noIndex?: boolean;

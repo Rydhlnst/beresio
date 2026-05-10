@@ -152,11 +152,11 @@ function ValueCarousel() {
                 {/* Content Side */}
                 <div className="flex-1 w-full flex flex-col justify-center">
                     <div className="flex gap-2 mb-10">
-                        {FEATURES.map((_, i) => (
+                        {FEATURES.map((feature, i) => (
                             <button
                                 key={i}
                                 onClick={() => setActiveIndex(i)}
-                                aria-label={`Select feature ${i + 1}: ${FEATURES[i].title}`}
+                                aria-label={`Select feature ${i + 1}: ${feature.title}`}
                                 aria-current={i === activeIndex}
                                 className={cn(
                                     "h-1.5 transition-all duration-500 rounded-full",

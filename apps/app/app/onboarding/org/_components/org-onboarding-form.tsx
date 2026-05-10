@@ -64,7 +64,7 @@ export function OrgOnboardingForm() {
 
             const orgId = (data as any)?.organization?.id ?? (data as any)?.id;
             if (orgId) {
-                await authClient.organization.setActiveOrganization({
+                await (authClient.organization as any).setActiveOrganization({
                     organizationId: orgId,
                 });
             }

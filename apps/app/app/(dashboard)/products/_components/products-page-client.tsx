@@ -168,6 +168,26 @@ export function ProductsPageClient({
     setSelectedProducts(new Set());
   };
 
+  const initialFormData = editingProduct
+    ? {
+        id: editingProduct.id,
+        name: editingProduct.name,
+        sku: editingProduct.sku ?? "",
+        barcode: editingProduct.barcode ?? "",
+        categoryId: editingProduct.category?.id ?? "",
+        supplierId: editingProduct.supplier?.id ?? "",
+        basePrice: editingProduct.pricing.basePrice,
+        salePrice: editingProduct.pricing.salePrice ?? undefined,
+        costPrice: editingProduct.pricing.costPrice ?? undefined,
+        description: "",
+        shortDescription: "",
+        weight: undefined,
+        imageUrl: editingProduct.imageUrl ?? "",
+        isActive: editingProduct.isActive,
+        isFeatured: editingProduct.isFeatured,
+      }
+    : undefined;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -346,8 +366,14 @@ export function ProductsPageClient({
           setIsFormOpen(false);
           setEditingProduct(null);
         }}
-        onSubmit={editingProduct ? handleUpdateProduct : handleCreateProduct}
-        initialData={editingProduct || undefined}
+        onSubmit={async (data) => {
+          if (editingProduct) {
+            await handleUpdateProduct(data);
+            return;
+          }
+          await handleCreateProduct(data as CreateProductInput);
+        }}
+        initialData={initialFormData}
         categories={categories}
         suppliers={suppliers}
         mode={editingProduct ? "edit" : "create"}

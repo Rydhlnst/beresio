@@ -1,18 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "./_components/Navbar";
 import { Footer } from "./_components/Footer";
 import { Toaster } from "@repo/ui";
 import { LayoutProvider } from "./_components/LayoutProvider";
 import { Analytics } from "./_components/Analytics";
-
-const jakarta = Plus_Jakarta_Sans({
-    subsets: ["latin"],
-    variable: "--font-jakarta",
-    display: "swap",
-    preload: true,
-});
 
 // ── Viewport (pisah dari metadata sesuai Next.js 14+ best practice) ──────────
 export const viewport: Viewport = {
@@ -148,7 +140,7 @@ export default function RootLayout({
                     dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
                 />
             </head>
-            <body className={`${jakarta.variable} font-sans antialiased bg-background relative overflow-x-hidden`}>
+            <body className="font-sans antialiased bg-background relative overflow-x-hidden">
                 <LayoutProvider>
                     <Navbar />
                     <main className="min-h-screen w-full bg-background relative z-10">

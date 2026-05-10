@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 import { headers } from "next/headers";
 import { apiClient } from "@/lib/api-client";
-import { SettingsPageClient } from "./_components/settings-page-client";
+import { SettingsPageClient } from "../settings/_components/settings-page-client";
 import { PageErrorState } from "@/components/dashboard/shared/page-error-state";
 import { ErrorRetryAction } from "@/components/dashboard/shared/error-retry-action";
 import { ErrorToast } from "@/components/dashboard/shared/error-toast";
